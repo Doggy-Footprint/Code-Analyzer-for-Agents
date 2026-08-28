@@ -1,0 +1,3665 @@
+{
+  "project_name": "official_template",
+  "project_path": "/Users/hwansu/today/260828/static-code-analysis/examples/official_template",
+  "stats": {
+    "total_apps": 1,
+    "total_routers": 6,
+    "total_endpoints": 23,
+    "total_dependencies": 3,
+    "total_schemas": 14,
+    "methods_breakdown": {
+      "GET": 6,
+      "POST": 10,
+      "PATCH": 3,
+      "DELETE": 3,
+      "PUT": 1
+    },
+    "top_reused_dependencies": [
+      [
+        "get_current_active_superuser",
+        6
+      ],
+      [
+        "Depends",
+        1
+      ]
+    ],
+    "unique_tags": [
+      "login",
+      "utils",
+      "items",
+      "users",
+      "private"
+    ]
+  },
+  "nodes": [
+    {
+      "id": "app_app.main_app",
+      "label": "🚀 FastAPI App\n(app)",
+      "group": "app",
+      "category": "app",
+      "title": "<b>FastAPI Application: FastAPI App</b><br>Version: 0.1.0<br>Module: app.main<br>File: /Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/main.py:21",
+      "shape": "box",
+      "size": 35,
+      "color": {
+        "background": "#4F46E5",
+        "border": "#3730A3",
+        "highlight": "#6366F1"
+      },
+      "metadata": {
+        "type": "app",
+        "title": "FastAPI App",
+        "version": "0.1.0",
+        "module": "app.main",
+        "file_path": "/Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/main.py",
+        "line_number": 21,
+        "middlewares": [
+          {
+            "name": "CORSMiddleware",
+            "module": "app.main",
+            "line": 27
+          }
+        ]
+      }
+    },
+    {
+      "id": "mw_app_app.main_app_CORSMiddleware",
+      "label": "🛡️ CORSMiddleware",
+      "group": "middleware",
+      "category": "middleware",
+      "title": "<b>Middleware: CORSMiddleware</b><br>Registered on: FastAPI App",
+      "shape": "ellipse",
+      "size": 20,
+      "color": {
+        "background": "#475569",
+        "border": "#334155",
+        "highlight": "#64748B"
+      },
+      "metadata": {
+        "name": "CORSMiddleware",
+        "app": "FastAPI App"
+      }
+    },
+    {
+      "id": "router_app.api.main_api_router",
+      "label": "📁 api_router",
+      "group": "router",
+      "category": "router",
+      "title": "<b>Router: api_router</b><br>Prefix: /<br>Tags: <br>Module: app.api.main<br>File: /Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/api/main.py:6",
+      "shape": "box",
+      "size": 30,
+      "color": {
+        "background": "#9333EA",
+        "border": "#7E22CE",
+        "highlight": "#A855F7"
+      },
+      "metadata": {
+        "type": "router",
+        "var_name": "api_router",
+        "prefix": "",
+        "tags": [],
+        "module": "app.api.main",
+        "file_path": "/Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/api/main.py",
+        "line_number": 6,
+        "dependencies": []
+      }
+    },
+    {
+      "id": "router_app.api.routes.users_router",
+      "label": "📁 router\nPrefix: /users",
+      "group": "router",
+      "category": "router",
+      "title": "<b>Router: router</b><br>Prefix: /users<br>Tags: users<br>Module: app.api.routes.users<br>File: /Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/api/routes/users.py:29",
+      "shape": "box",
+      "size": 30,
+      "color": {
+        "background": "#9333EA",
+        "border": "#7E22CE",
+        "highlight": "#A855F7"
+      },
+      "metadata": {
+        "type": "router",
+        "var_name": "router",
+        "prefix": "/users",
+        "tags": [
+          "users"
+        ],
+        "module": "app.api.routes.users",
+        "file_path": "/Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/api/routes/users.py",
+        "line_number": 29,
+        "dependencies": []
+      }
+    },
+    {
+      "id": "router_app.api.routes.utils_router",
+      "label": "📁 router\nPrefix: /utils",
+      "group": "router",
+      "category": "router",
+      "title": "<b>Router: router</b><br>Prefix: /utils<br>Tags: utils<br>Module: app.api.routes.utils<br>File: /Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/api/routes/utils.py:8",
+      "shape": "box",
+      "size": 30,
+      "color": {
+        "background": "#9333EA",
+        "border": "#7E22CE",
+        "highlight": "#A855F7"
+      },
+      "metadata": {
+        "type": "router",
+        "var_name": "router",
+        "prefix": "/utils",
+        "tags": [
+          "utils"
+        ],
+        "module": "app.api.routes.utils",
+        "file_path": "/Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/api/routes/utils.py",
+        "line_number": 8,
+        "dependencies": []
+      }
+    },
+    {
+      "id": "router_app.api.routes.login_router",
+      "label": "📁 router",
+      "group": "router",
+      "category": "router",
+      "title": "<b>Router: router</b><br>Prefix: /<br>Tags: login<br>Module: app.api.routes.login<br>File: /Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/api/routes/login.py:20",
+      "shape": "box",
+      "size": 30,
+      "color": {
+        "background": "#9333EA",
+        "border": "#7E22CE",
+        "highlight": "#A855F7"
+      },
+      "metadata": {
+        "type": "router",
+        "var_name": "router",
+        "prefix": "",
+        "tags": [
+          "login"
+        ],
+        "module": "app.api.routes.login",
+        "file_path": "/Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/api/routes/login.py",
+        "line_number": 20,
+        "dependencies": []
+      }
+    },
+    {
+      "id": "router_app.api.routes.items_router",
+      "label": "📁 router\nPrefix: /items",
+      "group": "router",
+      "category": "router",
+      "title": "<b>Router: router</b><br>Prefix: /items<br>Tags: items<br>Module: app.api.routes.items<br>File: /Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/api/routes/items.py:10",
+      "shape": "box",
+      "size": 30,
+      "color": {
+        "background": "#9333EA",
+        "border": "#7E22CE",
+        "highlight": "#A855F7"
+      },
+      "metadata": {
+        "type": "router",
+        "var_name": "router",
+        "prefix": "/items",
+        "tags": [
+          "items"
+        ],
+        "module": "app.api.routes.items",
+        "file_path": "/Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/api/routes/items.py",
+        "line_number": 10,
+        "dependencies": []
+      }
+    },
+    {
+      "id": "router_app.api.routes.private_router",
+      "label": "📁 router\nPrefix: /private",
+      "group": "router",
+      "category": "router",
+      "title": "<b>Router: router</b><br>Prefix: /private<br>Tags: private<br>Module: app.api.routes.private<br>File: /Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/api/routes/private.py:13",
+      "shape": "box",
+      "size": 30,
+      "color": {
+        "background": "#9333EA",
+        "border": "#7E22CE",
+        "highlight": "#A855F7"
+      },
+      "metadata": {
+        "type": "router",
+        "var_name": "router",
+        "prefix": "/private",
+        "tags": [
+          "private"
+        ],
+        "module": "app.api.routes.private",
+        "file_path": "/Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/api/routes/private.py",
+        "line_number": 13,
+        "dependencies": []
+      }
+    },
+    {
+      "id": "ep_app.api.routes.users_read_users_GET",
+      "label": "🟢 GET /users\n(read_users)",
+      "group": "endpoint_get",
+      "category": "endpoint",
+      "title": "<b>[GET] /users</b><br>Handler: <code>read_users()</code><br>Module: app.api.routes.users<br>Tags: users<br>Status: 200<br>Response: UsersPublic",
+      "shape": "box",
+      "size": 22,
+      "color": {
+        "background": "#059669",
+        "border": "#047857",
+        "highlight": "#10B981"
+      },
+      "metadata": {
+        "type": "endpoint",
+        "http_method": "GET",
+        "path": "/",
+        "full_path": "/users",
+        "function_name": "read_users",
+        "module": "app.api.routes.users",
+        "file_path": "/Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/api/routes/users.py",
+        "line_number": 37,
+        "docstring": "Retrieve users.",
+        "summary": null,
+        "tags": [
+          "users"
+        ],
+        "response_model": "UsersPublic",
+        "status_code": null,
+        "parameters": [
+          {
+            "name": "session",
+            "type_annotation": "SessionDep",
+            "default_value": null,
+            "kind": "query",
+            "dependency_call": null
+          },
+          {
+            "name": "skip",
+            "type_annotation": "int",
+            "default_value": "0",
+            "kind": "query",
+            "dependency_call": null
+          },
+          {
+            "name": "limit",
+            "type_annotation": "int",
+            "default_value": "100",
+            "kind": "query",
+            "dependency_call": null
+          }
+        ],
+        "dependencies": [
+          "get_current_active_superuser"
+        ],
+        "request_schemas": [],
+        "response_schemas": [
+          "UsersPublic"
+        ]
+      }
+    },
+    {
+      "id": "ep_app.api.routes.users_create_user_POST",
+      "label": "🔵 POST /users\n(create_user)",
+      "group": "endpoint_post",
+      "category": "endpoint",
+      "title": "<b>[POST] /users</b><br>Handler: <code>create_user()</code><br>Module: app.api.routes.users<br>Tags: users<br>Status: 200<br>Response: UserPublic",
+      "shape": "box",
+      "size": 22,
+      "color": {
+        "background": "#2563EB",
+        "border": "#1D4ED8",
+        "highlight": "#3B82F6"
+      },
+      "metadata": {
+        "type": "endpoint",
+        "http_method": "POST",
+        "path": "/",
+        "full_path": "/users",
+        "function_name": "create_user",
+        "module": "app.api.routes.users",
+        "file_path": "/Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/api/routes/users.py",
+        "line_number": 57,
+        "docstring": "Create new user.",
+        "summary": null,
+        "tags": [
+          "users"
+        ],
+        "response_model": "UserPublic",
+        "status_code": null,
+        "parameters": [
+          {
+            "name": "session",
+            "type_annotation": "SessionDep",
+            "default_value": null,
+            "kind": "query",
+            "dependency_call": null
+          },
+          {
+            "name": "user_in",
+            "type_annotation": "UserCreate",
+            "default_value": null,
+            "kind": "query",
+            "dependency_call": null
+          }
+        ],
+        "dependencies": [
+          "get_current_active_superuser"
+        ],
+        "request_schemas": [],
+        "response_schemas": [
+          "UserPublic"
+        ]
+      }
+    },
+    {
+      "id": "ep_app.api.routes.users_update_user_me_PATCH",
+      "label": "🟣 PATCH /users/me\n(update_user_me)",
+      "group": "endpoint_patch",
+      "category": "endpoint",
+      "title": "<b>[PATCH] /users/me</b><br>Handler: <code>update_user_me()</code><br>Module: app.api.routes.users<br>Tags: users<br>Status: 200<br>Response: UserPublic",
+      "shape": "box",
+      "size": 22,
+      "color": {
+        "background": "#0D9488",
+        "border": "#0F766E",
+        "highlight": "#14B8A6"
+      },
+      "metadata": {
+        "type": "endpoint",
+        "http_method": "PATCH",
+        "path": "/me",
+        "full_path": "/users/me",
+        "function_name": "update_user_me",
+        "module": "app.api.routes.users",
+        "file_path": "/Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/api/routes/users.py",
+        "line_number": 82,
+        "docstring": "Update own user.",
+        "summary": null,
+        "tags": [
+          "users"
+        ],
+        "response_model": "UserPublic",
+        "status_code": null,
+        "parameters": [
+          {
+            "name": "session",
+            "type_annotation": "SessionDep",
+            "default_value": null,
+            "kind": "query",
+            "dependency_call": null
+          },
+          {
+            "name": "user_in",
+            "type_annotation": "UserUpdateMe",
+            "default_value": null,
+            "kind": "query",
+            "dependency_call": null
+          },
+          {
+            "name": "current_user",
+            "type_annotation": "CurrentUser",
+            "default_value": null,
+            "kind": "query",
+            "dependency_call": null
+          }
+        ],
+        "dependencies": [],
+        "request_schemas": [
+          "UserUpdateMe"
+        ],
+        "response_schemas": [
+          "UserPublic"
+        ]
+      }
+    },
+    {
+      "id": "ep_app.api.routes.users_update_password_me_PATCH",
+      "label": "🟣 PATCH /users/me/password\n(update_password_me)",
+      "group": "endpoint_patch",
+      "category": "endpoint",
+      "title": "<b>[PATCH] /users/me/password</b><br>Handler: <code>update_password_me()</code><br>Module: app.api.routes.users<br>Tags: users<br>Status: 200<br>Response: Message",
+      "shape": "box",
+      "size": 22,
+      "color": {
+        "background": "#0D9488",
+        "border": "#0F766E",
+        "highlight": "#14B8A6"
+      },
+      "metadata": {
+        "type": "endpoint",
+        "http_method": "PATCH",
+        "path": "/me/password",
+        "full_path": "/users/me/password",
+        "function_name": "update_password_me",
+        "module": "app.api.routes.users",
+        "file_path": "/Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/api/routes/users.py",
+        "line_number": 104,
+        "docstring": "Update own password.",
+        "summary": null,
+        "tags": [
+          "users"
+        ],
+        "response_model": "Message",
+        "status_code": null,
+        "parameters": [
+          {
+            "name": "session",
+            "type_annotation": "SessionDep",
+            "default_value": null,
+            "kind": "query",
+            "dependency_call": null
+          },
+          {
+            "name": "body",
+            "type_annotation": "UpdatePassword",
+            "default_value": null,
+            "kind": "query",
+            "dependency_call": null
+          },
+          {
+            "name": "current_user",
+            "type_annotation": "CurrentUser",
+            "default_value": null,
+            "kind": "query",
+            "dependency_call": null
+          }
+        ],
+        "dependencies": [],
+        "request_schemas": [
+          "UpdatePassword"
+        ],
+        "response_schemas": [
+          "Message"
+        ]
+      }
+    },
+    {
+      "id": "ep_app.api.routes.users_read_user_me_GET",
+      "label": "🟢 GET /users/me\n(read_user_me)",
+      "group": "endpoint_get",
+      "category": "endpoint",
+      "title": "<b>[GET] /users/me</b><br>Handler: <code>read_user_me()</code><br>Module: app.api.routes.users<br>Tags: users<br>Status: 200<br>Response: UserPublic",
+      "shape": "box",
+      "size": 22,
+      "color": {
+        "background": "#059669",
+        "border": "#047857",
+        "highlight": "#10B981"
+      },
+      "metadata": {
+        "type": "endpoint",
+        "http_method": "GET",
+        "path": "/me",
+        "full_path": "/users/me",
+        "function_name": "read_user_me",
+        "module": "app.api.routes.users",
+        "file_path": "/Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/api/routes/users.py",
+        "line_number": 125,
+        "docstring": "Get current user.",
+        "summary": null,
+        "tags": [
+          "users"
+        ],
+        "response_model": "UserPublic",
+        "status_code": null,
+        "parameters": [
+          {
+            "name": "current_user",
+            "type_annotation": "CurrentUser",
+            "default_value": null,
+            "kind": "query",
+            "dependency_call": null
+          }
+        ],
+        "dependencies": [],
+        "request_schemas": [],
+        "response_schemas": [
+          "UserPublic"
+        ]
+      }
+    },
+    {
+      "id": "ep_app.api.routes.users_delete_user_me_DELETE",
+      "label": "🔴 DELETE /users/me\n(delete_user_me)",
+      "group": "endpoint_delete",
+      "category": "endpoint",
+      "title": "<b>[DELETE] /users/me</b><br>Handler: <code>delete_user_me()</code><br>Module: app.api.routes.users<br>Tags: users<br>Status: 200<br>Response: Message",
+      "shape": "box",
+      "size": 22,
+      "color": {
+        "background": "#E11D48",
+        "border": "#BE123C",
+        "highlight": "#F43F5E"
+      },
+      "metadata": {
+        "type": "endpoint",
+        "http_method": "DELETE",
+        "path": "/me",
+        "full_path": "/users/me",
+        "function_name": "delete_user_me",
+        "module": "app.api.routes.users",
+        "file_path": "/Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/api/routes/users.py",
+        "line_number": 133,
+        "docstring": "Delete own user.",
+        "summary": null,
+        "tags": [
+          "users"
+        ],
+        "response_model": "Message",
+        "status_code": null,
+        "parameters": [
+          {
+            "name": "session",
+            "type_annotation": "SessionDep",
+            "default_value": null,
+            "kind": "query",
+            "dependency_call": null
+          },
+          {
+            "name": "current_user",
+            "type_annotation": "CurrentUser",
+            "default_value": null,
+            "kind": "query",
+            "dependency_call": null
+          }
+        ],
+        "dependencies": [],
+        "request_schemas": [],
+        "response_schemas": [
+          "Message"
+        ]
+      }
+    },
+    {
+      "id": "ep_app.api.routes.users_register_user_POST",
+      "label": "🔵 POST /users/signup\n(register_user)",
+      "group": "endpoint_post",
+      "category": "endpoint",
+      "title": "<b>[POST] /users/signup</b><br>Handler: <code>register_user()</code><br>Module: app.api.routes.users<br>Tags: users<br>Status: 200<br>Response: UserPublic",
+      "shape": "box",
+      "size": 22,
+      "color": {
+        "background": "#2563EB",
+        "border": "#1D4ED8",
+        "highlight": "#3B82F6"
+      },
+      "metadata": {
+        "type": "endpoint",
+        "http_method": "POST",
+        "path": "/signup",
+        "full_path": "/users/signup",
+        "function_name": "register_user",
+        "module": "app.api.routes.users",
+        "file_path": "/Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/api/routes/users.py",
+        "line_number": 147,
+        "docstring": "Create new user without the need to be logged in.",
+        "summary": null,
+        "tags": [
+          "users"
+        ],
+        "response_model": "UserPublic",
+        "status_code": null,
+        "parameters": [
+          {
+            "name": "session",
+            "type_annotation": "SessionDep",
+            "default_value": null,
+            "kind": "query",
+            "dependency_call": null
+          },
+          {
+            "name": "user_in",
+            "type_annotation": "UserRegister",
+            "default_value": null,
+            "kind": "query",
+            "dependency_call": null
+          }
+        ],
+        "dependencies": [],
+        "request_schemas": [
+          "UserRegister"
+        ],
+        "response_schemas": [
+          "UserPublic"
+        ]
+      }
+    },
+    {
+      "id": "ep_app.api.routes.users_read_user_by_id_GET",
+      "label": "🟢 GET /users/{user_id}\n(read_user_by_id)",
+      "group": "endpoint_get",
+      "category": "endpoint",
+      "title": "<b>[GET] /users/{user_id}</b><br>Handler: <code>read_user_by_id()</code><br>Module: app.api.routes.users<br>Tags: users<br>Status: 200<br>Response: UserPublic",
+      "shape": "box",
+      "size": 22,
+      "color": {
+        "background": "#059669",
+        "border": "#047857",
+        "highlight": "#10B981"
+      },
+      "metadata": {
+        "type": "endpoint",
+        "http_method": "GET",
+        "path": "/{user_id}",
+        "full_path": "/users/{user_id}",
+        "function_name": "read_user_by_id",
+        "module": "app.api.routes.users",
+        "file_path": "/Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/api/routes/users.py",
+        "line_number": 163,
+        "docstring": "Get a specific user by id.",
+        "summary": null,
+        "tags": [
+          "users"
+        ],
+        "response_model": "UserPublic",
+        "status_code": null,
+        "parameters": [
+          {
+            "name": "user_id",
+            "type_annotation": "uuid.UUID",
+            "default_value": null,
+            "kind": "query",
+            "dependency_call": null
+          },
+          {
+            "name": "session",
+            "type_annotation": "SessionDep",
+            "default_value": null,
+            "kind": "query",
+            "dependency_call": null
+          },
+          {
+            "name": "current_user",
+            "type_annotation": "CurrentUser",
+            "default_value": null,
+            "kind": "query",
+            "dependency_call": null
+          }
+        ],
+        "dependencies": [],
+        "request_schemas": [],
+        "response_schemas": [
+          "UserPublic"
+        ]
+      }
+    },
+    {
+      "id": "ep_app.api.routes.users_update_user_PATCH",
+      "label": "🟣 PATCH /users/{user_id}\n(update_user)",
+      "group": "endpoint_patch",
+      "category": "endpoint",
+      "title": "<b>[PATCH] /users/{user_id}</b><br>Handler: <code>update_user()</code><br>Module: app.api.routes.users<br>Tags: users<br>Status: 200<br>Response: UserPublic",
+      "shape": "box",
+      "size": 22,
+      "color": {
+        "background": "#0D9488",
+        "border": "#0F766E",
+        "highlight": "#14B8A6"
+      },
+      "metadata": {
+        "type": "endpoint",
+        "http_method": "PATCH",
+        "path": "/{user_id}",
+        "full_path": "/users/{user_id}",
+        "function_name": "update_user",
+        "module": "app.api.routes.users",
+        "file_path": "/Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/api/routes/users.py",
+        "line_number": 187,
+        "docstring": "Update a user.",
+        "summary": null,
+        "tags": [
+          "users"
+        ],
+        "response_model": "UserPublic",
+        "status_code": null,
+        "parameters": [
+          {
+            "name": "session",
+            "type_annotation": "SessionDep",
+            "default_value": null,
+            "kind": "query",
+            "dependency_call": null
+          },
+          {
+            "name": "user_id",
+            "type_annotation": "uuid.UUID",
+            "default_value": null,
+            "kind": "query",
+            "dependency_call": null
+          },
+          {
+            "name": "user_in",
+            "type_annotation": "UserUpdate",
+            "default_value": null,
+            "kind": "query",
+            "dependency_call": null
+          }
+        ],
+        "dependencies": [
+          "get_current_active_superuser"
+        ],
+        "request_schemas": [
+          "UserUpdate"
+        ],
+        "response_schemas": [
+          "UserPublic"
+        ]
+      }
+    },
+    {
+      "id": "ep_app.api.routes.users_delete_user_DELETE",
+      "label": "🔴 DELETE /users/{user_id}\n(delete_user)",
+      "group": "endpoint_delete",
+      "category": "endpoint",
+      "title": "<b>[DELETE] /users/{user_id}</b><br>Handler: <code>delete_user()</code><br>Module: app.api.routes.users<br>Tags: users<br>Status: 200<br>Response: default",
+      "shape": "box",
+      "size": 22,
+      "color": {
+        "background": "#E11D48",
+        "border": "#BE123C",
+        "highlight": "#F43F5E"
+      },
+      "metadata": {
+        "type": "endpoint",
+        "http_method": "DELETE",
+        "path": "/{user_id}",
+        "full_path": "/users/{user_id}",
+        "function_name": "delete_user",
+        "module": "app.api.routes.users",
+        "file_path": "/Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/api/routes/users.py",
+        "line_number": 215,
+        "docstring": "Delete a user.",
+        "summary": null,
+        "tags": [
+          "users"
+        ],
+        "response_model": null,
+        "status_code": null,
+        "parameters": [
+          {
+            "name": "session",
+            "type_annotation": "SessionDep",
+            "default_value": null,
+            "kind": "query",
+            "dependency_call": null
+          },
+          {
+            "name": "current_user",
+            "type_annotation": "CurrentUser",
+            "default_value": null,
+            "kind": "query",
+            "dependency_call": null
+          },
+          {
+            "name": "user_id",
+            "type_annotation": "uuid.UUID",
+            "default_value": null,
+            "kind": "query",
+            "dependency_call": null
+          }
+        ],
+        "dependencies": [
+          "get_current_active_superuser"
+        ],
+        "request_schemas": [],
+        "response_schemas": []
+      }
+    },
+    {
+      "id": "ep_app.api.routes.utils_test_email_POST",
+      "label": "🔵 POST /utils/test-email\n(test_email)",
+      "group": "endpoint_post",
+      "category": "endpoint",
+      "title": "<b>[POST] /utils/test-email</b><br>Handler: <code>test_email()</code><br>Module: app.api.routes.utils<br>Tags: utils<br>Status: 201<br>Response: default",
+      "shape": "box",
+      "size": 22,
+      "color": {
+        "background": "#2563EB",
+        "border": "#1D4ED8",
+        "highlight": "#3B82F6"
+      },
+      "metadata": {
+        "type": "endpoint",
+        "http_method": "POST",
+        "path": "/test-email/",
+        "full_path": "/utils/test-email",
+        "function_name": "test_email",
+        "module": "app.api.routes.utils",
+        "file_path": "/Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/api/routes/utils.py",
+        "line_number": 16,
+        "docstring": "Test emails.",
+        "summary": null,
+        "tags": [
+          "utils"
+        ],
+        "response_model": null,
+        "status_code": "201",
+        "parameters": [
+          {
+            "name": "email_to",
+            "type_annotation": "EmailStr",
+            "default_value": null,
+            "kind": "query",
+            "dependency_call": null
+          }
+        ],
+        "dependencies": [
+          "get_current_active_superuser"
+        ],
+        "request_schemas": [],
+        "response_schemas": []
+      }
+    },
+    {
+      "id": "ep_app.api.routes.utils_health_check_GET",
+      "label": "🟢 GET /utils/health-check\n(health_check)",
+      "group": "endpoint_get",
+      "category": "endpoint",
+      "title": "<b>[GET] /utils/health-check</b><br>Handler: <code>health_check()</code><br>Module: app.api.routes.utils<br>Tags: utils<br>Status: 200<br>Response: default",
+      "shape": "box",
+      "size": 22,
+      "color": {
+        "background": "#059669",
+        "border": "#047857",
+        "highlight": "#10B981"
+      },
+      "metadata": {
+        "type": "endpoint",
+        "http_method": "GET",
+        "path": "/health-check/",
+        "full_path": "/utils/health-check",
+        "function_name": "health_check",
+        "module": "app.api.routes.utils",
+        "file_path": "/Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/api/routes/utils.py",
+        "line_number": 30,
+        "docstring": null,
+        "summary": null,
+        "tags": [
+          "utils"
+        ],
+        "response_model": null,
+        "status_code": null,
+        "parameters": [],
+        "dependencies": [],
+        "request_schemas": [],
+        "response_schemas": []
+      }
+    },
+    {
+      "id": "ep_app.api.routes.login_login_access_token_POST",
+      "label": "🔵 POST /login/access-token\n(login_access_token)",
+      "group": "endpoint_post",
+      "category": "endpoint",
+      "title": "<b>[POST] /login/access-token</b><br>Handler: <code>login_access_token()</code><br>Module: app.api.routes.login<br>Tags: login<br>Status: 200<br>Response: default",
+      "shape": "box",
+      "size": 22,
+      "color": {
+        "background": "#2563EB",
+        "border": "#1D4ED8",
+        "highlight": "#3B82F6"
+      },
+      "metadata": {
+        "type": "endpoint",
+        "http_method": "POST",
+        "path": "/login/access-token",
+        "full_path": "/login/access-token",
+        "function_name": "login_access_token",
+        "module": "app.api.routes.login",
+        "file_path": "/Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/api/routes/login.py",
+        "line_number": 24,
+        "docstring": "OAuth2 compatible token login, get an access token for future requests",
+        "summary": null,
+        "tags": [
+          "login"
+        ],
+        "response_model": null,
+        "status_code": null,
+        "parameters": [
+          {
+            "name": "session",
+            "type_annotation": "SessionDep",
+            "default_value": null,
+            "kind": "query",
+            "dependency_call": null
+          },
+          {
+            "name": "form_data",
+            "type_annotation": "Annotated[OAuth2PasswordRequestForm, Depends()]",
+            "default_value": null,
+            "kind": "dependency",
+            "dependency_call": "Depends"
+          }
+        ],
+        "dependencies": [
+          "Depends"
+        ],
+        "request_schemas": [],
+        "response_schemas": []
+      }
+    },
+    {
+      "id": "ep_app.api.routes.login_test_token_POST",
+      "label": "🔵 POST /login/test-token\n(test_token)",
+      "group": "endpoint_post",
+      "category": "endpoint",
+      "title": "<b>[POST] /login/test-token</b><br>Handler: <code>test_token()</code><br>Module: app.api.routes.login<br>Tags: login<br>Status: 200<br>Response: UserPublic",
+      "shape": "box",
+      "size": 22,
+      "color": {
+        "background": "#2563EB",
+        "border": "#1D4ED8",
+        "highlight": "#3B82F6"
+      },
+      "metadata": {
+        "type": "endpoint",
+        "http_method": "POST",
+        "path": "/login/test-token",
+        "full_path": "/login/test-token",
+        "function_name": "test_token",
+        "module": "app.api.routes.login",
+        "file_path": "/Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/api/routes/login.py",
+        "line_number": 46,
+        "docstring": "Test access token",
+        "summary": null,
+        "tags": [
+          "login"
+        ],
+        "response_model": "UserPublic",
+        "status_code": null,
+        "parameters": [
+          {
+            "name": "current_user",
+            "type_annotation": "CurrentUser",
+            "default_value": null,
+            "kind": "query",
+            "dependency_call": null
+          }
+        ],
+        "dependencies": [],
+        "request_schemas": [],
+        "response_schemas": [
+          "UserPublic"
+        ]
+      }
+    },
+    {
+      "id": "ep_app.api.routes.login_recover_password_POST",
+      "label": "🔵 POST /password-recovery/{email}\n(recover_password)",
+      "group": "endpoint_post",
+      "category": "endpoint",
+      "title": "<b>[POST] /password-recovery/{email}</b><br>Handler: <code>recover_password()</code><br>Module: app.api.routes.login<br>Tags: login<br>Status: 200<br>Response: default",
+      "shape": "box",
+      "size": 22,
+      "color": {
+        "background": "#2563EB",
+        "border": "#1D4ED8",
+        "highlight": "#3B82F6"
+      },
+      "metadata": {
+        "type": "endpoint",
+        "http_method": "POST",
+        "path": "/password-recovery/{email}",
+        "full_path": "/password-recovery/{email}",
+        "function_name": "recover_password",
+        "module": "app.api.routes.login",
+        "file_path": "/Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/api/routes/login.py",
+        "line_number": 54,
+        "docstring": "Password Recovery",
+        "summary": null,
+        "tags": [
+          "login"
+        ],
+        "response_model": null,
+        "status_code": null,
+        "parameters": [
+          {
+            "name": "email",
+            "type_annotation": "str",
+            "default_value": null,
+            "kind": "query",
+            "dependency_call": null
+          },
+          {
+            "name": "session",
+            "type_annotation": "SessionDep",
+            "default_value": null,
+            "kind": "query",
+            "dependency_call": null
+          }
+        ],
+        "dependencies": [],
+        "request_schemas": [],
+        "response_schemas": []
+      }
+    },
+    {
+      "id": "ep_app.api.routes.login_reset_password_POST",
+      "label": "🔵 POST /reset-password\n(reset_password)",
+      "group": "endpoint_post",
+      "category": "endpoint",
+      "title": "<b>[POST] /reset-password</b><br>Handler: <code>reset_password()</code><br>Module: app.api.routes.login<br>Tags: login<br>Status: 200<br>Response: default",
+      "shape": "box",
+      "size": 22,
+      "color": {
+        "background": "#2563EB",
+        "border": "#1D4ED8",
+        "highlight": "#3B82F6"
+      },
+      "metadata": {
+        "type": "endpoint",
+        "http_method": "POST",
+        "path": "/reset-password/",
+        "full_path": "/reset-password",
+        "function_name": "reset_password",
+        "module": "app.api.routes.login",
+        "file_path": "/Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/api/routes/login.py",
+        "line_number": 78,
+        "docstring": "Reset password",
+        "summary": null,
+        "tags": [
+          "login"
+        ],
+        "response_model": null,
+        "status_code": null,
+        "parameters": [
+          {
+            "name": "session",
+            "type_annotation": "SessionDep",
+            "default_value": null,
+            "kind": "query",
+            "dependency_call": null
+          },
+          {
+            "name": "body",
+            "type_annotation": "NewPassword",
+            "default_value": null,
+            "kind": "query",
+            "dependency_call": null
+          }
+        ],
+        "dependencies": [],
+        "request_schemas": [
+          "NewPassword"
+        ],
+        "response_schemas": []
+      }
+    },
+    {
+      "id": "ep_app.api.routes.login_recover_password_html_content_POST",
+      "label": "🔵 POST /password-recovery-html-content/{email}\n(recover_password_html_content)",
+      "group": "endpoint_post",
+      "category": "endpoint",
+      "title": "<b>[POST] /password-recovery-html-content/{email}</b><br>Handler: <code>recover_password_html_content()</code><br>Module: app.api.routes.login<br>Tags: login<br>Status: 200<br>Response: default",
+      "shape": "box",
+      "size": 22,
+      "color": {
+        "background": "#2563EB",
+        "border": "#1D4ED8",
+        "highlight": "#3B82F6"
+      },
+      "metadata": {
+        "type": "endpoint",
+        "http_method": "POST",
+        "path": "/password-recovery-html-content/{email}",
+        "full_path": "/password-recovery-html-content/{email}",
+        "function_name": "recover_password_html_content",
+        "module": "app.api.routes.login",
+        "file_path": "/Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/api/routes/login.py",
+        "line_number": 105,
+        "docstring": "HTML Content for Password Recovery",
+        "summary": null,
+        "tags": [
+          "login"
+        ],
+        "response_model": null,
+        "status_code": null,
+        "parameters": [
+          {
+            "name": "email",
+            "type_annotation": "str",
+            "default_value": null,
+            "kind": "query",
+            "dependency_call": null
+          },
+          {
+            "name": "session",
+            "type_annotation": "SessionDep",
+            "default_value": null,
+            "kind": "query",
+            "dependency_call": null
+          }
+        ],
+        "dependencies": [
+          "get_current_active_superuser"
+        ],
+        "request_schemas": [],
+        "response_schemas": []
+      }
+    },
+    {
+      "id": "ep_app.api.routes.items_read_items_GET",
+      "label": "🟢 GET /items\n(read_items)",
+      "group": "endpoint_get",
+      "category": "endpoint",
+      "title": "<b>[GET] /items</b><br>Handler: <code>read_items()</code><br>Module: app.api.routes.items<br>Tags: items<br>Status: 200<br>Response: ItemsPublic",
+      "shape": "box",
+      "size": 22,
+      "color": {
+        "background": "#059669",
+        "border": "#047857",
+        "highlight": "#10B981"
+      },
+      "metadata": {
+        "type": "endpoint",
+        "http_method": "GET",
+        "path": "/",
+        "full_path": "/items",
+        "function_name": "read_items",
+        "module": "app.api.routes.items",
+        "file_path": "/Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/api/routes/items.py",
+        "line_number": 14,
+        "docstring": "Retrieve items.",
+        "summary": null,
+        "tags": [
+          "items"
+        ],
+        "response_model": "ItemsPublic",
+        "status_code": null,
+        "parameters": [
+          {
+            "name": "session",
+            "type_annotation": "SessionDep",
+            "default_value": null,
+            "kind": "query",
+            "dependency_call": null
+          },
+          {
+            "name": "current_user",
+            "type_annotation": "CurrentUser",
+            "default_value": null,
+            "kind": "query",
+            "dependency_call": null
+          },
+          {
+            "name": "skip",
+            "type_annotation": "int",
+            "default_value": "0",
+            "kind": "query",
+            "dependency_call": null
+          },
+          {
+            "name": "limit",
+            "type_annotation": "int",
+            "default_value": "100",
+            "kind": "query",
+            "dependency_call": null
+          }
+        ],
+        "dependencies": [],
+        "request_schemas": [],
+        "response_schemas": [
+          "ItemsPublic"
+        ]
+      }
+    },
+    {
+      "id": "ep_app.api.routes.items_read_item_GET",
+      "label": "🟢 GET /items/{id}\n(read_item)",
+      "group": "endpoint_get",
+      "category": "endpoint",
+      "title": "<b>[GET] /items/{id}</b><br>Handler: <code>read_item()</code><br>Module: app.api.routes.items<br>Tags: items<br>Status: 200<br>Response: ItemPublic",
+      "shape": "box",
+      "size": 22,
+      "color": {
+        "background": "#059669",
+        "border": "#047857",
+        "highlight": "#10B981"
+      },
+      "metadata": {
+        "type": "endpoint",
+        "http_method": "GET",
+        "path": "/{id}",
+        "full_path": "/items/{id}",
+        "function_name": "read_item",
+        "module": "app.api.routes.items",
+        "file_path": "/Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/api/routes/items.py",
+        "line_number": 49,
+        "docstring": "Get item by ID.",
+        "summary": null,
+        "tags": [
+          "items"
+        ],
+        "response_model": "ItemPublic",
+        "status_code": null,
+        "parameters": [
+          {
+            "name": "session",
+            "type_annotation": "SessionDep",
+            "default_value": null,
+            "kind": "query",
+            "dependency_call": null
+          },
+          {
+            "name": "current_user",
+            "type_annotation": "CurrentUser",
+            "default_value": null,
+            "kind": "query",
+            "dependency_call": null
+          },
+          {
+            "name": "id",
+            "type_annotation": "uuid.UUID",
+            "default_value": null,
+            "kind": "query",
+            "dependency_call": null
+          }
+        ],
+        "dependencies": [],
+        "request_schemas": [],
+        "response_schemas": [
+          "ItemPublic"
+        ]
+      }
+    },
+    {
+      "id": "ep_app.api.routes.items_create_item_POST",
+      "label": "🔵 POST /items\n(create_item)",
+      "group": "endpoint_post",
+      "category": "endpoint",
+      "title": "<b>[POST] /items</b><br>Handler: <code>create_item()</code><br>Module: app.api.routes.items<br>Tags: items<br>Status: 200<br>Response: ItemPublic",
+      "shape": "box",
+      "size": 22,
+      "color": {
+        "background": "#2563EB",
+        "border": "#1D4ED8",
+        "highlight": "#3B82F6"
+      },
+      "metadata": {
+        "type": "endpoint",
+        "http_method": "POST",
+        "path": "/",
+        "full_path": "/items",
+        "function_name": "create_item",
+        "module": "app.api.routes.items",
+        "file_path": "/Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/api/routes/items.py",
+        "line_number": 62,
+        "docstring": "Create new item.",
+        "summary": null,
+        "tags": [
+          "items"
+        ],
+        "response_model": "ItemPublic",
+        "status_code": null,
+        "parameters": [
+          {
+            "name": "session",
+            "type_annotation": "SessionDep",
+            "default_value": null,
+            "kind": "query",
+            "dependency_call": null
+          },
+          {
+            "name": "current_user",
+            "type_annotation": "CurrentUser",
+            "default_value": null,
+            "kind": "query",
+            "dependency_call": null
+          },
+          {
+            "name": "item_in",
+            "type_annotation": "ItemCreate",
+            "default_value": null,
+            "kind": "query",
+            "dependency_call": null
+          }
+        ],
+        "dependencies": [],
+        "request_schemas": [],
+        "response_schemas": [
+          "ItemPublic"
+        ]
+      }
+    },
+    {
+      "id": "ep_app.api.routes.items_update_item_PUT",
+      "label": "🟡 PUT /items/{id}\n(update_item)",
+      "group": "endpoint_put",
+      "category": "endpoint",
+      "title": "<b>[PUT] /items/{id}</b><br>Handler: <code>update_item()</code><br>Module: app.api.routes.items<br>Tags: items<br>Status: 200<br>Response: ItemPublic",
+      "shape": "box",
+      "size": 22,
+      "color": {
+        "background": "#D97706",
+        "border": "#B45309",
+        "highlight": "#F59E0B"
+      },
+      "metadata": {
+        "type": "endpoint",
+        "http_method": "PUT",
+        "path": "/{id}",
+        "full_path": "/items/{id}",
+        "function_name": "update_item",
+        "module": "app.api.routes.items",
+        "file_path": "/Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/api/routes/items.py",
+        "line_number": 76,
+        "docstring": "Update an item.",
+        "summary": null,
+        "tags": [
+          "items"
+        ],
+        "response_model": "ItemPublic",
+        "status_code": null,
+        "parameters": [
+          {
+            "name": "session",
+            "type_annotation": "SessionDep",
+            "default_value": null,
+            "kind": "query",
+            "dependency_call": null
+          },
+          {
+            "name": "current_user",
+            "type_annotation": "CurrentUser",
+            "default_value": null,
+            "kind": "query",
+            "dependency_call": null
+          },
+          {
+            "name": "id",
+            "type_annotation": "uuid.UUID",
+            "default_value": null,
+            "kind": "query",
+            "dependency_call": null
+          },
+          {
+            "name": "item_in",
+            "type_annotation": "ItemUpdate",
+            "default_value": null,
+            "kind": "query",
+            "dependency_call": null
+          }
+        ],
+        "dependencies": [],
+        "request_schemas": [
+          "ItemUpdate"
+        ],
+        "response_schemas": [
+          "ItemPublic"
+        ]
+      }
+    },
+    {
+      "id": "ep_app.api.routes.items_delete_item_DELETE",
+      "label": "🔴 DELETE /items/{id}\n(delete_item)",
+      "group": "endpoint_delete",
+      "category": "endpoint",
+      "title": "<b>[DELETE] /items/{id}</b><br>Handler: <code>delete_item()</code><br>Module: app.api.routes.items<br>Tags: items<br>Status: 200<br>Response: default",
+      "shape": "box",
+      "size": 22,
+      "color": {
+        "background": "#E11D48",
+        "border": "#BE123C",
+        "highlight": "#F43F5E"
+      },
+      "metadata": {
+        "type": "endpoint",
+        "http_method": "DELETE",
+        "path": "/{id}",
+        "full_path": "/items/{id}",
+        "function_name": "delete_item",
+        "module": "app.api.routes.items",
+        "file_path": "/Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/api/routes/items.py",
+        "line_number": 100,
+        "docstring": "Delete an item.",
+        "summary": null,
+        "tags": [
+          "items"
+        ],
+        "response_model": null,
+        "status_code": null,
+        "parameters": [
+          {
+            "name": "session",
+            "type_annotation": "SessionDep",
+            "default_value": null,
+            "kind": "query",
+            "dependency_call": null
+          },
+          {
+            "name": "current_user",
+            "type_annotation": "CurrentUser",
+            "default_value": null,
+            "kind": "query",
+            "dependency_call": null
+          },
+          {
+            "name": "id",
+            "type_annotation": "uuid.UUID",
+            "default_value": null,
+            "kind": "query",
+            "dependency_call": null
+          }
+        ],
+        "dependencies": [],
+        "request_schemas": [],
+        "response_schemas": []
+      }
+    },
+    {
+      "id": "ep_app.api.routes.private_create_user_POST",
+      "label": "🔵 POST /private/users\n(create_user)",
+      "group": "endpoint_post",
+      "category": "endpoint",
+      "title": "<b>[POST] /private/users</b><br>Handler: <code>create_user()</code><br>Module: app.api.routes.private<br>Tags: private<br>Status: 200<br>Response: UserPublic",
+      "shape": "box",
+      "size": 22,
+      "color": {
+        "background": "#2563EB",
+        "border": "#1D4ED8",
+        "highlight": "#3B82F6"
+      },
+      "metadata": {
+        "type": "endpoint",
+        "http_method": "POST",
+        "path": "/users/",
+        "full_path": "/private/users",
+        "function_name": "create_user",
+        "module": "app.api.routes.private",
+        "file_path": "/Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/api/routes/private.py",
+        "line_number": 24,
+        "docstring": "Create a new user.",
+        "summary": null,
+        "tags": [
+          "private"
+        ],
+        "response_model": "UserPublic",
+        "status_code": null,
+        "parameters": [
+          {
+            "name": "user_in",
+            "type_annotation": "PrivateUserCreate",
+            "default_value": null,
+            "kind": "query",
+            "dependency_call": null
+          },
+          {
+            "name": "session",
+            "type_annotation": "SessionDep",
+            "default_value": null,
+            "kind": "query",
+            "dependency_call": null
+          }
+        ],
+        "dependencies": [],
+        "request_schemas": [
+          "PrivateUserCreate"
+        ],
+        "response_schemas": [
+          "UserPublic"
+        ]
+      }
+    },
+    {
+      "id": "dep_app.core.security_create_access_token",
+      "label": "⚙️ create_access_token",
+      "group": "dependency",
+      "category": "dependency",
+      "title": "<b>Dependency: create_access_token</b><br>Kind: function<br>Module: app.core.security<br>File: /Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/core/security.py:22",
+      "shape": "ellipse",
+      "size": 20,
+      "color": {
+        "background": "#0284C7",
+        "border": "#0369A1",
+        "highlight": "#38BDF8"
+      },
+      "metadata": {
+        "type": "dependency",
+        "name": "create_access_token",
+        "kind": "function",
+        "module": "app.core.security",
+        "file_path": "/Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/core/security.py",
+        "line_number": 22,
+        "docstring": null,
+        "sub_dependencies": [],
+        "consumers": []
+      }
+    },
+    {
+      "id": "dep_app.core.security_verify_password",
+      "label": "⚙️ verify_password",
+      "group": "dependency",
+      "category": "dependency",
+      "title": "<b>Dependency: verify_password</b><br>Kind: function<br>Module: app.core.security<br>File: /Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/core/security.py:29",
+      "shape": "ellipse",
+      "size": 20,
+      "color": {
+        "background": "#0284C7",
+        "border": "#0369A1",
+        "highlight": "#38BDF8"
+      },
+      "metadata": {
+        "type": "dependency",
+        "name": "verify_password",
+        "kind": "function",
+        "module": "app.core.security",
+        "file_path": "/Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/core/security.py",
+        "line_number": 29,
+        "docstring": null,
+        "sub_dependencies": [],
+        "consumers": []
+      }
+    },
+    {
+      "id": "dep_app.core.security_get_password_hash",
+      "label": "⚙️ get_password_hash",
+      "group": "dependency",
+      "category": "dependency",
+      "title": "<b>Dependency: get_password_hash</b><br>Kind: function<br>Module: app.core.security<br>File: /Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/core/security.py:35",
+      "shape": "ellipse",
+      "size": 20,
+      "color": {
+        "background": "#0284C7",
+        "border": "#0369A1",
+        "highlight": "#38BDF8"
+      },
+      "metadata": {
+        "type": "dependency",
+        "name": "get_password_hash",
+        "kind": "function",
+        "module": "app.core.security",
+        "file_path": "/Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/core/security.py",
+        "line_number": 35,
+        "docstring": null,
+        "sub_dependencies": [],
+        "consumers": []
+      }
+    },
+    {
+      "id": "schema_app.models_UserBase",
+      "label": "📦 UserBase",
+      "group": "schema",
+      "category": "schema",
+      "title": "<b>Schema Model: UserBase</b><br>Fields: 4<br>Module: app.models",
+      "shape": "box",
+      "size": 18,
+      "color": {
+        "background": "#C026D3",
+        "border": "#A21CAF",
+        "highlight": "#E879F9"
+      },
+      "metadata": {
+        "type": "schema",
+        "name": "UserBase",
+        "module": "app.models",
+        "file_path": "/Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/models.py",
+        "line_number": 14,
+        "docstring": null,
+        "base_classes": [
+          "SQLModel"
+        ],
+        "fields": [
+          {
+            "name": "email",
+            "type_annotation": "EmailStr",
+            "default_value": "Field()",
+            "description": null,
+            "is_required": false
+          },
+          {
+            "name": "is_active",
+            "type_annotation": "bool",
+            "default_value": "True",
+            "description": null,
+            "is_required": false
+          },
+          {
+            "name": "is_superuser",
+            "type_annotation": "bool",
+            "default_value": "False",
+            "description": null,
+            "is_required": false
+          },
+          {
+            "name": "full_name",
+            "type_annotation": "",
+            "default_value": "Field()",
+            "description": null,
+            "is_required": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "schema_app.models_UserRegister",
+      "label": "📦 UserRegister",
+      "group": "schema",
+      "category": "schema",
+      "title": "<b>Schema Model: UserRegister</b><br>Fields: 3<br>Module: app.models",
+      "shape": "box",
+      "size": 18,
+      "color": {
+        "background": "#C026D3",
+        "border": "#A21CAF",
+        "highlight": "#E879F9"
+      },
+      "metadata": {
+        "type": "schema",
+        "name": "UserRegister",
+        "module": "app.models",
+        "file_path": "/Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/models.py",
+        "line_number": 26,
+        "docstring": null,
+        "base_classes": [
+          "SQLModel"
+        ],
+        "fields": [
+          {
+            "name": "email",
+            "type_annotation": "EmailStr",
+            "default_value": "Field()",
+            "description": null,
+            "is_required": false
+          },
+          {
+            "name": "password",
+            "type_annotation": "str",
+            "default_value": "Field()",
+            "description": null,
+            "is_required": false
+          },
+          {
+            "name": "full_name",
+            "type_annotation": "",
+            "default_value": "Field()",
+            "description": null,
+            "is_required": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "schema_app.models_UserUpdate",
+      "label": "📦 UserUpdate",
+      "group": "schema",
+      "category": "schema",
+      "title": "<b>Schema Model: UserUpdate</b><br>Fields: 5<br>Module: app.models",
+      "shape": "box",
+      "size": 18,
+      "color": {
+        "background": "#C026D3",
+        "border": "#A21CAF",
+        "highlight": "#E879F9"
+      },
+      "metadata": {
+        "type": "schema",
+        "name": "UserUpdate",
+        "module": "app.models",
+        "file_path": "/Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/models.py",
+        "line_number": 33,
+        "docstring": null,
+        "base_classes": [
+          "SQLModel"
+        ],
+        "fields": [
+          {
+            "name": "email",
+            "type_annotation": "",
+            "default_value": "Field()",
+            "description": null,
+            "is_required": false
+          },
+          {
+            "name": "is_active",
+            "type_annotation": "",
+            "default_value": "None",
+            "description": null,
+            "is_required": false
+          },
+          {
+            "name": "is_superuser",
+            "type_annotation": "",
+            "default_value": "None",
+            "description": null,
+            "is_required": false
+          },
+          {
+            "name": "full_name",
+            "type_annotation": "",
+            "default_value": "Field()",
+            "description": null,
+            "is_required": false
+          },
+          {
+            "name": "password",
+            "type_annotation": "",
+            "default_value": "Field()",
+            "description": null,
+            "is_required": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "schema_app.models_UserUpdateMe",
+      "label": "📦 UserUpdateMe",
+      "group": "schema",
+      "category": "schema",
+      "title": "<b>Schema Model: UserUpdateMe</b><br>Fields: 2<br>Module: app.models",
+      "shape": "box",
+      "size": 18,
+      "color": {
+        "background": "#C026D3",
+        "border": "#A21CAF",
+        "highlight": "#E879F9"
+      },
+      "metadata": {
+        "type": "schema",
+        "name": "UserUpdateMe",
+        "module": "app.models",
+        "file_path": "/Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/models.py",
+        "line_number": 41,
+        "docstring": null,
+        "base_classes": [
+          "SQLModel"
+        ],
+        "fields": [
+          {
+            "name": "full_name",
+            "type_annotation": "",
+            "default_value": "Field()",
+            "description": null,
+            "is_required": false
+          },
+          {
+            "name": "email",
+            "type_annotation": "",
+            "default_value": "Field()",
+            "description": null,
+            "is_required": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "schema_app.models_UpdatePassword",
+      "label": "📦 UpdatePassword",
+      "group": "schema",
+      "category": "schema",
+      "title": "<b>Schema Model: UpdatePassword</b><br>Fields: 2<br>Module: app.models",
+      "shape": "box",
+      "size": 18,
+      "color": {
+        "background": "#C026D3",
+        "border": "#A21CAF",
+        "highlight": "#E879F9"
+      },
+      "metadata": {
+        "type": "schema",
+        "name": "UpdatePassword",
+        "module": "app.models",
+        "file_path": "/Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/models.py",
+        "line_number": 46,
+        "docstring": null,
+        "base_classes": [
+          "SQLModel"
+        ],
+        "fields": [
+          {
+            "name": "current_password",
+            "type_annotation": "str",
+            "default_value": "Field()",
+            "description": null,
+            "is_required": false
+          },
+          {
+            "name": "new_password",
+            "type_annotation": "str",
+            "default_value": "Field()",
+            "description": null,
+            "is_required": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "schema_app.models_UsersPublic",
+      "label": "📦 UsersPublic",
+      "group": "schema",
+      "category": "schema",
+      "title": "<b>Schema Model: UsersPublic</b><br>Fields: 2<br>Module: app.models",
+      "shape": "box",
+      "size": 18,
+      "color": {
+        "background": "#C026D3",
+        "border": "#A21CAF",
+        "highlight": "#E879F9"
+      },
+      "metadata": {
+        "type": "schema",
+        "name": "UsersPublic",
+        "module": "app.models",
+        "file_path": "/Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/models.py",
+        "line_number": 68,
+        "docstring": null,
+        "base_classes": [
+          "SQLModel"
+        ],
+        "fields": [
+          {
+            "name": "data",
+            "type_annotation": "list[UserPublic]",
+            "default_value": null,
+            "description": null,
+            "is_required": true
+          },
+          {
+            "name": "count",
+            "type_annotation": "int",
+            "default_value": null,
+            "description": null,
+            "is_required": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "schema_app.models_ItemBase",
+      "label": "📦 ItemBase",
+      "group": "schema",
+      "category": "schema",
+      "title": "<b>Schema Model: ItemBase</b><br>Fields: 2<br>Module: app.models",
+      "shape": "box",
+      "size": 18,
+      "color": {
+        "background": "#C026D3",
+        "border": "#A21CAF",
+        "highlight": "#E879F9"
+      },
+      "metadata": {
+        "type": "schema",
+        "name": "ItemBase",
+        "module": "app.models",
+        "file_path": "/Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/models.py",
+        "line_number": 74,
+        "docstring": null,
+        "base_classes": [
+          "SQLModel"
+        ],
+        "fields": [
+          {
+            "name": "title",
+            "type_annotation": "str",
+            "default_value": "Field()",
+            "description": null,
+            "is_required": false
+          },
+          {
+            "name": "description",
+            "type_annotation": "",
+            "default_value": "Field()",
+            "description": null,
+            "is_required": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "schema_app.models_ItemUpdate",
+      "label": "📦 ItemUpdate",
+      "group": "schema",
+      "category": "schema",
+      "title": "<b>Schema Model: ItemUpdate</b><br>Fields: 2<br>Module: app.models",
+      "shape": "box",
+      "size": 18,
+      "color": {
+        "background": "#C026D3",
+        "border": "#A21CAF",
+        "highlight": "#E879F9"
+      },
+      "metadata": {
+        "type": "schema",
+        "name": "ItemUpdate",
+        "module": "app.models",
+        "file_path": "/Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/models.py",
+        "line_number": 85,
+        "docstring": null,
+        "base_classes": [
+          "SQLModel"
+        ],
+        "fields": [
+          {
+            "name": "title",
+            "type_annotation": "",
+            "default_value": "Field()",
+            "description": null,
+            "is_required": false
+          },
+          {
+            "name": "description",
+            "type_annotation": "",
+            "default_value": "Field()",
+            "description": null,
+            "is_required": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "schema_app.models_ItemsPublic",
+      "label": "📦 ItemsPublic",
+      "group": "schema",
+      "category": "schema",
+      "title": "<b>Schema Model: ItemsPublic</b><br>Fields: 2<br>Module: app.models",
+      "shape": "box",
+      "size": 18,
+      "color": {
+        "background": "#C026D3",
+        "border": "#A21CAF",
+        "highlight": "#E879F9"
+      },
+      "metadata": {
+        "type": "schema",
+        "name": "ItemsPublic",
+        "module": "app.models",
+        "file_path": "/Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/models.py",
+        "line_number": 110,
+        "docstring": null,
+        "base_classes": [
+          "SQLModel"
+        ],
+        "fields": [
+          {
+            "name": "data",
+            "type_annotation": "list[ItemPublic]",
+            "default_value": null,
+            "description": null,
+            "is_required": true
+          },
+          {
+            "name": "count",
+            "type_annotation": "int",
+            "default_value": null,
+            "description": null,
+            "is_required": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "schema_app.models_Message",
+      "label": "📦 Message",
+      "group": "schema",
+      "category": "schema",
+      "title": "<b>Schema Model: Message</b><br>Fields: 1<br>Module: app.models",
+      "shape": "box",
+      "size": 18,
+      "color": {
+        "background": "#C026D3",
+        "border": "#A21CAF",
+        "highlight": "#E879F9"
+      },
+      "metadata": {
+        "type": "schema",
+        "name": "Message",
+        "module": "app.models",
+        "file_path": "/Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/models.py",
+        "line_number": 116,
+        "docstring": null,
+        "base_classes": [
+          "SQLModel"
+        ],
+        "fields": [
+          {
+            "name": "message",
+            "type_annotation": "str",
+            "default_value": null,
+            "description": null,
+            "is_required": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "schema_app.models_Token",
+      "label": "📦 Token",
+      "group": "schema",
+      "category": "schema",
+      "title": "<b>Schema Model: Token</b><br>Fields: 2<br>Module: app.models",
+      "shape": "box",
+      "size": 18,
+      "color": {
+        "background": "#C026D3",
+        "border": "#A21CAF",
+        "highlight": "#E879F9"
+      },
+      "metadata": {
+        "type": "schema",
+        "name": "Token",
+        "module": "app.models",
+        "file_path": "/Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/models.py",
+        "line_number": 121,
+        "docstring": null,
+        "base_classes": [
+          "SQLModel"
+        ],
+        "fields": [
+          {
+            "name": "access_token",
+            "type_annotation": "str",
+            "default_value": null,
+            "description": null,
+            "is_required": true
+          },
+          {
+            "name": "token_type",
+            "type_annotation": "str",
+            "default_value": "'bearer'",
+            "description": null,
+            "is_required": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "schema_app.models_TokenPayload",
+      "label": "📦 TokenPayload",
+      "group": "schema",
+      "category": "schema",
+      "title": "<b>Schema Model: TokenPayload</b><br>Fields: 1<br>Module: app.models",
+      "shape": "box",
+      "size": 18,
+      "color": {
+        "background": "#C026D3",
+        "border": "#A21CAF",
+        "highlight": "#E879F9"
+      },
+      "metadata": {
+        "type": "schema",
+        "name": "TokenPayload",
+        "module": "app.models",
+        "file_path": "/Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/models.py",
+        "line_number": 127,
+        "docstring": null,
+        "base_classes": [
+          "SQLModel"
+        ],
+        "fields": [
+          {
+            "name": "sub",
+            "type_annotation": "",
+            "default_value": "None",
+            "description": null,
+            "is_required": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "schema_app.models_NewPassword",
+      "label": "📦 NewPassword",
+      "group": "schema",
+      "category": "schema",
+      "title": "<b>Schema Model: NewPassword</b><br>Fields: 2<br>Module: app.models",
+      "shape": "box",
+      "size": 18,
+      "color": {
+        "background": "#C026D3",
+        "border": "#A21CAF",
+        "highlight": "#E879F9"
+      },
+      "metadata": {
+        "type": "schema",
+        "name": "NewPassword",
+        "module": "app.models",
+        "file_path": "/Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/models.py",
+        "line_number": 131,
+        "docstring": null,
+        "base_classes": [
+          "SQLModel"
+        ],
+        "fields": [
+          {
+            "name": "token",
+            "type_annotation": "str",
+            "default_value": null,
+            "description": null,
+            "is_required": true
+          },
+          {
+            "name": "new_password",
+            "type_annotation": "str",
+            "default_value": "Field()",
+            "description": null,
+            "is_required": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "schema_app.api.routes.private_PrivateUserCreate",
+      "label": "📦 PrivateUserCreate",
+      "group": "schema",
+      "category": "schema",
+      "title": "<b>Schema Model: PrivateUserCreate</b><br>Fields: 4<br>Module: app.api.routes.private",
+      "shape": "box",
+      "size": 18,
+      "color": {
+        "background": "#C026D3",
+        "border": "#A21CAF",
+        "highlight": "#E879F9"
+      },
+      "metadata": {
+        "type": "schema",
+        "name": "PrivateUserCreate",
+        "module": "app.api.routes.private",
+        "file_path": "/Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/api/routes/private.py",
+        "line_number": 16,
+        "docstring": null,
+        "base_classes": [
+          "BaseModel"
+        ],
+        "fields": [
+          {
+            "name": "email",
+            "type_annotation": "str",
+            "default_value": null,
+            "description": null,
+            "is_required": true
+          },
+          {
+            "name": "password",
+            "type_annotation": "str",
+            "default_value": null,
+            "description": null,
+            "is_required": true
+          },
+          {
+            "name": "full_name",
+            "type_annotation": "str",
+            "default_value": null,
+            "description": null,
+            "is_required": true
+          },
+          {
+            "name": "is_verified",
+            "type_annotation": "bool",
+            "default_value": "False",
+            "description": null,
+            "is_required": false
+          }
+        ]
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from_id": "app_app.main_app",
+      "to_id": "mw_app_app.main_app_CORSMiddleware",
+      "relation": "MIDDLEWARE_OF",
+      "label": "middleware",
+      "dashes": true,
+      "arrows": "to",
+      "color": "#64748B",
+      "title": null
+    },
+    {
+      "from_id": "app_app.main_app",
+      "to_id": "router_app.api.main_api_router",
+      "relation": "INCLUDES",
+      "label": "include",
+      "dashes": false,
+      "arrows": "to",
+      "color": "#4F46E5",
+      "title": null
+    },
+    {
+      "from_id": "router_app.api.main_api_router",
+      "to_id": "router_app.api.routes.login_router",
+      "relation": "INCLUDES",
+      "label": "include",
+      "dashes": false,
+      "arrows": "to",
+      "color": "#9333EA",
+      "title": null
+    },
+    {
+      "from_id": "router_app.api.main_api_router",
+      "to_id": "router_app.api.routes.users_router",
+      "relation": "INCLUDES",
+      "label": "include",
+      "dashes": false,
+      "arrows": "to",
+      "color": "#9333EA",
+      "title": null
+    },
+    {
+      "from_id": "router_app.api.main_api_router",
+      "to_id": "router_app.api.routes.utils_router",
+      "relation": "INCLUDES",
+      "label": "include",
+      "dashes": false,
+      "arrows": "to",
+      "color": "#9333EA",
+      "title": null
+    },
+    {
+      "from_id": "router_app.api.main_api_router",
+      "to_id": "router_app.api.routes.items_router",
+      "relation": "INCLUDES",
+      "label": "include",
+      "dashes": false,
+      "arrows": "to",
+      "color": "#9333EA",
+      "title": null
+    },
+    {
+      "from_id": "router_app.api.main_api_router",
+      "to_id": "router_app.api.routes.private_router",
+      "relation": "INCLUDES",
+      "label": "include",
+      "dashes": false,
+      "arrows": "to",
+      "color": "#9333EA",
+      "title": null
+    },
+    {
+      "from_id": "router_app.api.routes.users_router",
+      "to_id": "ep_app.api.routes.users_read_users_GET",
+      "relation": "ROUTES",
+      "label": "",
+      "dashes": false,
+      "arrows": "to",
+      "color": "#9333EA",
+      "title": null
+    },
+    {
+      "from_id": "router_app.api.routes.users_router",
+      "to_id": "ep_app.api.routes.users_create_user_POST",
+      "relation": "ROUTES",
+      "label": "",
+      "dashes": false,
+      "arrows": "to",
+      "color": "#9333EA",
+      "title": null
+    },
+    {
+      "from_id": "router_app.api.routes.users_router",
+      "to_id": "ep_app.api.routes.users_update_user_me_PATCH",
+      "relation": "ROUTES",
+      "label": "",
+      "dashes": false,
+      "arrows": "to",
+      "color": "#9333EA",
+      "title": null
+    },
+    {
+      "from_id": "router_app.api.routes.users_router",
+      "to_id": "ep_app.api.routes.users_update_password_me_PATCH",
+      "relation": "ROUTES",
+      "label": "",
+      "dashes": false,
+      "arrows": "to",
+      "color": "#9333EA",
+      "title": null
+    },
+    {
+      "from_id": "router_app.api.routes.users_router",
+      "to_id": "ep_app.api.routes.users_read_user_me_GET",
+      "relation": "ROUTES",
+      "label": "",
+      "dashes": false,
+      "arrows": "to",
+      "color": "#9333EA",
+      "title": null
+    },
+    {
+      "from_id": "router_app.api.routes.users_router",
+      "to_id": "ep_app.api.routes.users_delete_user_me_DELETE",
+      "relation": "ROUTES",
+      "label": "",
+      "dashes": false,
+      "arrows": "to",
+      "color": "#9333EA",
+      "title": null
+    },
+    {
+      "from_id": "router_app.api.routes.users_router",
+      "to_id": "ep_app.api.routes.users_register_user_POST",
+      "relation": "ROUTES",
+      "label": "",
+      "dashes": false,
+      "arrows": "to",
+      "color": "#9333EA",
+      "title": null
+    },
+    {
+      "from_id": "router_app.api.routes.users_router",
+      "to_id": "ep_app.api.routes.users_read_user_by_id_GET",
+      "relation": "ROUTES",
+      "label": "",
+      "dashes": false,
+      "arrows": "to",
+      "color": "#9333EA",
+      "title": null
+    },
+    {
+      "from_id": "router_app.api.routes.users_router",
+      "to_id": "ep_app.api.routes.users_update_user_PATCH",
+      "relation": "ROUTES",
+      "label": "",
+      "dashes": false,
+      "arrows": "to",
+      "color": "#9333EA",
+      "title": null
+    },
+    {
+      "from_id": "router_app.api.routes.users_router",
+      "to_id": "ep_app.api.routes.users_delete_user_DELETE",
+      "relation": "ROUTES",
+      "label": "",
+      "dashes": false,
+      "arrows": "to",
+      "color": "#9333EA",
+      "title": null
+    },
+    {
+      "from_id": "router_app.api.routes.utils_router",
+      "to_id": "ep_app.api.routes.utils_test_email_POST",
+      "relation": "ROUTES",
+      "label": "",
+      "dashes": false,
+      "arrows": "to",
+      "color": "#9333EA",
+      "title": null
+    },
+    {
+      "from_id": "router_app.api.routes.utils_router",
+      "to_id": "ep_app.api.routes.utils_health_check_GET",
+      "relation": "ROUTES",
+      "label": "",
+      "dashes": false,
+      "arrows": "to",
+      "color": "#9333EA",
+      "title": null
+    },
+    {
+      "from_id": "router_app.api.routes.login_router",
+      "to_id": "ep_app.api.routes.login_login_access_token_POST",
+      "relation": "ROUTES",
+      "label": "",
+      "dashes": false,
+      "arrows": "to",
+      "color": "#9333EA",
+      "title": null
+    },
+    {
+      "from_id": "router_app.api.routes.login_router",
+      "to_id": "ep_app.api.routes.login_test_token_POST",
+      "relation": "ROUTES",
+      "label": "",
+      "dashes": false,
+      "arrows": "to",
+      "color": "#9333EA",
+      "title": null
+    },
+    {
+      "from_id": "router_app.api.routes.login_router",
+      "to_id": "ep_app.api.routes.login_recover_password_POST",
+      "relation": "ROUTES",
+      "label": "",
+      "dashes": false,
+      "arrows": "to",
+      "color": "#9333EA",
+      "title": null
+    },
+    {
+      "from_id": "router_app.api.routes.login_router",
+      "to_id": "ep_app.api.routes.login_reset_password_POST",
+      "relation": "ROUTES",
+      "label": "",
+      "dashes": false,
+      "arrows": "to",
+      "color": "#9333EA",
+      "title": null
+    },
+    {
+      "from_id": "router_app.api.routes.login_router",
+      "to_id": "ep_app.api.routes.login_recover_password_html_content_POST",
+      "relation": "ROUTES",
+      "label": "",
+      "dashes": false,
+      "arrows": "to",
+      "color": "#9333EA",
+      "title": null
+    },
+    {
+      "from_id": "router_app.api.routes.items_router",
+      "to_id": "ep_app.api.routes.items_read_items_GET",
+      "relation": "ROUTES",
+      "label": "",
+      "dashes": false,
+      "arrows": "to",
+      "color": "#9333EA",
+      "title": null
+    },
+    {
+      "from_id": "router_app.api.routes.items_router",
+      "to_id": "ep_app.api.routes.items_read_item_GET",
+      "relation": "ROUTES",
+      "label": "",
+      "dashes": false,
+      "arrows": "to",
+      "color": "#9333EA",
+      "title": null
+    },
+    {
+      "from_id": "router_app.api.routes.items_router",
+      "to_id": "ep_app.api.routes.items_create_item_POST",
+      "relation": "ROUTES",
+      "label": "",
+      "dashes": false,
+      "arrows": "to",
+      "color": "#9333EA",
+      "title": null
+    },
+    {
+      "from_id": "router_app.api.routes.items_router",
+      "to_id": "ep_app.api.routes.items_update_item_PUT",
+      "relation": "ROUTES",
+      "label": "",
+      "dashes": false,
+      "arrows": "to",
+      "color": "#9333EA",
+      "title": null
+    },
+    {
+      "from_id": "router_app.api.routes.items_router",
+      "to_id": "ep_app.api.routes.items_delete_item_DELETE",
+      "relation": "ROUTES",
+      "label": "",
+      "dashes": false,
+      "arrows": "to",
+      "color": "#9333EA",
+      "title": null
+    },
+    {
+      "from_id": "router_app.api.routes.private_router",
+      "to_id": "ep_app.api.routes.private_create_user_POST",
+      "relation": "ROUTES",
+      "label": "",
+      "dashes": false,
+      "arrows": "to",
+      "color": "#9333EA",
+      "title": null
+    },
+    {
+      "from_id": "ep_app.api.routes.users_read_users_GET",
+      "to_id": "schema_app.models_UsersPublic",
+      "relation": "RESPONSE_MODEL",
+      "label": "returns",
+      "dashes": true,
+      "arrows": "to",
+      "color": "#C026D3",
+      "title": null
+    },
+    {
+      "from_id": "ep_app.api.routes.users_update_user_me_PATCH",
+      "to_id": "schema_app.models_UserUpdateMe",
+      "relation": "REQUEST_BODY",
+      "label": "body",
+      "dashes": true,
+      "arrows": "to",
+      "color": "#C026D3",
+      "title": null
+    },
+    {
+      "from_id": "ep_app.api.routes.users_update_password_me_PATCH",
+      "to_id": "schema_app.models_UpdatePassword",
+      "relation": "REQUEST_BODY",
+      "label": "body",
+      "dashes": true,
+      "arrows": "to",
+      "color": "#C026D3",
+      "title": null
+    },
+    {
+      "from_id": "ep_app.api.routes.users_update_password_me_PATCH",
+      "to_id": "schema_app.models_Message",
+      "relation": "RESPONSE_MODEL",
+      "label": "returns",
+      "dashes": true,
+      "arrows": "to",
+      "color": "#C026D3",
+      "title": null
+    },
+    {
+      "from_id": "ep_app.api.routes.users_delete_user_me_DELETE",
+      "to_id": "schema_app.models_Message",
+      "relation": "RESPONSE_MODEL",
+      "label": "returns",
+      "dashes": true,
+      "arrows": "to",
+      "color": "#C026D3",
+      "title": null
+    },
+    {
+      "from_id": "ep_app.api.routes.users_register_user_POST",
+      "to_id": "schema_app.models_UserRegister",
+      "relation": "REQUEST_BODY",
+      "label": "body",
+      "dashes": true,
+      "arrows": "to",
+      "color": "#C026D3",
+      "title": null
+    },
+    {
+      "from_id": "ep_app.api.routes.users_update_user_PATCH",
+      "to_id": "schema_app.models_UserUpdate",
+      "relation": "REQUEST_BODY",
+      "label": "body",
+      "dashes": true,
+      "arrows": "to",
+      "color": "#C026D3",
+      "title": null
+    },
+    {
+      "from_id": "ep_app.api.routes.login_reset_password_POST",
+      "to_id": "schema_app.models_NewPassword",
+      "relation": "REQUEST_BODY",
+      "label": "body",
+      "dashes": true,
+      "arrows": "to",
+      "color": "#C026D3",
+      "title": null
+    },
+    {
+      "from_id": "ep_app.api.routes.items_read_items_GET",
+      "to_id": "schema_app.models_ItemsPublic",
+      "relation": "RESPONSE_MODEL",
+      "label": "returns",
+      "dashes": true,
+      "arrows": "to",
+      "color": "#C026D3",
+      "title": null
+    },
+    {
+      "from_id": "ep_app.api.routes.items_update_item_PUT",
+      "to_id": "schema_app.models_ItemUpdate",
+      "relation": "REQUEST_BODY",
+      "label": "body",
+      "dashes": true,
+      "arrows": "to",
+      "color": "#C026D3",
+      "title": null
+    },
+    {
+      "from_id": "ep_app.api.routes.private_create_user_POST",
+      "to_id": "schema_app.api.routes.private_PrivateUserCreate",
+      "relation": "REQUEST_BODY",
+      "label": "body",
+      "dashes": true,
+      "arrows": "to",
+      "color": "#C026D3",
+      "title": null
+    }
+  ],
+  "endpoints": [
+    {
+      "id": "ep_app.api.routes.users_read_users_GET",
+      "http_method": "GET",
+      "path": "/",
+      "full_path": "/users",
+      "function_name": "read_users",
+      "module": "app.api.routes.users",
+      "file_path": "/Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/api/routes/users.py",
+      "line_number": 37,
+      "docstring": "Retrieve users.",
+      "summary": null,
+      "tags": [
+        "users"
+      ],
+      "response_model": "UsersPublic",
+      "status_code": null,
+      "parameters": [
+        "ParameterInfo(name='session', type_annotation='SessionDep', default_value=None, kind='query', dependency_call=None)",
+        "ParameterInfo(name='skip', type_annotation='int', default_value='0', kind='query', dependency_call=None)",
+        "ParameterInfo(name='limit', type_annotation='int', default_value='100', kind='query', dependency_call=None)"
+      ],
+      "dependencies": [
+        "get_current_active_superuser"
+      ],
+      "request_schemas": [],
+      "response_schemas": [
+        "UsersPublic"
+      ],
+      "router_id": "router_app.api.routes.users_router",
+      "app_id": null
+    },
+    {
+      "id": "ep_app.api.routes.users_create_user_POST",
+      "http_method": "POST",
+      "path": "/",
+      "full_path": "/users",
+      "function_name": "create_user",
+      "module": "app.api.routes.users",
+      "file_path": "/Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/api/routes/users.py",
+      "line_number": 57,
+      "docstring": "Create new user.",
+      "summary": null,
+      "tags": [
+        "users"
+      ],
+      "response_model": "UserPublic",
+      "status_code": null,
+      "parameters": [
+        "ParameterInfo(name='session', type_annotation='SessionDep', default_value=None, kind='query', dependency_call=None)",
+        "ParameterInfo(name='user_in', type_annotation='UserCreate', default_value=None, kind='query', dependency_call=None)"
+      ],
+      "dependencies": [
+        "get_current_active_superuser"
+      ],
+      "request_schemas": [],
+      "response_schemas": [
+        "UserPublic"
+      ],
+      "router_id": "router_app.api.routes.users_router",
+      "app_id": null
+    },
+    {
+      "id": "ep_app.api.routes.users_update_user_me_PATCH",
+      "http_method": "PATCH",
+      "path": "/me",
+      "full_path": "/users/me",
+      "function_name": "update_user_me",
+      "module": "app.api.routes.users",
+      "file_path": "/Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/api/routes/users.py",
+      "line_number": 82,
+      "docstring": "Update own user.",
+      "summary": null,
+      "tags": [
+        "users"
+      ],
+      "response_model": "UserPublic",
+      "status_code": null,
+      "parameters": [
+        "ParameterInfo(name='session', type_annotation='SessionDep', default_value=None, kind='query', dependency_call=None)",
+        "ParameterInfo(name='user_in', type_annotation='UserUpdateMe', default_value=None, kind='query', dependency_call=None)",
+        "ParameterInfo(name='current_user', type_annotation='CurrentUser', default_value=None, kind='query', dependency_call=None)"
+      ],
+      "dependencies": [],
+      "request_schemas": [
+        "UserUpdateMe"
+      ],
+      "response_schemas": [
+        "UserPublic"
+      ],
+      "router_id": "router_app.api.routes.users_router",
+      "app_id": null
+    },
+    {
+      "id": "ep_app.api.routes.users_update_password_me_PATCH",
+      "http_method": "PATCH",
+      "path": "/me/password",
+      "full_path": "/users/me/password",
+      "function_name": "update_password_me",
+      "module": "app.api.routes.users",
+      "file_path": "/Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/api/routes/users.py",
+      "line_number": 104,
+      "docstring": "Update own password.",
+      "summary": null,
+      "tags": [
+        "users"
+      ],
+      "response_model": "Message",
+      "status_code": null,
+      "parameters": [
+        "ParameterInfo(name='session', type_annotation='SessionDep', default_value=None, kind='query', dependency_call=None)",
+        "ParameterInfo(name='body', type_annotation='UpdatePassword', default_value=None, kind='query', dependency_call=None)",
+        "ParameterInfo(name='current_user', type_annotation='CurrentUser', default_value=None, kind='query', dependency_call=None)"
+      ],
+      "dependencies": [],
+      "request_schemas": [
+        "UpdatePassword"
+      ],
+      "response_schemas": [
+        "Message"
+      ],
+      "router_id": "router_app.api.routes.users_router",
+      "app_id": null
+    },
+    {
+      "id": "ep_app.api.routes.users_read_user_me_GET",
+      "http_method": "GET",
+      "path": "/me",
+      "full_path": "/users/me",
+      "function_name": "read_user_me",
+      "module": "app.api.routes.users",
+      "file_path": "/Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/api/routes/users.py",
+      "line_number": 125,
+      "docstring": "Get current user.",
+      "summary": null,
+      "tags": [
+        "users"
+      ],
+      "response_model": "UserPublic",
+      "status_code": null,
+      "parameters": [
+        "ParameterInfo(name='current_user', type_annotation='CurrentUser', default_value=None, kind='query', dependency_call=None)"
+      ],
+      "dependencies": [],
+      "request_schemas": [],
+      "response_schemas": [
+        "UserPublic"
+      ],
+      "router_id": "router_app.api.routes.users_router",
+      "app_id": null
+    },
+    {
+      "id": "ep_app.api.routes.users_delete_user_me_DELETE",
+      "http_method": "DELETE",
+      "path": "/me",
+      "full_path": "/users/me",
+      "function_name": "delete_user_me",
+      "module": "app.api.routes.users",
+      "file_path": "/Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/api/routes/users.py",
+      "line_number": 133,
+      "docstring": "Delete own user.",
+      "summary": null,
+      "tags": [
+        "users"
+      ],
+      "response_model": "Message",
+      "status_code": null,
+      "parameters": [
+        "ParameterInfo(name='session', type_annotation='SessionDep', default_value=None, kind='query', dependency_call=None)",
+        "ParameterInfo(name='current_user', type_annotation='CurrentUser', default_value=None, kind='query', dependency_call=None)"
+      ],
+      "dependencies": [],
+      "request_schemas": [],
+      "response_schemas": [
+        "Message"
+      ],
+      "router_id": "router_app.api.routes.users_router",
+      "app_id": null
+    },
+    {
+      "id": "ep_app.api.routes.users_register_user_POST",
+      "http_method": "POST",
+      "path": "/signup",
+      "full_path": "/users/signup",
+      "function_name": "register_user",
+      "module": "app.api.routes.users",
+      "file_path": "/Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/api/routes/users.py",
+      "line_number": 147,
+      "docstring": "Create new user without the need to be logged in.",
+      "summary": null,
+      "tags": [
+        "users"
+      ],
+      "response_model": "UserPublic",
+      "status_code": null,
+      "parameters": [
+        "ParameterInfo(name='session', type_annotation='SessionDep', default_value=None, kind='query', dependency_call=None)",
+        "ParameterInfo(name='user_in', type_annotation='UserRegister', default_value=None, kind='query', dependency_call=None)"
+      ],
+      "dependencies": [],
+      "request_schemas": [
+        "UserRegister"
+      ],
+      "response_schemas": [
+        "UserPublic"
+      ],
+      "router_id": "router_app.api.routes.users_router",
+      "app_id": null
+    },
+    {
+      "id": "ep_app.api.routes.users_read_user_by_id_GET",
+      "http_method": "GET",
+      "path": "/{user_id}",
+      "full_path": "/users/{user_id}",
+      "function_name": "read_user_by_id",
+      "module": "app.api.routes.users",
+      "file_path": "/Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/api/routes/users.py",
+      "line_number": 163,
+      "docstring": "Get a specific user by id.",
+      "summary": null,
+      "tags": [
+        "users"
+      ],
+      "response_model": "UserPublic",
+      "status_code": null,
+      "parameters": [
+        "ParameterInfo(name='user_id', type_annotation='uuid.UUID', default_value=None, kind='query', dependency_call=None)",
+        "ParameterInfo(name='session', type_annotation='SessionDep', default_value=None, kind='query', dependency_call=None)",
+        "ParameterInfo(name='current_user', type_annotation='CurrentUser', default_value=None, kind='query', dependency_call=None)"
+      ],
+      "dependencies": [],
+      "request_schemas": [],
+      "response_schemas": [
+        "UserPublic"
+      ],
+      "router_id": "router_app.api.routes.users_router",
+      "app_id": null
+    },
+    {
+      "id": "ep_app.api.routes.users_update_user_PATCH",
+      "http_method": "PATCH",
+      "path": "/{user_id}",
+      "full_path": "/users/{user_id}",
+      "function_name": "update_user",
+      "module": "app.api.routes.users",
+      "file_path": "/Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/api/routes/users.py",
+      "line_number": 187,
+      "docstring": "Update a user.",
+      "summary": null,
+      "tags": [
+        "users"
+      ],
+      "response_model": "UserPublic",
+      "status_code": null,
+      "parameters": [
+        "ParameterInfo(name='session', type_annotation='SessionDep', default_value=None, kind='query', dependency_call=None)",
+        "ParameterInfo(name='user_id', type_annotation='uuid.UUID', default_value=None, kind='query', dependency_call=None)",
+        "ParameterInfo(name='user_in', type_annotation='UserUpdate', default_value=None, kind='query', dependency_call=None)"
+      ],
+      "dependencies": [
+        "get_current_active_superuser"
+      ],
+      "request_schemas": [
+        "UserUpdate"
+      ],
+      "response_schemas": [
+        "UserPublic"
+      ],
+      "router_id": "router_app.api.routes.users_router",
+      "app_id": null
+    },
+    {
+      "id": "ep_app.api.routes.users_delete_user_DELETE",
+      "http_method": "DELETE",
+      "path": "/{user_id}",
+      "full_path": "/users/{user_id}",
+      "function_name": "delete_user",
+      "module": "app.api.routes.users",
+      "file_path": "/Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/api/routes/users.py",
+      "line_number": 215,
+      "docstring": "Delete a user.",
+      "summary": null,
+      "tags": [
+        "users"
+      ],
+      "response_model": null,
+      "status_code": null,
+      "parameters": [
+        "ParameterInfo(name='session', type_annotation='SessionDep', default_value=None, kind='query', dependency_call=None)",
+        "ParameterInfo(name='current_user', type_annotation='CurrentUser', default_value=None, kind='query', dependency_call=None)",
+        "ParameterInfo(name='user_id', type_annotation='uuid.UUID', default_value=None, kind='query', dependency_call=None)"
+      ],
+      "dependencies": [
+        "get_current_active_superuser"
+      ],
+      "request_schemas": [],
+      "response_schemas": [],
+      "router_id": "router_app.api.routes.users_router",
+      "app_id": null
+    },
+    {
+      "id": "ep_app.api.routes.utils_test_email_POST",
+      "http_method": "POST",
+      "path": "/test-email/",
+      "full_path": "/utils/test-email",
+      "function_name": "test_email",
+      "module": "app.api.routes.utils",
+      "file_path": "/Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/api/routes/utils.py",
+      "line_number": 16,
+      "docstring": "Test emails.",
+      "summary": null,
+      "tags": [
+        "utils"
+      ],
+      "response_model": null,
+      "status_code": "201",
+      "parameters": [
+        "ParameterInfo(name='email_to', type_annotation='EmailStr', default_value=None, kind='query', dependency_call=None)"
+      ],
+      "dependencies": [
+        "get_current_active_superuser"
+      ],
+      "request_schemas": [],
+      "response_schemas": [],
+      "router_id": "router_app.api.routes.utils_router",
+      "app_id": null
+    },
+    {
+      "id": "ep_app.api.routes.utils_health_check_GET",
+      "http_method": "GET",
+      "path": "/health-check/",
+      "full_path": "/utils/health-check",
+      "function_name": "health_check",
+      "module": "app.api.routes.utils",
+      "file_path": "/Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/api/routes/utils.py",
+      "line_number": 30,
+      "docstring": null,
+      "summary": null,
+      "tags": [
+        "utils"
+      ],
+      "response_model": null,
+      "status_code": null,
+      "parameters": [],
+      "dependencies": [],
+      "request_schemas": [],
+      "response_schemas": [],
+      "router_id": "router_app.api.routes.utils_router",
+      "app_id": null
+    },
+    {
+      "id": "ep_app.api.routes.login_login_access_token_POST",
+      "http_method": "POST",
+      "path": "/login/access-token",
+      "full_path": "/login/access-token",
+      "function_name": "login_access_token",
+      "module": "app.api.routes.login",
+      "file_path": "/Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/api/routes/login.py",
+      "line_number": 24,
+      "docstring": "OAuth2 compatible token login, get an access token for future requests",
+      "summary": null,
+      "tags": [
+        "login"
+      ],
+      "response_model": null,
+      "status_code": null,
+      "parameters": [
+        "ParameterInfo(name='session', type_annotation='SessionDep', default_value=None, kind='query', dependency_call=None)",
+        "ParameterInfo(name='form_data', type_annotation='Annotated[OAuth2PasswordRequestForm, Depends()]', default_value=None, kind='dependency', dependency_call='Depends')"
+      ],
+      "dependencies": [
+        "Depends"
+      ],
+      "request_schemas": [],
+      "response_schemas": [],
+      "router_id": "router_app.api.routes.login_router",
+      "app_id": null
+    },
+    {
+      "id": "ep_app.api.routes.login_test_token_POST",
+      "http_method": "POST",
+      "path": "/login/test-token",
+      "full_path": "/login/test-token",
+      "function_name": "test_token",
+      "module": "app.api.routes.login",
+      "file_path": "/Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/api/routes/login.py",
+      "line_number": 46,
+      "docstring": "Test access token",
+      "summary": null,
+      "tags": [
+        "login"
+      ],
+      "response_model": "UserPublic",
+      "status_code": null,
+      "parameters": [
+        "ParameterInfo(name='current_user', type_annotation='CurrentUser', default_value=None, kind='query', dependency_call=None)"
+      ],
+      "dependencies": [],
+      "request_schemas": [],
+      "response_schemas": [
+        "UserPublic"
+      ],
+      "router_id": "router_app.api.routes.login_router",
+      "app_id": null
+    },
+    {
+      "id": "ep_app.api.routes.login_recover_password_POST",
+      "http_method": "POST",
+      "path": "/password-recovery/{email}",
+      "full_path": "/password-recovery/{email}",
+      "function_name": "recover_password",
+      "module": "app.api.routes.login",
+      "file_path": "/Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/api/routes/login.py",
+      "line_number": 54,
+      "docstring": "Password Recovery",
+      "summary": null,
+      "tags": [
+        "login"
+      ],
+      "response_model": null,
+      "status_code": null,
+      "parameters": [
+        "ParameterInfo(name='email', type_annotation='str', default_value=None, kind='query', dependency_call=None)",
+        "ParameterInfo(name='session', type_annotation='SessionDep', default_value=None, kind='query', dependency_call=None)"
+      ],
+      "dependencies": [],
+      "request_schemas": [],
+      "response_schemas": [],
+      "router_id": "router_app.api.routes.login_router",
+      "app_id": null
+    },
+    {
+      "id": "ep_app.api.routes.login_reset_password_POST",
+      "http_method": "POST",
+      "path": "/reset-password/",
+      "full_path": "/reset-password",
+      "function_name": "reset_password",
+      "module": "app.api.routes.login",
+      "file_path": "/Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/api/routes/login.py",
+      "line_number": 78,
+      "docstring": "Reset password",
+      "summary": null,
+      "tags": [
+        "login"
+      ],
+      "response_model": null,
+      "status_code": null,
+      "parameters": [
+        "ParameterInfo(name='session', type_annotation='SessionDep', default_value=None, kind='query', dependency_call=None)",
+        "ParameterInfo(name='body', type_annotation='NewPassword', default_value=None, kind='query', dependency_call=None)"
+      ],
+      "dependencies": [],
+      "request_schemas": [
+        "NewPassword"
+      ],
+      "response_schemas": [],
+      "router_id": "router_app.api.routes.login_router",
+      "app_id": null
+    },
+    {
+      "id": "ep_app.api.routes.login_recover_password_html_content_POST",
+      "http_method": "POST",
+      "path": "/password-recovery-html-content/{email}",
+      "full_path": "/password-recovery-html-content/{email}",
+      "function_name": "recover_password_html_content",
+      "module": "app.api.routes.login",
+      "file_path": "/Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/api/routes/login.py",
+      "line_number": 105,
+      "docstring": "HTML Content for Password Recovery",
+      "summary": null,
+      "tags": [
+        "login"
+      ],
+      "response_model": null,
+      "status_code": null,
+      "parameters": [
+        "ParameterInfo(name='email', type_annotation='str', default_value=None, kind='query', dependency_call=None)",
+        "ParameterInfo(name='session', type_annotation='SessionDep', default_value=None, kind='query', dependency_call=None)"
+      ],
+      "dependencies": [
+        "get_current_active_superuser"
+      ],
+      "request_schemas": [],
+      "response_schemas": [],
+      "router_id": "router_app.api.routes.login_router",
+      "app_id": null
+    },
+    {
+      "id": "ep_app.api.routes.items_read_items_GET",
+      "http_method": "GET",
+      "path": "/",
+      "full_path": "/items",
+      "function_name": "read_items",
+      "module": "app.api.routes.items",
+      "file_path": "/Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/api/routes/items.py",
+      "line_number": 14,
+      "docstring": "Retrieve items.",
+      "summary": null,
+      "tags": [
+        "items"
+      ],
+      "response_model": "ItemsPublic",
+      "status_code": null,
+      "parameters": [
+        "ParameterInfo(name='session', type_annotation='SessionDep', default_value=None, kind='query', dependency_call=None)",
+        "ParameterInfo(name='current_user', type_annotation='CurrentUser', default_value=None, kind='query', dependency_call=None)",
+        "ParameterInfo(name='skip', type_annotation='int', default_value='0', kind='query', dependency_call=None)",
+        "ParameterInfo(name='limit', type_annotation='int', default_value='100', kind='query', dependency_call=None)"
+      ],
+      "dependencies": [],
+      "request_schemas": [],
+      "response_schemas": [
+        "ItemsPublic"
+      ],
+      "router_id": "router_app.api.routes.items_router",
+      "app_id": null
+    },
+    {
+      "id": "ep_app.api.routes.items_read_item_GET",
+      "http_method": "GET",
+      "path": "/{id}",
+      "full_path": "/items/{id}",
+      "function_name": "read_item",
+      "module": "app.api.routes.items",
+      "file_path": "/Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/api/routes/items.py",
+      "line_number": 49,
+      "docstring": "Get item by ID.",
+      "summary": null,
+      "tags": [
+        "items"
+      ],
+      "response_model": "ItemPublic",
+      "status_code": null,
+      "parameters": [
+        "ParameterInfo(name='session', type_annotation='SessionDep', default_value=None, kind='query', dependency_call=None)",
+        "ParameterInfo(name='current_user', type_annotation='CurrentUser', default_value=None, kind='query', dependency_call=None)",
+        "ParameterInfo(name='id', type_annotation='uuid.UUID', default_value=None, kind='query', dependency_call=None)"
+      ],
+      "dependencies": [],
+      "request_schemas": [],
+      "response_schemas": [
+        "ItemPublic"
+      ],
+      "router_id": "router_app.api.routes.items_router",
+      "app_id": null
+    },
+    {
+      "id": "ep_app.api.routes.items_create_item_POST",
+      "http_method": "POST",
+      "path": "/",
+      "full_path": "/items",
+      "function_name": "create_item",
+      "module": "app.api.routes.items",
+      "file_path": "/Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/api/routes/items.py",
+      "line_number": 62,
+      "docstring": "Create new item.",
+      "summary": null,
+      "tags": [
+        "items"
+      ],
+      "response_model": "ItemPublic",
+      "status_code": null,
+      "parameters": [
+        "ParameterInfo(name='session', type_annotation='SessionDep', default_value=None, kind='query', dependency_call=None)",
+        "ParameterInfo(name='current_user', type_annotation='CurrentUser', default_value=None, kind='query', dependency_call=None)",
+        "ParameterInfo(name='item_in', type_annotation='ItemCreate', default_value=None, kind='query', dependency_call=None)"
+      ],
+      "dependencies": [],
+      "request_schemas": [],
+      "response_schemas": [
+        "ItemPublic"
+      ],
+      "router_id": "router_app.api.routes.items_router",
+      "app_id": null
+    },
+    {
+      "id": "ep_app.api.routes.items_update_item_PUT",
+      "http_method": "PUT",
+      "path": "/{id}",
+      "full_path": "/items/{id}",
+      "function_name": "update_item",
+      "module": "app.api.routes.items",
+      "file_path": "/Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/api/routes/items.py",
+      "line_number": 76,
+      "docstring": "Update an item.",
+      "summary": null,
+      "tags": [
+        "items"
+      ],
+      "response_model": "ItemPublic",
+      "status_code": null,
+      "parameters": [
+        "ParameterInfo(name='session', type_annotation='SessionDep', default_value=None, kind='query', dependency_call=None)",
+        "ParameterInfo(name='current_user', type_annotation='CurrentUser', default_value=None, kind='query', dependency_call=None)",
+        "ParameterInfo(name='id', type_annotation='uuid.UUID', default_value=None, kind='query', dependency_call=None)",
+        "ParameterInfo(name='item_in', type_annotation='ItemUpdate', default_value=None, kind='query', dependency_call=None)"
+      ],
+      "dependencies": [],
+      "request_schemas": [
+        "ItemUpdate"
+      ],
+      "response_schemas": [
+        "ItemPublic"
+      ],
+      "router_id": "router_app.api.routes.items_router",
+      "app_id": null
+    },
+    {
+      "id": "ep_app.api.routes.items_delete_item_DELETE",
+      "http_method": "DELETE",
+      "path": "/{id}",
+      "full_path": "/items/{id}",
+      "function_name": "delete_item",
+      "module": "app.api.routes.items",
+      "file_path": "/Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/api/routes/items.py",
+      "line_number": 100,
+      "docstring": "Delete an item.",
+      "summary": null,
+      "tags": [
+        "items"
+      ],
+      "response_model": null,
+      "status_code": null,
+      "parameters": [
+        "ParameterInfo(name='session', type_annotation='SessionDep', default_value=None, kind='query', dependency_call=None)",
+        "ParameterInfo(name='current_user', type_annotation='CurrentUser', default_value=None, kind='query', dependency_call=None)",
+        "ParameterInfo(name='id', type_annotation='uuid.UUID', default_value=None, kind='query', dependency_call=None)"
+      ],
+      "dependencies": [],
+      "request_schemas": [],
+      "response_schemas": [],
+      "router_id": "router_app.api.routes.items_router",
+      "app_id": null
+    },
+    {
+      "id": "ep_app.api.routes.private_create_user_POST",
+      "http_method": "POST",
+      "path": "/users/",
+      "full_path": "/private/users",
+      "function_name": "create_user",
+      "module": "app.api.routes.private",
+      "file_path": "/Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/api/routes/private.py",
+      "line_number": 24,
+      "docstring": "Create a new user.",
+      "summary": null,
+      "tags": [
+        "private"
+      ],
+      "response_model": "UserPublic",
+      "status_code": null,
+      "parameters": [
+        "ParameterInfo(name='user_in', type_annotation='PrivateUserCreate', default_value=None, kind='query', dependency_call=None)",
+        "ParameterInfo(name='session', type_annotation='SessionDep', default_value=None, kind='query', dependency_call=None)"
+      ],
+      "dependencies": [],
+      "request_schemas": [
+        "PrivateUserCreate"
+      ],
+      "response_schemas": [
+        "UserPublic"
+      ],
+      "router_id": "router_app.api.routes.private_router",
+      "app_id": null
+    }
+  ],
+  "routers": [
+    {
+      "id": "router_app.api.main_api_router",
+      "var_name": "api_router",
+      "module": "app.api.main",
+      "file_path": "/Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/api/main.py",
+      "line_number": 6,
+      "prefix": "",
+      "tags": [],
+      "dependencies": [],
+      "inclusions": [
+        "RouterInclusion(router_var='login.router', module_or_source='app.api.routes.login', prefix='', tags=[], dependencies=[], target_router_id='router_app.api.routes.login_router')",
+        "RouterInclusion(router_var='users.router', module_or_source='app.api.routes.users', prefix='', tags=[], dependencies=[], target_router_id='router_app.api.routes.users_router')",
+        "RouterInclusion(router_var='utils.router', module_or_source='app.api.routes.utils', prefix='', tags=[], dependencies=[], target_router_id='router_app.api.routes.utils_router')",
+        "RouterInclusion(router_var='items.router', module_or_source='app.api.routes.items', prefix='', tags=[], dependencies=[], target_router_id='router_app.api.routes.items_router')",
+        "RouterInclusion(router_var='private.router', module_or_source='app.api.routes.private', prefix='', tags=[], dependencies=[], target_router_id='router_app.api.routes.private_router')"
+      ],
+      "endpoints": []
+    },
+    {
+      "id": "router_app.api.routes.users_router",
+      "var_name": "router",
+      "module": "app.api.routes.users",
+      "file_path": "/Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/api/routes/users.py",
+      "line_number": 29,
+      "prefix": "/users",
+      "tags": [
+        "users"
+      ],
+      "dependencies": [],
+      "inclusions": [],
+      "endpoints": [
+        "ep_app.api.routes.users_read_users_GET",
+        "ep_app.api.routes.users_create_user_POST",
+        "ep_app.api.routes.users_update_user_me_PATCH",
+        "ep_app.api.routes.users_update_password_me_PATCH",
+        "ep_app.api.routes.users_read_user_me_GET",
+        "ep_app.api.routes.users_delete_user_me_DELETE",
+        "ep_app.api.routes.users_register_user_POST",
+        "ep_app.api.routes.users_read_user_by_id_GET",
+        "ep_app.api.routes.users_update_user_PATCH",
+        "ep_app.api.routes.users_delete_user_DELETE"
+      ]
+    },
+    {
+      "id": "router_app.api.routes.utils_router",
+      "var_name": "router",
+      "module": "app.api.routes.utils",
+      "file_path": "/Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/api/routes/utils.py",
+      "line_number": 8,
+      "prefix": "/utils",
+      "tags": [
+        "utils"
+      ],
+      "dependencies": [],
+      "inclusions": [],
+      "endpoints": [
+        "ep_app.api.routes.utils_test_email_POST",
+        "ep_app.api.routes.utils_health_check_GET"
+      ]
+    },
+    {
+      "id": "router_app.api.routes.login_router",
+      "var_name": "router",
+      "module": "app.api.routes.login",
+      "file_path": "/Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/api/routes/login.py",
+      "line_number": 20,
+      "prefix": "",
+      "tags": [
+        "login"
+      ],
+      "dependencies": [],
+      "inclusions": [],
+      "endpoints": [
+        "ep_app.api.routes.login_login_access_token_POST",
+        "ep_app.api.routes.login_test_token_POST",
+        "ep_app.api.routes.login_recover_password_POST",
+        "ep_app.api.routes.login_reset_password_POST",
+        "ep_app.api.routes.login_recover_password_html_content_POST"
+      ]
+    },
+    {
+      "id": "router_app.api.routes.items_router",
+      "var_name": "router",
+      "module": "app.api.routes.items",
+      "file_path": "/Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/api/routes/items.py",
+      "line_number": 10,
+      "prefix": "/items",
+      "tags": [
+        "items"
+      ],
+      "dependencies": [],
+      "inclusions": [],
+      "endpoints": [
+        "ep_app.api.routes.items_read_items_GET",
+        "ep_app.api.routes.items_read_item_GET",
+        "ep_app.api.routes.items_create_item_POST",
+        "ep_app.api.routes.items_update_item_PUT",
+        "ep_app.api.routes.items_delete_item_DELETE"
+      ]
+    },
+    {
+      "id": "router_app.api.routes.private_router",
+      "var_name": "router",
+      "module": "app.api.routes.private",
+      "file_path": "/Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/api/routes/private.py",
+      "line_number": 13,
+      "prefix": "/private",
+      "tags": [
+        "private"
+      ],
+      "dependencies": [],
+      "inclusions": [],
+      "endpoints": [
+        "ep_app.api.routes.private_create_user_POST"
+      ]
+    }
+  ],
+  "dependencies": [
+    {
+      "id": "dep_app.core.security_create_access_token",
+      "name": "create_access_token",
+      "kind": "function",
+      "module": "app.core.security",
+      "file_path": "/Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/core/security.py",
+      "line_number": 22,
+      "docstring": null,
+      "sub_dependencies": [],
+      "parameters": [
+        "ParameterInfo(name='subject', type_annotation='', default_value=None, kind='query', dependency_call=None)",
+        "ParameterInfo(name='expires_delta', type_annotation='timedelta', default_value=None, kind='query', dependency_call=None)"
+      ],
+      "consumers": []
+    },
+    {
+      "id": "dep_app.core.security_verify_password",
+      "name": "verify_password",
+      "kind": "function",
+      "module": "app.core.security",
+      "file_path": "/Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/core/security.py",
+      "line_number": 29,
+      "docstring": null,
+      "sub_dependencies": [],
+      "parameters": [
+        "ParameterInfo(name='plain_password', type_annotation='str', default_value=None, kind='query', dependency_call=None)",
+        "ParameterInfo(name='hashed_password', type_annotation='str', default_value=None, kind='query', dependency_call=None)"
+      ],
+      "consumers": []
+    },
+    {
+      "id": "dep_app.core.security_get_password_hash",
+      "name": "get_password_hash",
+      "kind": "function",
+      "module": "app.core.security",
+      "file_path": "/Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/core/security.py",
+      "line_number": 35,
+      "docstring": null,
+      "sub_dependencies": [],
+      "parameters": [
+        "ParameterInfo(name='password', type_annotation='str', default_value=None, kind='query', dependency_call=None)"
+      ],
+      "consumers": []
+    }
+  ],
+  "schemas": [
+    {
+      "id": "schema_app.models_UserBase",
+      "name": "UserBase",
+      "module": "app.models",
+      "file_path": "/Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/models.py",
+      "line_number": 14,
+      "docstring": null,
+      "base_classes": [
+        "SQLModel"
+      ],
+      "fields": [
+        "SchemaFieldInfo(name='email', type_annotation='EmailStr', default_value='Field()', description=None, is_required=False)",
+        "SchemaFieldInfo(name='is_active', type_annotation='bool', default_value='True', description=None, is_required=False)",
+        "SchemaFieldInfo(name='is_superuser', type_annotation='bool', default_value='False', description=None, is_required=False)",
+        "SchemaFieldInfo(name='full_name', type_annotation='', default_value='Field()', description=None, is_required=False)"
+      ],
+      "used_by_endpoints": []
+    },
+    {
+      "id": "schema_app.models_UserRegister",
+      "name": "UserRegister",
+      "module": "app.models",
+      "file_path": "/Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/models.py",
+      "line_number": 26,
+      "docstring": null,
+      "base_classes": [
+        "SQLModel"
+      ],
+      "fields": [
+        "SchemaFieldInfo(name='email', type_annotation='EmailStr', default_value='Field()', description=None, is_required=False)",
+        "SchemaFieldInfo(name='password', type_annotation='str', default_value='Field()', description=None, is_required=False)",
+        "SchemaFieldInfo(name='full_name', type_annotation='', default_value='Field()', description=None, is_required=False)"
+      ],
+      "used_by_endpoints": []
+    },
+    {
+      "id": "schema_app.models_UserUpdate",
+      "name": "UserUpdate",
+      "module": "app.models",
+      "file_path": "/Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/models.py",
+      "line_number": 33,
+      "docstring": null,
+      "base_classes": [
+        "SQLModel"
+      ],
+      "fields": [
+        "SchemaFieldInfo(name='email', type_annotation='', default_value='Field()', description=None, is_required=False)",
+        "SchemaFieldInfo(name='is_active', type_annotation='', default_value='None', description=None, is_required=False)",
+        "SchemaFieldInfo(name='is_superuser', type_annotation='', default_value='None', description=None, is_required=False)",
+        "SchemaFieldInfo(name='full_name', type_annotation='', default_value='Field()', description=None, is_required=False)",
+        "SchemaFieldInfo(name='password', type_annotation='', default_value='Field()', description=None, is_required=False)"
+      ],
+      "used_by_endpoints": []
+    },
+    {
+      "id": "schema_app.models_UserUpdateMe",
+      "name": "UserUpdateMe",
+      "module": "app.models",
+      "file_path": "/Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/models.py",
+      "line_number": 41,
+      "docstring": null,
+      "base_classes": [
+        "SQLModel"
+      ],
+      "fields": [
+        "SchemaFieldInfo(name='full_name', type_annotation='', default_value='Field()', description=None, is_required=False)",
+        "SchemaFieldInfo(name='email', type_annotation='', default_value='Field()', description=None, is_required=False)"
+      ],
+      "used_by_endpoints": []
+    },
+    {
+      "id": "schema_app.models_UpdatePassword",
+      "name": "UpdatePassword",
+      "module": "app.models",
+      "file_path": "/Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/models.py",
+      "line_number": 46,
+      "docstring": null,
+      "base_classes": [
+        "SQLModel"
+      ],
+      "fields": [
+        "SchemaFieldInfo(name='current_password', type_annotation='str', default_value='Field()', description=None, is_required=False)",
+        "SchemaFieldInfo(name='new_password', type_annotation='str', default_value='Field()', description=None, is_required=False)"
+      ],
+      "used_by_endpoints": []
+    },
+    {
+      "id": "schema_app.models_UsersPublic",
+      "name": "UsersPublic",
+      "module": "app.models",
+      "file_path": "/Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/models.py",
+      "line_number": 68,
+      "docstring": null,
+      "base_classes": [
+        "SQLModel"
+      ],
+      "fields": [
+        "SchemaFieldInfo(name='data', type_annotation='list[UserPublic]', default_value=None, description=None, is_required=True)",
+        "SchemaFieldInfo(name='count', type_annotation='int', default_value=None, description=None, is_required=True)"
+      ],
+      "used_by_endpoints": []
+    },
+    {
+      "id": "schema_app.models_ItemBase",
+      "name": "ItemBase",
+      "module": "app.models",
+      "file_path": "/Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/models.py",
+      "line_number": 74,
+      "docstring": null,
+      "base_classes": [
+        "SQLModel"
+      ],
+      "fields": [
+        "SchemaFieldInfo(name='title', type_annotation='str', default_value='Field()', description=None, is_required=False)",
+        "SchemaFieldInfo(name='description', type_annotation='', default_value='Field()', description=None, is_required=False)"
+      ],
+      "used_by_endpoints": []
+    },
+    {
+      "id": "schema_app.models_ItemUpdate",
+      "name": "ItemUpdate",
+      "module": "app.models",
+      "file_path": "/Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/models.py",
+      "line_number": 85,
+      "docstring": null,
+      "base_classes": [
+        "SQLModel"
+      ],
+      "fields": [
+        "SchemaFieldInfo(name='title', type_annotation='', default_value='Field()', description=None, is_required=False)",
+        "SchemaFieldInfo(name='description', type_annotation='', default_value='Field()', description=None, is_required=False)"
+      ],
+      "used_by_endpoints": []
+    },
+    {
+      "id": "schema_app.models_ItemsPublic",
+      "name": "ItemsPublic",
+      "module": "app.models",
+      "file_path": "/Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/models.py",
+      "line_number": 110,
+      "docstring": null,
+      "base_classes": [
+        "SQLModel"
+      ],
+      "fields": [
+        "SchemaFieldInfo(name='data', type_annotation='list[ItemPublic]', default_value=None, description=None, is_required=True)",
+        "SchemaFieldInfo(name='count', type_annotation='int', default_value=None, description=None, is_required=True)"
+      ],
+      "used_by_endpoints": []
+    },
+    {
+      "id": "schema_app.models_Message",
+      "name": "Message",
+      "module": "app.models",
+      "file_path": "/Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/models.py",
+      "line_number": 116,
+      "docstring": null,
+      "base_classes": [
+        "SQLModel"
+      ],
+      "fields": [
+        "SchemaFieldInfo(name='message', type_annotation='str', default_value=None, description=None, is_required=True)"
+      ],
+      "used_by_endpoints": []
+    },
+    {
+      "id": "schema_app.models_Token",
+      "name": "Token",
+      "module": "app.models",
+      "file_path": "/Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/models.py",
+      "line_number": 121,
+      "docstring": null,
+      "base_classes": [
+        "SQLModel"
+      ],
+      "fields": [
+        "SchemaFieldInfo(name='access_token', type_annotation='str', default_value=None, description=None, is_required=True)",
+        "SchemaFieldInfo(name='token_type', type_annotation='str', default_value=\"'bearer'\", description=None, is_required=False)"
+      ],
+      "used_by_endpoints": []
+    },
+    {
+      "id": "schema_app.models_TokenPayload",
+      "name": "TokenPayload",
+      "module": "app.models",
+      "file_path": "/Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/models.py",
+      "line_number": 127,
+      "docstring": null,
+      "base_classes": [
+        "SQLModel"
+      ],
+      "fields": [
+        "SchemaFieldInfo(name='sub', type_annotation='', default_value='None', description=None, is_required=False)"
+      ],
+      "used_by_endpoints": []
+    },
+    {
+      "id": "schema_app.models_NewPassword",
+      "name": "NewPassword",
+      "module": "app.models",
+      "file_path": "/Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/models.py",
+      "line_number": 131,
+      "docstring": null,
+      "base_classes": [
+        "SQLModel"
+      ],
+      "fields": [
+        "SchemaFieldInfo(name='token', type_annotation='str', default_value=None, description=None, is_required=True)",
+        "SchemaFieldInfo(name='new_password', type_annotation='str', default_value='Field()', description=None, is_required=False)"
+      ],
+      "used_by_endpoints": []
+    },
+    {
+      "id": "schema_app.api.routes.private_PrivateUserCreate",
+      "name": "PrivateUserCreate",
+      "module": "app.api.routes.private",
+      "file_path": "/Users/hwansu/today/260828/static-code-analysis/examples/official_template/app/api/routes/private.py",
+      "line_number": 16,
+      "docstring": null,
+      "base_classes": [
+        "BaseModel"
+      ],
+      "fields": [
+        "SchemaFieldInfo(name='email', type_annotation='str', default_value=None, description=None, is_required=True)",
+        "SchemaFieldInfo(name='password', type_annotation='str', default_value=None, description=None, is_required=True)",
+        "SchemaFieldInfo(name='full_name', type_annotation='str', default_value=None, description=None, is_required=True)",
+        "SchemaFieldInfo(name='is_verified', type_annotation='bool', default_value='False', description=None, is_required=False)"
+      ],
+      "used_by_endpoints": []
+    }
+  ]
+}
