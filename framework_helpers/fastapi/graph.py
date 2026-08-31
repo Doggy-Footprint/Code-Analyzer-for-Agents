@@ -7,6 +7,8 @@ and computes architecture metrics.
 from collections import Counter
 from typing import Any, Dict, List, Optional, Set
 
+from analysis import GraphAnalyzer
+
 from .models import (
     AppInfo,
     DependencyInfo,
@@ -375,6 +377,11 @@ class ArchitectureGraphBuilder:
             "top_reused_dependencies": deps_counter.most_common(5),
             "unique_tags": list(set([t for ep in arch.endpoints for t in ep.tags if t])),
         }
+        arch.stats["analysis"] = GraphAnalyzer().analyze(
+            arch.nodes,
+            arch.edges,
+            project_path=arch.project_path,
+        )
 
         return arch
 

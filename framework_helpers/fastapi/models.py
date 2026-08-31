@@ -212,4 +212,3 @@ class ProjectArchitecture:
     edges: List[GraphEdge] = field(default_factory=list)
     stats: Dict[str, Any] = field(default_factory=dict)
     git_diff: Optional[GitDiffInfo] = None
-

@@ -18,6 +18,10 @@ python3 fastapi_visualizer.py /path/to/fastapi/project -o architecture.html --js
 python3 fastapi_visualizer.py /path/to/fastapi/project --mermaid
 ```
 
+HTML reports reference generated CSS and JavaScript in a sibling directory named after the report. For example, `architecture.html` is accompanied by `architecture_assets/`. Keep both when moving or publishing a report.
+
+Graph construction also records agent-exploration metrics in each node's `metadata.analysis` and in `stats.analysis`: PageRank, HITS hub/authority, degree and betweenness centrality, estimated token cost, weighted centrality cost, and cumulative 2-hop/3-hop token cost.
+
 ## 2. Command-Line Options
 
 | Option | Flag | Default | Description |
@@ -68,7 +72,8 @@ python3 -m unittest discover -s tests -v
 You can also use the visualizer programmatically inside Python scripts:
 
 ```python
-from fastapi_visualizer import FastAPIAnalyzer, ArchitectureGraphBuilder, HTMLRenderer
+from framework_helpers.fastapi import FastAPIAnalyzer, ArchitectureGraphBuilder
+from renderers.html import HTMLRenderer
 
 # 1. Statically analyze project
 analyzer = FastAPIAnalyzer(project_path="./my_fastapi_app")

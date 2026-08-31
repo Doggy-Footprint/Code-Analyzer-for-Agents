@@ -8,9 +8,9 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from fastapi_visualizer.analyzer import FastAPIAnalyzer
-from fastapi_visualizer.graph import ArchitectureGraphBuilder
-from fastapi_visualizer.renderer import HTMLRenderer
+from framework_helpers.fastapi.analyzer import FastAPIAnalyzer
+from framework_helpers.fastapi.graph import ArchitectureGraphBuilder
+from renderers.html import HTMLRenderer
 
 
 class TestFastAPIVisualizer(unittest.TestCase):
@@ -138,6 +138,9 @@ app.include_router(users_router, prefix="/api/v1")
         self.assertEqual(arch.stats["total_endpoints"], 2)
         self.assertEqual(arch.stats["methods_breakdown"]["GET"], 1)
         self.assertEqual(arch.stats["methods_breakdown"]["POST"], 1)
+        self.assertIn("analysis", arch.stats)
+        self.assertEqual(len(arch.stats["analysis"]["node_metrics"]), len(arch.nodes))
+        self.assertTrue(all("analysis" in node.metadata for node in arch.nodes))
 
         out_html = self.project_path / "output.html"
         renderer = HTMLRenderer(title="Test Visualizer")
@@ -149,6 +152,11 @@ app.include_router(users_router, prefix="/api/v1")
         self.assertIn("/api/v1/users/me", content)
         self.assertIn("UserResponse", content)
         self.assertIn("vis-network", content)
+        asset_dir = self.project_path / "output_assets"
+        self.assertTrue((asset_dir / "styles.css").exists())
+        self.assertTrue((asset_dir / "tailwind-config.js").exists())
+        self.assertTrue((asset_dir / "app.js").exists())
+        self.assertNotIn("<style>", content)
 
     def test_mermaid_generation(self):
         self._create_sample_fastapi_app()
@@ -278,11 +286,11 @@ def get_items():
         html_text = rendered.read_text(encoding="utf-8")
         self.assertIn("tab-btn-gitdiff", html_text)
         self.assertIn("view-gitdiff", html_text)
-        self.assertIn("populateGitDiff", html_text)
+        app_javascript = (self.project_path / "report_assets" / "app.js").read_text(encoding="utf-8")
+        self.assertIn("populateGitDiff", app_javascript)
         self.assertIn("git-diff-hero", html_text)
         self.assertIn("working_tree_vs_head", html_text)
 
 
 if __name__ == "__main__":
     unittest.main()
-

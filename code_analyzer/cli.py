@@ -9,10 +9,10 @@ import sys
 import webbrowser
 from pathlib import Path
 
-from .analyzer import FastAPIAnalyzer
-from .dynamic_analyzer import DynamicFastAPIAnalyzer
-from .graph import ArchitectureGraphBuilder
-from .renderer import HTMLRenderer
+from framework_helpers.fastapi.analyzer import FastAPIAnalyzer
+from framework_helpers.fastapi.dynamic_analyzer import DynamicFastAPIAnalyzer
+from framework_helpers.fastapi.graph import ArchitectureGraphBuilder
+from renderers.html import HTMLRenderer
 
 
 def parse_args():
@@ -143,6 +143,9 @@ def main():
     print(f"  • Schemas:      {stats.get('total_schemas', 0)}")
     if stats.get("methods_breakdown"):
         print(f"  • Methods:      {stats['methods_breakdown']}")
+    top_cost = stats.get("analysis", {}).get("top_weighted_cost", [])
+    if top_cost:
+        print(f"  • Highest agent context cost: {top_cost[0]['label']} ({top_cost[0]['value']:.4f})")
     if arch.git_diff and arch.git_diff.is_git_repo:
         gd = arch.git_diff
         print(f"  • Git Diff:     {gd.total_files} file(s) changed (+{gd.total_additions}, -{gd.total_deletions}) [{gd.mode_description}]")

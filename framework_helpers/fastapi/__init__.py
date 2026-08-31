@@ -21,14 +21,12 @@ from .models import (
     RouterInfo,
     SchemaInfo,
 )
-from .renderer import HTMLRenderer
 
 __version__ = "0.1.0"
 __all__ = [
     "FastAPIAnalyzer",
     "DynamicFastAPIAnalyzer",
     "ArchitectureGraphBuilder",
-    "HTMLRenderer",
     "GitDiffer",
     "ProjectArchitecture",
     "AppInfo",
@@ -44,4 +42,3 @@ __all__ = [
     "GitDiffHunk",
     "GitDiffLine",
 ]
-
