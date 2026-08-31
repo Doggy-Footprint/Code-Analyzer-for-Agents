@@ -9,14 +9,16 @@ import sys
 import webbrowser
 from pathlib import Path
 
-from framework_helpers.android.analyzer import AndroidAnalyzer
-from framework_helpers.android.graph import AndroidArchitectureGraphBuilder
-from framework_helpers.fastapi.analyzer import FastAPIAnalyzer
-from framework_helpers.fastapi.dynamic_analyzer import DynamicFastAPIAnalyzer
-from framework_helpers.fastapi.graph import ArchitectureGraphBuilder
+from framework_analyzers.android.analyzer import AndroidAnalyzer
+from framework_analyzers.android.graph import AndroidArchitectureGraphBuilder
+from framework_analyzers.fastapi.analyzer import FastAPIAnalyzer
+from framework_analyzers.fastapi.dynamic_analyzer import DynamicFastAPIAnalyzer
+from framework_analyzers.fastapi.graph import ArchitectureGraphBuilder
+from language_analyzers.typescript import TypeScriptAnalyzer
 from renderers.html import HTMLRenderer
 
 FRAMEWORK_LABELS = {"fastapi": "FastAPI", "android": "Android"}
+LANGUAGE_LABELS = {"typescript": "TypeScript/JavaScript"}
 
 
 def parse_args():
@@ -37,6 +39,12 @@ def parse_args():
         choices=sorted(FRAMEWORK_LABELS),
         default="fastapi",
         help="Which framework adapter to analyze the project with.",
+    )
+    parser.add_argument(
+        "-l",
+        "--language",
+        choices=sorted(LANGUAGE_LABELS),
+        help="Analyze a language directly without framework semantics.",
     )
     parser.add_argument(
         "-o",
@@ -86,7 +94,7 @@ def parse_args():
         help="Print Mermaid diagram markdown to stdout.",
     )
     args = parser.parse_args()
-    if args.framework != "fastapi" and (args.entrypoint or args.app):
+    if (args.language or args.framework != "fastapi") and (args.entrypoint or args.app):
         parser.error("--entrypoint and --app are only supported with --framework fastapi")
     return args
 
@@ -99,10 +107,13 @@ def main():
         print(f"[!] Error: Project path does not exist: {project_path}")
         sys.exit(1)
 
-    framework_label = FRAMEWORK_LABELS[args.framework]
-    print(f"[*] Analyzing {framework_label} project at: {project_path}")
+    analyzer_label = LANGUAGE_LABELS.get(args.language) or FRAMEWORK_LABELS[args.framework]
+    print(f"[*] Analyzing {analyzer_label} project at: {project_path}")
 
-    if args.framework == "android":
+    builder = None
+    if args.language == "typescript":
+        arch = TypeScriptAnalyzer(project_path).analyze()
+    elif args.framework == "android":
         analyzer = AndroidAnalyzer(str(project_path), entrypoint=args.entrypoint)
         arch = analyzer.analyze()
         builder = AndroidArchitectureGraphBuilder(
@@ -129,7 +140,7 @@ def main():
         )
         arch = builder.build_graph(arch)
 
-    renderer = HTMLRenderer(title=args.title, framework_label=framework_label)
+    renderer = HTMLRenderer(title=args.title, framework_label=analyzer_label)
     output_html_path = renderer.render(arch, args.output)
     print(f"[✓] Generated interactive HTML dashboard: {output_html_path}")
 
@@ -150,6 +161,9 @@ def main():
         print(f"[✓] Exported architecture JSON: {json_output_path}")
 
     if args.mermaid:
+        if builder is None:
+            print("[!] Mermaid output is currently available for framework analyzers only.")
+            return
         mermaid_code = builder.generate_mermaid(arch)
         print("\n--- Mermaid Architecture Diagram ---")
         print(mermaid_code)

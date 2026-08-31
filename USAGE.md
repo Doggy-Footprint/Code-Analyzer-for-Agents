@@ -6,23 +6,31 @@
 
 ```bash
 # Analyze a project directory and generate an interactive HTML dashboard
-python3 fastapi_visualizer.py /path/to/fastapi/project -o architecture.html
+python3 -m code_analyzer /path/to/fastapi/project -o architecture.html
 
 # Automatically open in browser
-python3 fastapi_visualizer.py /path/to/fastapi/project -o architecture.html --open
+python3 -m code_analyzer /path/to/fastapi/project -o architecture.html --open
 
 # Also export architecture metadata as JSON
-python3 fastapi_visualizer.py /path/to/fastapi/project -o architecture.html --json
+python3 -m code_analyzer /path/to/fastapi/project -o architecture.html --json
 
 # Print Mermaid diagram directly to terminal
-python3 fastapi_visualizer.py /path/to/fastapi/project --mermaid
+python3 -m code_analyzer /path/to/fastapi/project --mermaid
 ```
 
 HTML reports reference generated CSS and JavaScript in a sibling directory named after the report. For example, `architecture.html` is accompanied by `architecture_assets/`. Keep both when moving or publishing a report.
 
 Graph construction also records agent-exploration metrics in each node's `metadata.analysis` and in `stats.analysis`: PageRank, HITS hub/authority, degree and betweenness centrality, estimated token cost, weighted centrality cost, and cumulative 2-hop/3-hop token cost.
 
-## 2. Analyze Any Android/Kotlin Project
+## 2. Analyze Any TypeScript/JavaScript Project
+
+```bash
+python3 -m code_analyzer --language typescript /path/to/javascript-or-typescript/project -o architecture.html --json
+```
+
+The language analyzer extracts file, class, function, and method symbols plus ES module import/export, inheritance, and call relationships. It does not apply framework semantics.
+
+## 3. Analyze Any Android/Kotlin Project
 
 Requires `tree-sitter` and `tree-sitter-language-pack` (see [Setup](#setup) below).
 
@@ -44,12 +52,13 @@ The FastAPI track has no dependencies beyond the Python standard library. The An
 pip install -r requirements.txt
 ```
 
-## 3. Command-Line Options
+## 4. Command-Line Options
 
 | Option | Flag | Default | Description |
 | :--- | :--- | :--- | :--- |
 | `project_path` | Positional | `.` | Target project directory |
 | `-f, --framework` | `fastapi` \| `android` | `fastapi` | Which framework adapter to analyze the project with |
+| `-l, --language` | `typescript` | `None` | Analyze a language directly without framework semantics |
 | `-o, --output` | String | `architecture.html` | Path for generated interactive HTML report |
 | `-e, --entrypoint` | String | `None` | [fastapi only] Optional entrypoint file (e.g. `main.py`) |
 | `--app` | String | `None` | [fastapi only] Optional dynamic app import string (e.g. `app.main:app`) |
@@ -74,10 +83,10 @@ Run visualizer on real-world sample projects:
 
 ```bash
 # 1. RealWorld Conduit API (nested routers, auth dependencies, database repository pattern)
-python3 fastapi_visualizer.py examples/realworld_app -o realworld_architecture.html --json
+python3 -m code_analyzer examples/realworld_app -o realworld_architecture.html --json
 
 # 2. Official Full-Stack FastAPI Template backend (Annotated dependencies, SQLModel)
-python3 fastapi_visualizer.py examples/official_template -o template_architecture.html --json
+python3 -m code_analyzer examples/official_template -o template_architecture.html --json
 ```
 
 Download a subset of Google's official `android/nowinandroid` sample (Compose, Hilt, Room; the pulled subset does not include the Retrofit-based network module):
@@ -103,7 +112,7 @@ python3 -m unittest discover -s tests -v
 You can also use the visualizer programmatically inside Python scripts:
 
 ```python
-from framework_helpers.fastapi import FastAPIAnalyzer, ArchitectureGraphBuilder
+from framework_analyzers.fastapi import FastAPIAnalyzer, ArchitectureGraphBuilder
 from renderers.html import HTMLRenderer
 
 # 1. Statically analyze project

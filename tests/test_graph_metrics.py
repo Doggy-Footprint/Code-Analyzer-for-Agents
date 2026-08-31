@@ -3,7 +3,7 @@ import unittest
 from pathlib import Path
 
 from analysis import GraphAnalyzer
-from framework_helpers.fastapi.models import GraphEdge, GraphNode
+from framework_analyzers.fastapi.models import GraphEdge, GraphNode
 
 
 class TestGraphAnalyzer(unittest.TestCase):

@@ -5,9 +5,10 @@ endpoints, dependency injection chains, models, and middlewares.
 """
 
 import ast
-import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
+
+from language_analyzers.python import PythonSourceAnalyzer
 
 from .git_differ import GitDiffer
 from .models import (
@@ -82,40 +83,15 @@ class FastAPIAnalyzer:
         return arch
 
     def _discover_and_parse_files(self):
-        py_files = []
-        for root, dirs, files in os.walk(self.project_path):
-            dirs[:] = [d for d in dirs if not d.startswith(".") and d not in (
-                "venv", ".venv", "env", ".env", "node_modules", "__pycache__", "build", "dist"
-            )]
-            for file in files:
-                if file.endswith(".py"):
-                    full_path = Path(root) / file
-                    py_files.append(full_path)
-
-        for file_path in py_files:
-            try:
-                rel_path = file_path.relative_to(self.project_path)
-                parts = list(rel_path.parts)
-                if parts[-1] == "__init__.py":
-                    parts = parts[:-1]
-                else:
-                    parts[-1] = parts[-1][:-3]
-                module_name = ".".join(parts) if parts else "__init__"
-
-                with open(file_path, "r", encoding="utf-8", errors="replace") as f:
-                    source_code = f.read()
-
-                tree = ast.parse(source_code, filename=str(file_path))
-                file_ast = PythonFileAST(file_path=file_path, module_name=module_name)
-                file_ast.tree = tree
-                file_ast.source_code = source_code
-
-                self.file_asts[module_name] = file_ast
-                self.path_to_module[file_path] = module_name
-            except Exception:
-                # Intentionally swallowed: a file with non-standard/invalid syntax
-                # must not abort analysis of the rest of the project.
-                pass
+        for source_file in PythonSourceAnalyzer(self.project_path).analyze():
+            file_ast = PythonFileAST(
+                file_path=source_file.file_path,
+                module_name=source_file.module_name,
+            )
+            file_ast.tree = source_file.tree
+            file_ast.source_code = source_file.source_code
+            self.file_asts[source_file.module_name] = file_ast
+            self.path_to_module[source_file.file_path] = source_file.module_name
 
         # Imports/aliases must be collected for every file before declarations
         # are extracted, since cross-file references are resolved by name.

@@ -8,7 +8,7 @@ import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
-from . import _kotlin_ast as ka
+from language_analyzers.kotlin import ast as ka
 from .models import (
     ActivityFragmentInfo,
     AndroidProjectArchitecture,

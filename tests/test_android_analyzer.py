@@ -17,8 +17,8 @@ except ImportError:
     _HAS_TREE_SITTER = False
 
 if _HAS_TREE_SITTER:
-    from framework_helpers.android.analyzer import AndroidAnalyzer
-    from framework_helpers.android.graph import AndroidArchitectureGraphBuilder
+    from framework_analyzers.android.analyzer import AndroidAnalyzer
+    from framework_analyzers.android.graph import AndroidArchitectureGraphBuilder
     from renderers.html import HTMLRenderer
 
 

@@ -27,7 +27,7 @@ class TestArchitectureBoundaries(unittest.TestCase):
         root = Path(__file__).resolve().parents[1]
         self.assertFalse((root / "fastapi_visualizer").exists())
 
-    def test_generic_layers_do_not_import_framework_helpers(self):
+    def test_generic_layers_do_not_import_framework_analyzers(self):
         root = Path(__file__).resolve().parents[1]
         for package in (root / "analysis", root / "renderers"):
             for source_path in package.rglob("*.py"):
@@ -39,15 +39,30 @@ class TestArchitectureBoundaries(unittest.TestCase):
                     elif isinstance(node, ast.ImportFrom) and node.module:
                         imported.append(node.module)
                 self.assertFalse(
-                    any(name == "framework_helpers" or name.startswith("framework_helpers.") for name in imported),
+                    any(name == "framework_analyzers" or name.startswith("framework_analyzers.") for name in imported),
                     source_path,
                 )
 
-    def test_android_and_fastapi_helpers_do_not_cross_import(self):
+    def test_language_analyzers_do_not_import_framework_analyzers(self):
+        root = Path(__file__).resolve().parents[1]
+        for source_path in (root / "language_analyzers").rglob("*.py"):
+            tree = ast.parse(source_path.read_text(encoding="utf-8"))
+            imported = []
+            for node in ast.walk(tree):
+                if isinstance(node, ast.Import):
+                    imported.extend(alias.name for alias in node.names)
+                elif isinstance(node, ast.ImportFrom) and node.module:
+                    imported.append(node.module)
+            self.assertFalse(
+                any(name == "framework_analyzers" or name.startswith("framework_analyzers.") for name in imported),
+                source_path,
+            )
+
+    def test_framework_analyzers_do_not_cross_import(self):
         root = Path(__file__).resolve().parents[1]
         pairs = (
-            (root / "framework_helpers" / "android", "framework_helpers.fastapi"),
-            (root / "framework_helpers" / "fastapi", "framework_helpers.android"),
+            (root / "framework_analyzers" / "android", "framework_analyzers.fastapi"),
+            (root / "framework_analyzers" / "fastapi", "framework_analyzers.android"),
         )
         for package, forbidden in pairs:
             for source_path in package.rglob("*.py"):

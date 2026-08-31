@@ -8,8 +8,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from framework_helpers.fastapi.analyzer import FastAPIAnalyzer
-from framework_helpers.fastapi.graph import ArchitectureGraphBuilder
+from framework_analyzers.fastapi.analyzer import FastAPIAnalyzer
+from framework_analyzers.fastapi.graph import ArchitectureGraphBuilder
 from renderers.html import HTMLRenderer
 
 

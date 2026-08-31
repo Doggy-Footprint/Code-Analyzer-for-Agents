@@ -20,6 +20,12 @@ AI 에이전트는 코드를 수정하기 전에 반복적으로 검색하고 �
 
 ## 현재 구현 범위
 
+### TypeScript / JavaScript
+
+- Framework-neutral `.ts`, `.tsx`, `.js`, `.jsx`, `.mjs`, and `.cjs` analysis
+- File, class, function, and method symbols
+- ES module import/export, class inheritance, and call relationships
+
 ### FastAPI (Python)
 
 - Python `ast` 기반 정적 분석
@@ -125,9 +131,11 @@ read_utility = task_relevance + edge_confidence + impact_value - normalized_toke
 
 ```mermaid
 flowchart TD
-    CLI["code_analyzer CLI (--framework)"] --> FA[FastAPI AST Analyzer]
+    CLI["code_analyzer CLI (--framework or --language)"] --> TS[TypeScript/JavaScript Language Analyzer]
+    CLI --> FA[FastAPI AST Analyzer]
     CLI --> AA[Android tree-sitter Analyzer]
-    FA --> PA[Project Architecture]
+    TS --> PA[Project Architecture]
+    FA --> PA
     AA --> PA
     PA --> GB[Framework Graph Builder]
     GB --> GA[Generic Graph Analyzer]
@@ -143,6 +151,10 @@ flowchart TD
         GB
     end
 
+    subgraph Language Layer
+        TS
+    end
+
     subgraph Framework-neutral Layer
         GA
         M
@@ -150,20 +162,25 @@ flowchart TD
 ```
 
 ```text
-analysis/                   # 프레임워크 비종속 그래프 지표
-code_analyzer/              # CLI와 전체 파이프라인 조합
-framework_helpers/common/   # 두 어댑터가 공유하는 graph/report/git-diff 모델
-framework_helpers/fastapi/  # FastAPI AST·runtime 의미 해석
-framework_helpers/android/  # Android tree-sitter 의미 해석
+analysis/                         # 프레임워크 비종속 그래프 지표
+code_analyzer/                    # CLI와 전체 파이프라인 조합
+language_analyzers/core/           # graph/report/git-diff 모델
+language_analyzers/python/         # Python source discovery and parsing
+language_analyzers/kotlin/         # Kotlin syntax helpers
+language_analyzers/typescript/     # TypeScript/JavaScript symbol graph
+framework_analyzers/fastapi/       # FastAPI 의미 해석; Python language layer에 의존
+framework_analyzers/android/       # Android 의미 해석; Kotlin language layer에 의존
 renderers/html/             # HTML template, CSS, JavaScript, renderer (프레임워크 중립)
 tests/                      # 분석·패키지 경계·통합 테스트
 ```
+
+Language analyzers never import framework analyzers. A framework analyzer can add framework-specific semantics on top of its language layer, so it can be replaced without changing the language graph or generic output layers.
 
 ## 설계에서 고민한 점
 
 ### 프레임워크 지식과 범용 지표 분리
 
-`Depends`, router registration 같은 FastAPI 연결이나 `@Composable`, Hilt `@Inject` 같은 Android 연결은 언어 문법만으로 충분히 복원하기 어렵습니다. 이 의미는 각각 `framework_helpers/fastapi/`와 `framework_helpers/android/`가 보강하고, PageRank나 hop cost는 두 패키지 모두 import하지 않는 `analysis/`가 계산합니다. 두 어댑터가 공통으로 쓰는 graph node/edge, git-diff 추출, dashboard report 스키마는 `framework_helpers/common/`에 둡니다.
+`Depends`, router registration 같은 FastAPI 연결이나 `@Composable`, Hilt `@Inject` 같은 Android 연결은 언어 문법만으로 충분히 복원하기 어렵습니다. 이 의미는 각각 `framework_analyzers/fastapi/`와 `framework_analyzers/android/`가 각 언어 계층 위에 보강하고, PageRank나 hop cost는 두 패키지 모두 import하지 않는 `analysis/`가 계산합니다. graph node/edge, git-diff 추출, dashboard report 스키마는 `language_analyzers/core/`에 둡니다.
 
 ### 분석과 표현 분리
 
@@ -179,8 +196,9 @@ python3 -m unittest discover -s tests -v
 
 - FastAPI route, dependency, schema 추출과 nested prefix 해석
 - Android Compose/Hilt-Dagger/Room/Retrofit 추출과 그래프 연결
+- TypeScript/JavaScript file, symbol, import/export, inheritance, call 관계 추출
 - PageRank·HITS·betweenness·hop token cost 계산, 정확한 소스 범위가 주어졌을 때의 토큰 비용 우선순위
-- 범용 분석 계층과 renderer가 어떤 `framework_helpers` 패키지도 import하지 않는지 여부
+- 언어 계층이 framework analyzer를 import하지 않는지 여부
 - HTML이 sibling CSS/JS asset을 생성하고 참조하는지 여부
 - Git working tree와 commit diff가 architecture component에 연결되는지 여부
 

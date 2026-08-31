@@ -5,8 +5,8 @@ Correlates framework-neutral git diffs with Android architecture components.
 from pathlib import Path
 from typing import Optional, Union
 
-from framework_helpers.common.git_diff_core import GitDiffCore
-from framework_helpers.common.git_diff_models import GitDiffInfo
+from language_analyzers.core.git_diff_core import GitDiffCore
+from language_analyzers.core.git_diff_models import GitDiffInfo
 
 from .models import AndroidProjectArchitecture
 

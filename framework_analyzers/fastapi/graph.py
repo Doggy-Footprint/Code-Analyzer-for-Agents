@@ -8,7 +8,7 @@ from collections import Counter
 from typing import Any, Dict, List, Optional, Set
 
 from analysis import GraphAnalyzer
-from framework_helpers.common.report_schema import ColumnSpec, ReportCollection
+from language_analyzers.core.report_schema import ColumnSpec, ReportCollection
 
 from .models import (
     AppInfo,

@@ -5,9 +5,9 @@ Data models representing the extracted architecture of an Android/Kotlin project
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
-from framework_helpers.common.git_diff_models import GitDiffInfo
-from framework_helpers.common.graph_models import GraphEdge, GraphNode
-from framework_helpers.common.report_schema import ColumnSpec, ReportCollection
+from language_analyzers.core.git_diff_models import GitDiffInfo
+from language_analyzers.core.graph_models import GraphEdge, GraphNode
+from language_analyzers.core.report_schema import ColumnSpec, ReportCollection
 
 __all__ = [
     "ComposableInfo",
