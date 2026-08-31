@@ -12,3 +12,8 @@
 myTODO.md
 
 tmp/
+
+**/.DS_Store
+
+**/.gradle/
+.DS_Store
