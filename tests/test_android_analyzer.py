@@ -375,10 +375,10 @@ class MainActivity : ComponentActivity() {
              "CALLS_API", "ROUTES", "QUERIES", "CONTAINS", "DEFINES_ENTITY", "HOSTS"},
         )
 
-        def find_edge(relation, from_suffix, to_suffix):
+        def find_edge(relation, from_fragment, to_fragment):
             return next(
                 (e for e in arch.edges
-                 if e.relation == relation and e.from_id.endswith(from_suffix) and e.to_id.endswith(to_suffix)),
+                 if e.relation == relation and from_fragment in e.from_id and to_fragment in e.to_id),
                 None,
             )
 

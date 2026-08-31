@@ -173,7 +173,7 @@ class AndroidAnalyzer:
                     uses_viewmodel = call["type_args"][0]
 
         arch.composables.append(ComposableInfo(
-            id=f"composable_{module}_{name}",
+            id=f"composable_{module}_{name}_{ka.start_line(decl)}",
             name=name,
             module=module,
             file_path=module,
@@ -220,7 +220,7 @@ class AndroidAnalyzer:
                 query_text = ka.annotation_first_string_arg(method_anns["Query"], source)
             base_type, inner_type = ka.function_return_types(method, source)
             methods.append(RoomQueryMethodInfo(
-                id=f"query_{module}_{name}_{method_name}",
+                id=f"query_{module}_{name}_{method_name}_{ka.start_line(method)}",
                 name=method_name,
                 kind=kind,
                 query_text=query_text,
