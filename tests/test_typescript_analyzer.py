@@ -105,6 +105,33 @@ export function execute() {
         report_path = self.directory / "architecture.html"
         self.assertTrue(HTMLRenderer().render(architecture, str(report_path)).exists())
 
+    def test_empty_project_produces_an_empty_deterministic_architecture(self):
+        architecture = self._analyze()
+
+        self.assertEqual(architecture.nodes, [])
+        self.assertEqual(architecture.edges, [])
+        self.assertEqual(architecture.stats, {
+            "total_files": 0,
+            "total_symbols": 0,
+            "symbols_by_kind": {},
+        })
+        self.assertEqual(architecture.report_collections[0].rows, [])
+
+    def test_discovery_excludes_generated_and_hidden_files_but_keeps_unicode_source(self):
+        self._write("src/한국어.ts", "export const greeting = () => '안녕';\n")
+        self._write("node_modules/dependency.ts", "export function excluded() {}\n")
+        self._write("build/output.js", "export function generated() {}\n")
+        self._write(".cache/private.ts", "export function hidden() {}\n")
+
+        architecture = self._analyze()
+
+        self.assertEqual(architecture.stats["total_files"], 1)
+        self.assertEqual(architecture.stats["total_symbols"], 1)
+        self.assertEqual(self._node_labels(architecture), {"src/한국어.ts", "greeting"})
+        greeting = next(node for node in architecture.nodes if node.label == "greeting")
+        self.assertEqual(greeting.metadata["file_path"], "src/한국어.ts")
+        self.assertEqual(greeting.metadata["line_number"], 1)
+
     def test_language_analyzer_package_does_not_depend_on_framework_analyzers(self):
         module = importlib.import_module("language_analyzers.typescript")
         package_dir = Path(module.__file__).parent
