@@ -9,7 +9,13 @@ import sys
 import webbrowser
 from pathlib import Path
 
-from analysis import GraphAnalyzer
+from analysis import (
+    GraphAnalyzer,
+    SearchPolicy,
+    TaskExplorer,
+    load_task_definitions,
+    reports_to_dict,
+)
 from language_analyzers.core.serialization import architecture_to_dict
 
 from framework_analyzers.android.analyzer import AndroidAnalyzer
@@ -104,6 +110,21 @@ def parse_args():
         action="store_true",
         help="Print Mermaid diagram markdown to stdout.",
     )
+    parser.add_argument(
+        "--tasks",
+        help="JSON task set to execute against the analyzed graph.",
+    )
+    parser.add_argument(
+        "--task-policy",
+        action="append",
+        choices=[policy.value for policy in SearchPolicy],
+        help="Task search policy. Repeat to run multiple policies; all policies run by default.",
+    )
+    parser.add_argument(
+        "--task-output",
+        default="task-exploration.json",
+        help="Output path for task exploration reports.",
+    )
     args = parser.parse_args()
     if (args.language or args.framework != "fastapi") and (args.entrypoint or args.app):
         parser.error("--entrypoint and --app are only supported with --framework fastapi")
@@ -183,6 +204,22 @@ def main():
         print("\n--- Mermaid Architecture Diagram ---")
         print(mermaid_code)
         print("------------------------------------\n")
+
+    if args.tasks:
+        try:
+            tasks = load_task_definitions(args.tasks)
+            policies = [SearchPolicy(value) for value in args.task_policy] if args.task_policy else list(SearchPolicy)
+            explorer = TaskExplorer(arch.nodes, arch.edges, project_path=arch.project_path)
+            reports = [explorer.run(task, policy) for task in tasks for policy in policies]
+            task_output_path = Path(args.task_output)
+            task_output_path.parent.mkdir(parents=True, exist_ok=True)
+            task_output_path.write_text(
+                json.dumps(reports_to_dict(reports), indent=2, ensure_ascii=False),
+                encoding="utf-8",
+            )
+        except ValueError as exc:
+            raise SystemExit(f"[!] Invalid task set: {exc}") from exc
+        print(f"[✓] Exported task exploration reports: {task_output_path}")
 
     stats = arch.stats
     print(f"\n📊 Summary Statistics:")

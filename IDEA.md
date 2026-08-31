@@ -24,7 +24,7 @@
 | 구현됨 | 엣지 신뢰도·해소 상태, Git working tree 또는 commit 간 architecture diff, JSON·Mermaid·HTML 출력 |
 | 구현됨 | Kotlin 언어 그래프, 테스트·설정 연결, 생성·vendor·migration 비용 정책 |
 | 구현됨 | 결정적 sampled betweenness와 단일 BFS 2/3-hop 비용 계산 |
-| 프로토타입 | topology 기반 양방향 2/3-hop 탐색. 작업 의미나 후보 관련성은 아직 반영하지 않음 |
+| 구현됨 | 작업 seed retrieval, BFS·가중 최단 경로·예산 제한 탐색, 경로별 비용과 종료 이유 리포트 |
 | 검증할 가설 | 작업 기반 탐색, 구조적 마찰 진단, 문서·테스트·설정 연결, Git co-change, 실제 agent trace 보정 |
 
 Git architecture diff는 두 상태의 구조 변화를 비교하는 현재 기능이다. 여러 변경 이력에서 반복적으로 함께 바뀌는 대상을 찾는 Git co-change 분석과는 구분한다.
@@ -53,12 +53,12 @@ FastAPI와 Android는 프레임워크가 숨기는 연결을 언어 그래프 �
 | Hub/authority score | 방향 그래프에 대한 HITS 점수 | 탐색을 분배하는 허브와 참조가 모이는 핵심 대상 | 구현됨. 높은 점수 자체를 결함으로 판정하지 않음 |
 | Betweenness bottleneck | 방향 최단 경로가 특정 노드를 통과하는 비율 | 서로 다른 영역 사이의 잠재적 탐색 병목 | 구현됨. 큰 그래프에서는 계산 비용이 큼 |
 | k-hop context cost | 시작 노드를 제외하고 k-hop 안에서 도달하는 고유 노드의 token cost 합 | 주변 문맥을 모두 확인하는 상한에 가까운 비용 | 2/3-hop 구현됨. 관련 없는 이웃도 포함 |
-| Branching burden | 탐색 단계마다 노출된 후보 수와 라벨 기준 비관련 후보 비율 | 관련 경로를 고르기 어려운 정도 | 계획됨. 정답 라벨 또는 검증된 trace 필요 |
-| Target discovery cost | seed부터 정답 구현 지점을 찾을 때까지 읽은 고유 노드의 누적 token cost | 수정 지점 발견 비용 | 계획됨. 탐색 정책과 정답 라벨에 의존 |
-| Impact discovery cost | 변경 대상부터 라벨된 소비자·영향 파일·테스트를 종료 조건까지 찾는 누적 비용 | 변경 영향 확인 비용 | 계획됨. 요구 recall에 따라 값이 달라짐 |
-| Context fragmentation | 정답 경로에 필요한 고유 파일·디렉터리 수와 이들 사이의 그래프 거리 | 필요한 근거의 분산 정도 | 계획됨. 저장소 크기별 정규화 필요 |
+| Branching burden | 탐색 단계마다 노출된 후보 수와 라벨 기준 비관련 후보 비율 | 관련 경로를 고르기 어려운 정도 | 구현됨. 정답 라벨 또는 검증된 trace 필요 |
+| Target discovery cost | seed부터 정답 구현 지점을 찾을 때까지 읽은 고유 노드의 누적 token cost | 수정 지점 발견 비용 | 구현됨. 탐색 정책과 정답 라벨에 의존 |
+| Impact discovery cost | 변경 대상부터 라벨된 소비자·영향 파일·테스트를 종료 조건까지 찾는 누적 비용 | 변경 영향 확인 비용 | 구현됨. 요구 recall에 따라 값이 달라짐 |
+| Context fragmentation | 정답 경로에 필요한 고유 파일·디렉터리 수와 이들 사이의 그래프 거리 | 필요한 근거의 분산 정도 | 구현됨. 저장소 크기별 정규화 필요 |
 | Backtracking risk | ambiguous·re-export·unresolved 경로의 노출량과 trace에서 잘못 선택한 분기 수 | 잘못된 대상을 따라갔다가 되돌아갈 위험 | 정적 신호 일부 구현됨. 위험 점수와 trace 검증은 계획됨 |
-| Evidence gap | 선택 경로에서 `dynamic_required`, `ambiguous`, `unresolved` 관계가 차지하는 비율과 수 | 정적 분석 외 검색이나 실행이 필요한 정도 | 관계 상태는 구현됨. 경로 단위 집계는 계획됨 |
+| Evidence gap | 선택 경로에서 `dynamic_required`, `ambiguous`, `unresolved` 관계가 차지하는 비율과 수 | 정적 분석 외 검색이나 실행이 필요한 정도 | 경로 단위 집계까지 구현됨 |
 
 지표는 하나의 종합 점수로 저장소의 좋고 나쁨을 판정하지 않는다. 작업 유형, 근거 경로, 엣지 신뢰도, 오탐 가능성을 함께 제시한다.
 
@@ -133,7 +133,7 @@ FastAPI와 Android는 프레임워크가 숨기는 연결을 언어 그래프 �
 
 완료 조건: 정의된 fixture에서 계약된 관계와 신뢰도 상태를 재현하고, 제외 규칙 적용 전후의 그래프와 비용 차이를 설명할 수 있다.
 
-### M2. 작업 기반 탐색 — 계획됨
+### M2. 작업 기반 탐색 — 완료
 
 구현 범위:
 
