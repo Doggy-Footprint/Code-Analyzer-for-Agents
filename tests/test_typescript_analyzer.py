@@ -7,10 +7,17 @@ from pathlib import Path
 
 from renderers.html import HTMLRenderer
 
+try:
+    import tree_sitter_language_pack  # noqa: F401
+    _HAS_TREE_SITTER = True
+except ImportError:
+    _HAS_TREE_SITTER = False
 
+
+@unittest.skipUnless(_HAS_TREE_SITTER, "tree-sitter and tree-sitter-language-pack are not installed")
 class TestTypeScriptAnalyzer(unittest.TestCase):
     def setUp(self):
-        self.directory = Path(tempfile.mkdtemp())
+        self.directory = Path(tempfile.mkdtemp()).resolve()
 
     def tearDown(self):
         shutil.rmtree(self.directory, ignore_errors=True)

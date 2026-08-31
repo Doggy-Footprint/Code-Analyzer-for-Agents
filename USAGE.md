@@ -22,15 +22,33 @@ HTML reports reference generated CSS and JavaScript in a sibling directory named
 
 Graph construction also records agent-exploration metrics in each node's `metadata.analysis` and in `stats.analysis`: PageRank, HITS hub/authority, degree and betweenness centrality, estimated token cost, weighted centrality cost, and cumulative 2-hop/3-hop token cost.
 
-## 2. Analyze Any TypeScript/JavaScript Project
+The FastAPI graph is built on top of the Python symbol graph, so it also contains modules, classes, functions, methods, fields and constants along with their `IMPORTS`, `CALLS`, `INSTANTIATES`, `INHERITS`, `TYPE_USES`, `READS` and `WRITES` edges. Each endpoint, dependency and schema is linked to the symbol that implements it with an `IMPLEMENTED_BY` edge. Pass `--no-language-graph` for framework components only.
+
+### What each node and edge carries
+
+Every node reports `span` (file and exact line range), `cost` (estimated tokens, characters, lines), `kind`, `language`, `symbol_path`, `signature`, `docstring`, `exported`, `provenance`, and `flags` — raw friction signals such as `dynamic_import`, `dynamic_attr`, `dynamic_eval`, `reexport`, `ambiguous_name`, `generated`, `vendored` and `test`. Names that could not be resolved are counted in `metadata.unresolved_calls` instead of being dropped.
+
+Every edge reports `confidence` (`static_certain`, `framework_inferred`, `static_inferred`, `dynamic_required`), `resolution` (`exact`, `unique_name`, `ambiguous`, `unresolved`), `evidence` (the file and line where the relation is written), `candidates` (the targets rejected for an ambiguous name) and `weight` (how many times the relation occurs). The dashboard draws each confidence level with its own line style and offers a filter per level.
+
+## 2. Analyze Any Python Project Without Framework Semantics
+
+```bash
+python3 -m code_analyzer --language python /path/to/python/project -o architecture.html --json
+```
+
+Produces the symbol graph described above with no FastAPI interpretation. Uses the standard library `ast`; no dependencies.
+
+## 3. Analyze Any TypeScript/JavaScript Project
+
+Requires `tree-sitter` and `tree-sitter-language-pack` (see [Setup](#setup) below).
 
 ```bash
 python3 -m code_analyzer --language typescript /path/to/javascript-or-typescript/project -o architecture.html --json
 ```
 
-The language analyzer extracts file, class, function, and method symbols plus ES module import/export, inheritance, and call relationships. It does not apply framework semantics.
+Parses `.ts`, `.tsx`, `.js`, `.jsx`, `.mjs` and `.cjs` with tree-sitter and extracts files, classes, interfaces, type aliases, enums, functions, methods, fields and constants, plus `IMPORTS`, `IMPORTS_SYMBOL`, `RE_EXPORTS`, `EXPORTS`/`DECLARES`, `CONTAINS`, `CALLS`, `INSTANTIATES`, `INHERITS`, `IMPLEMENTS` and `TYPE_USES` relationships. Barrel files (`export * from`) are flagged `reexport`; `import()` and `require()` produce `dynamic_required` edges. It does not apply framework semantics.
 
-## 3. Analyze Any Android/Kotlin Project
+## 4. Analyze Any Android/Kotlin Project
 
 Requires `tree-sitter` and `tree-sitter-language-pack` (see [Setup](#setup) below).
 
@@ -46,25 +64,26 @@ The Android track extracts Jetpack Compose functions and their call graph, Hilt/
 
 ## Setup
 
-The FastAPI track has no dependencies beyond the Python standard library. The Android track needs:
+The FastAPI and Python tracks have no dependencies beyond the Python standard library. The TypeScript and Android tracks need:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-## 4. Command-Line Options
+## 5. Command-Line Options
 
 | Option | Flag | Default | Description |
 | :--- | :--- | :--- | :--- |
 | `project_path` | Positional | `.` | Target project directory |
 | `-f, --framework` | `fastapi` \| `android` | `fastapi` | Which framework adapter to analyze the project with |
-| `-l, --language` | `typescript` | `None` | Analyze a language directly without framework semantics |
+| `-l, --language` | `python` \| `typescript` | `None` | Analyze a language directly without framework semantics |
 | `-o, --output` | String | `architecture.html` | Path for generated interactive HTML report |
 | `-e, --entrypoint` | String | `None` | [fastapi only] Optional entrypoint file (e.g. `main.py`) |
 | `--app` | String | `None` | [fastapi only] Optional dynamic app import string (e.g. `app.main:app`) |
 | `--title` | String | `None` | Custom dashboard title |
 | `--no-models` | Flag | `False` | Exclude schema-shaped nodes from graph (Pydantic/SQLModel for fastapi, Room entities for android) |
 | `--no-deps` | Flag | `False` | Exclude dependency-injection-shaped nodes from graph (FastAPI dependencies for fastapi, Hilt/Dagger modules & bindings for android) |
+| `--no-language-graph` | Flag | `False` | [fastapi only] Exclude the underlying Python symbol graph and show framework components only |
 | `--open` | Flag | `False` | Automatically open generated report in browser |
 | `--json` | Flag | `False` | Also export architecture data JSON file |
 | `--mermaid` | Flag | `False` | Print Mermaid markdown diagram |

@@ -24,6 +24,7 @@ let currentSpringLength = 240;
 let selectedNodeId = null;
 
 let activeFilters = {};
+let activeConfidence = {};
 
 let activeMethods = {
   GET: true,
@@ -42,6 +43,7 @@ function titleCase(str) {
 document.addEventListener('DOMContentLoaded', () => {
   renderCollectionNavAndViews();
   buildNodeCategoryFilters();
+  buildConfidenceFilters();
   buildLegend();
   toggleMethodsFilterVisibility();
 
@@ -378,6 +380,13 @@ function toggleFilterType(category) {
   applyFilters();
 }
 
+function toggleConfidenceFilter(level) {
+  activeConfidence[level] = !activeConfidence[level];
+  const btn = document.getElementById(`confidence-btn-${level}`);
+  if (btn) btn.classList.toggle('opacity-30', !activeConfidence[level]);
+  applyFilters();
+}
+
 function toggleMethodFilter(method) {
   activeMethods[method] = !activeMethods[method];
   const btn = document.getElementById(`method-btn-${method}`);
@@ -396,6 +405,11 @@ function resetFilters() {
     const btn = document.getElementById(`method-btn-${m}`);
     if (btn) btn.classList.remove('opacity-30');
   });
+  Object.keys(activeConfidence).forEach(level => {
+    activeConfidence[level] = true;
+    const btn = document.getElementById(`confidence-btn-${level}`);
+    if (btn) btn.classList.remove('opacity-30');
+  });
   applyFilters();
 }
 
@@ -410,7 +424,10 @@ function applyFilters() {
   });
 
   const activeNodeIds = new Set(filteredNodes.map(n => n.id));
-  const filteredEdges = ARCH_DATA.edges.filter(e => activeNodeIds.has(e.from) && activeNodeIds.has(e.to));
+  const filteredEdges = ARCH_DATA.edges.filter(e => {
+    if (!activeNodeIds.has(e.from) || !activeNodeIds.has(e.to)) return false;
+    return activeConfidence[e.confidence || 'static_certain'] !== false;
+  });
 
   nodesDataSet.clear();
   nodesDataSet.add(filteredNodes);
@@ -460,11 +477,102 @@ function clearSearch() {
   applyFilters();
 }
 
-function renderGenericMetadata(meta) {
+
+function renderTypedFields(node) {
+  let html = '';
+  const span = node.span;
+  const cost = node.cost;
+
+  if (span) {
+    html += `
+      <div class="bg-slate-900/90 p-4 rounded-xl border border-slate-700/80 space-y-1.5 shadow-inner">
+        <div class="text-slate-500 text-[11px] font-mono break-all">${escapeHtml(span.file_path)}:${span.start_line}${span.end_line > span.start_line ? '-' + span.end_line : ''}</div>
+        ${node.symbol_path ? `<div class="text-indigo-300 text-[11px] font-mono break-all">${escapeHtml(node.symbol_path)}</div>` : ''}
+      </div>
+    `;
+  }
+
+  if (node.signature) {
+    html += `
+      <div>
+        <div class="text-slate-400 font-semibold mb-1.5 text-[11px] uppercase tracking-wider">Signature</div>
+        <div class="bg-slate-900/60 p-2.5 rounded-xl border border-slate-800 font-mono text-[11px] text-slate-300 break-all">${escapeHtml(node.signature)}</div>
+      </div>
+    `;
+  }
+
+  if (node.docstring) {
+    html += `
+      <div>
+        <div class="text-slate-400 font-semibold mb-1.5 text-[11px] uppercase tracking-wider">Doc</div>
+        <div class="bg-slate-900/60 p-2.5 rounded-xl border border-slate-800 text-[11px] text-slate-300">${escapeHtml(node.docstring)}</div>
+      </div>
+    `;
+  }
+
+  if (cost) {
+    const items = [
+      ['Tokens', cost.token_estimate],
+      ['Characters', cost.char_count],
+      ['Lines', cost.line_count],
+    ];
+    html += `
+      <div>
+        <div class="text-slate-400 font-semibold mb-1.5 text-[11px] uppercase tracking-wider">Read Cost</div>
+        <div class="grid grid-cols-3 gap-1.5">
+          ${items.map(([label, value]) => `
+            <div class="bg-slate-900/60 p-2 rounded-lg border border-slate-800">
+              <div class="text-[10px] text-slate-500">${label}</div>
+              <div class="font-mono text-xs text-emerald-300">${value}</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  if (node.flags && node.flags.length) {
+    html += `
+      <div>
+        <div class="text-slate-400 font-semibold mb-1.5 text-[11px] uppercase tracking-wider">Friction Signals</div>
+        <div class="flex flex-wrap gap-1">
+          ${node.flags.map(flag => `<span class="px-2 py-0.5 rounded-lg text-[10px] font-mono bg-amber-500/15 text-amber-300 border border-amber-500/30">${escapeHtml(flag)}</span>`).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  const facts = [
+    ['Kind', node.kind],
+    ['Language', node.language],
+    ['Exported', node.exported === null || node.exported === undefined ? '' : String(node.exported)],
+    ['Extracted by', node.provenance],
+  ].filter(([, value]) => value !== '' && value !== null && value !== undefined);
+  if (facts.length) {
+    html += `
+      <div class="flex flex-wrap gap-1.5">
+        ${facts.map(([label, value]) => `
+          <span class="px-2 py-0.5 rounded-lg text-[10px] bg-slate-900/60 border border-slate-800">
+            <span class="text-slate-500">${label}</span>
+            <span class="text-slate-300 font-mono ml-1">${escapeHtml(String(value))}</span>
+          </span>
+        `).join('')}
+      </div>
+    `;
+  }
+
+  return html;
+}
+
+function renderGenericMetadata(meta, alreadyShownSpan) {
   const skipKeys = new Set(['analysis', 'type']);
   let html = '';
 
-  if (meta.file_path) {
+  if (alreadyShownSpan) {
+    skipKeys.add('file_path');
+    skipKeys.add('line_number');
+    skipKeys.add('end_line_number');
+  } else if (meta.file_path) {
     html += `
       <div class="bg-slate-900/90 p-4 rounded-xl border border-slate-700/80 space-y-1.5 shadow-inner">
         <div class="text-slate-500 text-[11px] font-mono break-all">${escapeHtml(meta.file_path)}${meta.line_number ? ':' + meta.line_number : ''}</div>
@@ -541,7 +649,8 @@ function showInspector(node) {
   let html = '';
   const meta = node.metadata || {};
 
-  html += renderGenericMetadata(meta);
+  html += renderTypedFields(node);
+  html += renderGenericMetadata(meta, Boolean(node.span));
 
   if (meta.analysis) {
     const metrics = meta.analysis;
@@ -720,6 +829,57 @@ function buildNodeCategoryFilters() {
   }).join('');
 }
 
+
+function confidenceStyle(level) {
+  return (ARCH_DATA.confidence_styles || {})[level] || { color: '#64748B', dashes: false };
+}
+
+function presentConfidenceLevels() {
+  const order = ['static_certain', 'framework_inferred', 'static_inferred', 'dynamic_required'];
+  const present = new Set((ARCH_DATA.edges || []).map(e => e.confidence || 'static_certain'));
+  return order.filter(level => present.has(level)).concat(
+    [...present].filter(level => !order.includes(level))
+  );
+}
+
+function buildConfidenceFilters() {
+  const block = document.getElementById('confidence-filter-block');
+  const container = document.getElementById('confidence-filter-container');
+  if (!block || !container) return;
+  const levels = presentConfidenceLevels();
+  block.classList.toggle('hidden', levels.length < 2);
+  container.innerHTML = levels.map(level => {
+    activeConfidence[level] = true;
+    const count = (ARCH_DATA.edges || []).filter(e => (e.confidence || 'static_certain') === level).length;
+    const color = confidenceStyle(level).color;
+    return `
+      <button data-action="toggleConfidenceFilter" data-arg="${level}" id="confidence-btn-${level}" class="filter-pill px-2 py-0.5 rounded-lg text-[10px] font-medium border transition flex items-center space-x-1" style="border-color:${color};color:${color}">
+        <span>${escapeHtml(titleCase(level))}</span>
+        <span class="opacity-75 font-mono">(${count})</span>
+      </button>
+    `;
+  }).join('');
+}
+
+function buildConfidenceLegend() {
+  const container = document.getElementById('legend-confidence');
+  if (!container) return;
+  const levels = presentConfidenceLevels();
+  container.parentElement && container.previousElementSibling &&
+    container.previousElementSibling.classList.toggle('hidden', levels.length < 2);
+  container.classList.toggle('hidden', levels.length < 2);
+  container.innerHTML = levels.map(level => {
+    const style = confidenceStyle(level);
+    const dashArray = Array.isArray(style.dashes) ? style.dashes.join(' ') : '0';
+    return `
+      <div class="flex items-center space-x-1.5">
+        <svg width="18" height="4" viewBox="0 0 18 4"><line x1="0" y1="2" x2="18" y2="2" stroke="${style.color}" stroke-width="2" stroke-dasharray="${dashArray}"/></svg>
+        <span class="text-slate-300">${escapeHtml(titleCase(level))}</span>
+      </div>
+    `;
+  }).join('');
+}
+
 function buildLegend() {
   const container = document.getElementById('legend-content');
   if (!container) return;
@@ -731,6 +891,7 @@ function buildLegend() {
   container.innerHTML = [...seen.entries()].map(([category, color]) => `
     <div class="flex items-center space-x-1.5"><span class="w-2.5 h-2.5 rounded-full" style="background:${color}"></span><span class="text-slate-300">${escapeHtml(titleCase(category))}</span></div>
   `).join('');
+  buildConfidenceLegend();
 }
 
 function toggleMethodsFilterVisibility() {

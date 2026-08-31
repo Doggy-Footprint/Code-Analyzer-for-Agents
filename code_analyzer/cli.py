@@ -9,16 +9,20 @@ import sys
 import webbrowser
 from pathlib import Path
 
+from analysis import GraphAnalyzer
+from language_analyzers.core.serialization import architecture_to_dict
+
 from framework_analyzers.android.analyzer import AndroidAnalyzer
 from framework_analyzers.android.graph import AndroidArchitectureGraphBuilder
 from framework_analyzers.fastapi.analyzer import FastAPIAnalyzer
 from framework_analyzers.fastapi.dynamic_analyzer import DynamicFastAPIAnalyzer
 from framework_analyzers.fastapi.graph import ArchitectureGraphBuilder
+from language_analyzers.python.graph import PythonGraphAnalyzer
 from language_analyzers.typescript import TypeScriptAnalyzer
 from renderers.html import HTMLRenderer
 
 FRAMEWORK_LABELS = {"fastapi": "FastAPI", "android": "Android"}
-LANGUAGE_LABELS = {"typescript": "TypeScript/JavaScript"}
+LANGUAGE_LABELS = {"python": "Python", "typescript": "TypeScript/JavaScript"}
 
 
 def parse_args():
@@ -79,6 +83,12 @@ def parse_args():
         help="Exclude dependency-injection-shaped nodes from the graph (FastAPI dependencies for fastapi, Hilt/Dagger modules and bindings for android).",
     )
     parser.add_argument(
+        "--no-language-graph",
+        action="store_true",
+        help="[fastapi only] Exclude the underlying language symbol graph (modules, classes, functions, "
+             "imports and calls) and show framework components only.",
+    )
+    parser.add_argument(
         "--open",
         action="store_true",
         help="Automatically open the generated HTML report in the default web browser.",
@@ -111,8 +121,16 @@ def main():
     print(f"[*] Analyzing {analyzer_label} project at: {project_path}")
 
     builder = None
-    if args.language == "typescript":
+    if args.language == "python":
+        arch = PythonGraphAnalyzer(project_path).analyze()
+        arch.stats["analysis"] = GraphAnalyzer().analyze(
+            arch.nodes, arch.edges, project_path=arch.project_path
+        )
+    elif args.language == "typescript":
         arch = TypeScriptAnalyzer(project_path).analyze()
+        arch.stats["analysis"] = GraphAnalyzer().analyze(
+            arch.nodes, arch.edges, project_path=arch.project_path
+        )
     elif args.framework == "android":
         analyzer = AndroidAnalyzer(str(project_path), entrypoint=args.entrypoint)
         arch = analyzer.analyze()
@@ -137,6 +155,7 @@ def main():
         builder = ArchitectureGraphBuilder(
             include_models=not args.no_models,
             include_dependencies=not args.no_deps,
+            include_language_graph=not args.no_language_graph,
         )
         arch = builder.build_graph(arch)
 
@@ -145,19 +164,9 @@ def main():
     print(f"[✓] Generated interactive HTML dashboard: {output_html_path}")
 
     if args.json:
-        from dataclasses import asdict
         json_output_path = output_html_path.with_suffix(".json")
-        json_data = {
-            "project_name": arch.project_name,
-            "project_path": arch.project_path,
-            "stats": arch.stats,
-            "nodes": [n.__dict__ for n in arch.nodes],
-            "edges": [e.__dict__ for e in arch.edges],
-            "collections": {c.key: asdict(c) for c in arch.report_collections},
-            "git_diff": asdict(arch.git_diff) if arch.git_diff else None,
-        }
         with open(json_output_path, "w", encoding="utf-8") as f:
-            json.dump(json_data, f, indent=2, ensure_ascii=False, default=str)
+            json.dump(architecture_to_dict(arch), f, indent=2, ensure_ascii=False, default=str)
         print(f"[✓] Exported architecture JSON: {json_output_path}")
 
     if args.mermaid:

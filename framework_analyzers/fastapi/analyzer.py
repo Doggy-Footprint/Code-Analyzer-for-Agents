@@ -142,6 +142,7 @@ class FastAPIAnalyzer:
                                     module=file_ast.module_name,
                                     file_path=str(file_ast.file_path),
                                     line_number=node.lineno,
+                                    end_line_number=getattr(node, "end_lineno", node.lineno) or node.lineno,
                                     docstring=f"Security scheme: {func_name}"
                                 )
                                 self.dependencies[dep_info.id] = dep_info
@@ -191,6 +192,7 @@ class FastAPIAnalyzer:
                     module=file_ast.module_name,
                     file_path=str(file_ast.file_path),
                     line_number=node.lineno,
+                    end_line_number=getattr(node, "end_lineno", node.lineno) or node.lineno,
                 )
                 file_ast.apps[var_name] = app_info
                 self.apps.append(app_info)
@@ -216,6 +218,7 @@ class FastAPIAnalyzer:
                     module=file_ast.module_name,
                     file_path=str(file_ast.file_path),
                     line_number=node.lineno,
+                    end_line_number=getattr(node, "end_lineno", node.lineno) or node.lineno,
                     prefix=prefix,
                     tags=tags,
                     dependencies=dependencies,
@@ -253,6 +256,7 @@ class FastAPIAnalyzer:
                 module=file_ast.module_name,
                 file_path=str(file_ast.file_path),
                 line_number=node.lineno,
+                end_line_number=getattr(node, "end_lineno", node.lineno) or node.lineno,
                 docstring=ast.get_docstring(node),
                 base_classes=base_names,
                 fields=fields,
@@ -292,6 +296,7 @@ class FastAPIAnalyzer:
                 module=file_ast.module_name,
                 file_path=str(file_ast.file_path),
                 line_number=node.lineno,
+                end_line_number=getattr(node, "end_lineno", node.lineno) or node.lineno,
                 docstring=ast.get_docstring(node),
                 summary=summary,
                 tags=tags,
@@ -316,6 +321,7 @@ class FastAPIAnalyzer:
                 module=file_ast.module_name,
                 file_path=str(file_ast.file_path),
                 line_number=node.lineno,
+                end_line_number=getattr(node, "end_lineno", node.lineno) or node.lineno,
                 docstring=ast.get_docstring(node),
                 sub_dependencies=deps,
                 parameters=params,

@@ -9,6 +9,7 @@ from collections import Counter
 from typing import Dict, List, Optional, Set
 
 from analysis import GraphAnalyzer
+from language_analyzers.core.annotate import annotate_nodes, mark_edges
 from language_analyzers.core.report_schema import ColumnSpec, ReportCollection
 
 from .models import AndroidProjectArchitecture, GraphEdge, GraphNode
@@ -275,6 +276,9 @@ class AndroidArchitectureGraphBuilder:
                 target = composable_by_name.get(composable_name)
                 if target and target.id in node_ids:
                     edges.append(GraphEdge(from_id=af.id, to_id=target.id, relation="HOSTS", color="#9CA3AF"))
+
+        annotate_nodes(nodes, arch.project_path, "android", "kotlin")
+        mark_edges(edges)
 
         arch.nodes = nodes
         arch.edges = edges

@@ -142,6 +142,13 @@
             </div>
 
             <!-- HTTP Methods Filter (hidden by JS when no node carries metadata.http_method) -->
+            <div id="confidence-filter-block" class="hidden">
+              <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Edge Confidence</p>
+              <div class="flex flex-wrap gap-1" id="confidence-filter-container">
+                <!-- Populated by JS, one pill per confidence level present in the graph -->
+              </div>
+            </div>
+
             <div id="methods-filter-block">
               <label class="text-[11px] font-semibold text-slate-400 block mb-1.5">HTTP METHODS</label>
               <div class="flex flex-wrap gap-1" id="methods-filter-container">
@@ -202,6 +209,10 @@
         <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">LEGEND</span>
         <div id="legend-content" class="flex flex-wrap items-center gap-x-3 gap-y-1 max-w-xs">
           <!-- Populated by JS, one swatch per (category, color) pair present in the graph -->
+        </div>
+        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-1">EDGE CONFIDENCE</span>
+        <div id="legend-confidence" class="flex flex-wrap items-center gap-x-3 gap-y-1 max-w-xs">
+          <!-- Populated by JS, one line sample per confidence level present in the graph -->
         </div>
       </div>
 

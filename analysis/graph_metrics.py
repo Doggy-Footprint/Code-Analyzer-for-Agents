@@ -6,13 +6,15 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Mapping, Optional, Sequence, Set
 
+from language_analyzers.core.cost import CHARACTERS_PER_TOKEN
+
 
 @dataclass(frozen=True)
 class GraphAnalysisConfig:
     damping: float = 0.85
     tolerance: float = 1e-10
     max_iterations: int = 100
-    characters_per_token: float = 4.0
+    characters_per_token: float = CHARACTERS_PER_TOKEN
 
 
 class GraphAnalyzer:
@@ -205,6 +207,10 @@ class GraphAnalyzer:
         return visited
 
     def _node_token_cost(self, node: Any, project_path: Optional[str]) -> int:
+        cost = getattr(node, "cost", None)
+        token_estimate = getattr(cost, "token_estimate", None)
+        if isinstance(token_estimate, int) and token_estimate > 0:
+            return token_estimate
         metadata = getattr(node, "metadata", {}) or {}
         file_value = metadata.get("file_path")
         line_number = metadata.get("line_number")

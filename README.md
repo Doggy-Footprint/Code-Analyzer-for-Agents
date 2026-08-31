@@ -51,7 +51,7 @@ AI 에이전트는 코드를 수정하기 전에 반복적으로 검색하고 �
 - Git working tree 또는 최근 commit 간 architecture diff
 - JSON, Mermaid, 대화형 HTML dashboard 출력
 
-FastAPI와 Android는 최종 목적이 아니라 프레임워크가 숨기는 연결을 분석 코어에 보강하는 **reference adapter**입니다. 범용 symbol graph와 다른 프레임워크 adapter는 다음 단계입니다.
+FastAPI와 Android는 최종 목적이 아니라 프레임워크가 숨기는 연결을 분석 코어에 보강하는 **reference adapter**입니다. Python과 TypeScript는 프레임워크 지식 없이 동작하는 범용 symbol graph 계층을 갖고 있고, FastAPI adapter는 그 위에 얹혀 있습니다. Kotlin symbol graph와 다른 프레임워크 adapter는 다음 단계입니다.
 
 ## 분석 방법론
 
@@ -61,9 +61,31 @@ FastAPI와 Android는 최종 목적이 아니라 프레임워크가 숨기는 �
 
 | 구분 | 내용 |
 |---|---|
-| Node | application, router, endpoint, dependency, schema, middleware |
-| Edge | `INCLUDES`, `ROUTES`, `DEPENDS_ON`, `SUB_DEPENDENCY`, `REQUEST_BODY`, `RESPONSE_MODEL`, `MIDDLEWARE_OF` |
-| Node attributes | 파일 경로, line number, category, source token cost, 분석 지표 |
+| 언어 코어 Node | package, module/file, class, interface, enum, function, method, field, constant, type alias |
+| 언어 코어 Edge | `CONTAINS`, `IMPORTS`, `IMPORTS_SYMBOL`, `RE_EXPORTS`, `EXPORTS`, `DECLARES`, `CALLS`, `INSTANTIATES`, `INHERITS`, `IMPLEMENTS`, `DECORATES`, `TYPE_USES`, `READS`, `WRITES` |
+| FastAPI Node | application, router, endpoint, dependency, schema, middleware |
+| FastAPI Edge | `INCLUDES`, `ROUTES`, `DEPENDS_ON`, `SUB_DEPENDENCY`, `REQUEST_BODY`, `RESPONSE_MODEL`, `MIDDLEWARE_OF`, `IMPLEMENTED_BY` |
+| Node attributes | `span`(파일·정확한 줄 범위), `cost`(토큰·문자·줄 수), `kind`, `language`, `symbol_path`, `signature`, `docstring`, `exported`, `provenance`, `flags`, 분석 지표 |
+| Edge attributes | `confidence`, `resolution`, `evidence`(관계가 적힌 위치), `candidates`(모호할 때 탈락한 후보), `weight` |
+
+프레임워크 노드와 언어 노드는 합치지 않고 `IMPLEMENTED_BY` edge로 잇습니다. 하나의 함수가 여러 route에 붙을 수 있고, dashboard의 category filter가 노드당 하나의 category를 전제하기 때문입니다.
+
+### 1-1. 확신의 정도를 함께 기록
+
+정적 분석으로 복원한 연결은 확신의 정도가 서로 다릅니다. 이를 버리지 않고 edge마다 남깁니다.
+
+| confidence | 의미 |
+|---|---|
+| `static_certain` | 구문만으로 확정 (containment, 해석된 import, import된 이름의 호출) |
+| `framework_inferred` | 프레임워크 규약으로 추론 (`Depends`, Hilt, Room) |
+| `static_inferred` | 이름 기반 추정 (프로젝트 내 유일 이름 매칭, 또는 모호한 후보 중 선택) |
+| `dynamic_required` | 정적으로 끊김 (`importlib`, `import()`, `require()`) |
+
+`resolution`은 그 판단이 어떻게 내려졌는지(`exact` / `unique_name` / `ambiguous` / `unresolved`)를 따로 기록하고, `ambiguous`인 경우 선택되지 않은 후보를 `candidates`에 남깁니다.
+
+### 1-2. 구조적 마찰의 원시 신호 마킹
+
+판정이나 점수화 없이, 관측된 사실만 node `flags`에 기록합니다: `dynamic_import`, `dynamic_attr`, `dynamic_eval`, `reexport`(barrel), `ambiguous_name`(동일 이름이 여러 모듈에 정의), `generated`(migration·생성 코드), `vendored`, `test`. 프로젝트 밖으로 나가 해소되지 않은 호출은 `metadata.unresolved_calls`에 이름과 횟수로 집계합니다.
 
 대규모 저장소에서 대부분의 노드는 일부 노드하고만 연결되므로 dense adjacency matrix 대신 adjacency set을 사용합니다. PageRank와 HITS에는 edge 방향을 유지하고, 에이전트가 정의와 사용처를 양방향으로 탐색하는 상황을 근사할 때는 undirected neighborhood를 사용합니다.
 
@@ -178,9 +200,9 @@ Language analyzers never import framework analyzers. A framework analyzer can ad
 
 ## 설계에서 고민한 점
 
-### 프레임워크 지식과 범용 지표 분리
+### 언어 코어와 프레임워크 지식 분리
 
-`Depends`, router registration 같은 FastAPI 연결이나 `@Composable`, Hilt `@Inject` 같은 Android 연결은 언어 문법만으로 충분히 복원하기 어렵습니다. 이 의미는 각각 `framework_analyzers/fastapi/`와 `framework_analyzers/android/`가 각 언어 계층 위에 보강하고, PageRank나 hop cost는 두 패키지 모두 import하지 않는 `analysis/`가 계산합니다. graph node/edge, git-diff 추출, dashboard report 스키마는 `language_analyzers/core/`에 둡니다.
+언어 계층(`language_analyzers/python/`, `language_analyzers/typescript/`)이 module·class·function symbol graph와 import/call/inheritance/type-use edge를 만들고, 프레임워크 계층은 그 위에 의미만 얹습니다. `Depends`, router registration 같은 FastAPI 연결이나 `@Composable`, Hilt `@Inject` 같은 Android 연결은 언어 문법만으로 충분히 복원하기 어렵습니다. 이 의미는 각각 `framework_analyzers/fastapi/`와 `framework_analyzers/android/`가 각 언어 계층 위에 보강하고, PageRank나 hop cost는 두 패키지 모두 import하지 않는 `analysis/`가 계산합니다. graph node/edge, git-diff 추출, dashboard report 스키마는 `language_analyzers/core/`에 둡니다.
 
 ### 분석과 표현 분리
 
@@ -196,8 +218,11 @@ python3 -m unittest discover -s tests -v
 
 - FastAPI route, dependency, schema 추출과 nested prefix 해석
 - Android Compose/Hilt-Dagger/Room/Retrofit 추출과 그래프 연결
-- TypeScript/JavaScript file, symbol, import/export, inheritance, call 관계 추출
-- PageRank·HITS·betweenness·hop token cost 계산, 정확한 소스 범위가 주어졌을 때의 토큰 비용 우선순위
+- TypeScript/JavaScript file, symbol, import/export, inheritance, call 관계 추출과 주석·문자열 안의 호출을 call로 오인하지 않는지 여부
+- Python symbol table(중첩 qualname, import alias, 상대 import, 이름 충돌)과 symbol graph의 edge 종류별 confidence·evidence
+- 마찰 신호(동적 import·reflection·barrel re-export·생성 코드·테스트 경로) 마킹과 그 오탐 방지
+- PageRank·HITS·betweenness·hop token cost 계산, 추출 시점 비용이 있을 때의 우선순위
+- 중립 직렬화 스키마와 HTML dashboard payload가 typed field를 그대로 싣는지 여부
 - 언어 계층이 framework analyzer를 import하지 않는지 여부
 - HTML이 sibling CSS/JS asset을 생성하고 참조하는지 여부
 - Git working tree와 commit diff가 architecture component에 연결되는지 여부
@@ -206,19 +231,19 @@ python3 -m unittest discover -s tests -v
 
 ## 한계
 
-- 현재 graph node는 모든 파일·함수·클래스가 아니라 각 프레임워크의 architecture component 중심입니다.
-- 동적 import, reflection, monkey patching, 문자열 기반 registration은 정적으로 완전히 복원할 수 없습니다.
+- Python/TypeScript는 모듈·클래스·함수 단위까지 추출하지만, Kotlin은 아직 Android architecture component 중심입니다.
+- 동적 import, reflection, monkey patching, 문자열 기반 registration은 정적으로 완전히 복원할 수 없습니다. 복원하지 못한 지점은 버리지 않고 node의 `flags`(`dynamic_import`, `dynamic_attr`, `dynamic_eval`)와 `metadata.unresolved_calls`, edge의 `confidence=dynamic_required`로 기록만 합니다.
 - Android 추출은 어노테이션·상위타입 이름 매칭에 의존하는 heuristic이며 (FastAPI의 기존 방식과 동일한 한계), wildcard import로 인한 이름 충돌을 완전히 구분하지 못합니다.
 - Android 트랙은 `.kt` 소스만 다루며 `AndroidManifest.xml`이나 Navigation graph XML은 아직 분석하지 않습니다.
-- 토큰 비용은 문자 수 기반 근사치이며 모델별 tokenizer 차이를 반영하지 않습니다.
+- 토큰 비용은 문자 수 기반 근사치이며 모델별 tokenizer 차이를 반영하지 않습니다. 다만 이제 추출 시점의 정확한 source span에서 계산하므로 범위 자체는 추정이 아닙니다.
 - 2/3-hop 탐색은 topology 기반 근사로, 실제 에이전트의 semantic search와 tool 선택을 재현하지 않습니다.
 - exact betweenness 계산은 매우 큰 graph에서 비용이 커질 수 있습니다.
 - HTML dashboard의 외부 CDN 자산은 offline 환경에서 별도 bundling이 필요합니다.
 
 ## 다음 단계
 
-1. 일반 Python/Kotlin file/module/class/function symbol graph 추가
-2. import, call, inheritance, type use, test-to-production edge 확장
+1. Kotlin file/module/class/function symbol graph 추가 (Python·TypeScript는 완료)
+2. test-to-production, document-to-symbol, configuration-to-consumer edge 추가
 3. 작업 설명·오류 메시지에서 seed node를 찾는 retrieval 계층 추가
 4. relevance와 token budget을 결합한 확률적 exploration policy 구현
 5. 실제 agent의 파일 열기·검색·backtracking trace로 지표 보정
