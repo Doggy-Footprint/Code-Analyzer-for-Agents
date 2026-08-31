@@ -79,5 +79,22 @@ To write ADR, prompt user with your decision. (Do not write by your decision)
 - Consequences: expected consequences of this decision
 
 # Task Guide
-1. DO NOT arbitrary determine unspecified details of task. Freely talk back to resolve undermined and ambiguous details.
-2. Once task specifications are finalized, invoke an isolated sub-agent (fresh session, NO session `fork`) to write and run independent test suites
+
+## User Decision
+
+DO NOT arbitrary determine unspecified details of task. Freely talk back to resolve undermined and ambiguous details.
+
+## Implementation + Test Workflow
+
+Fix the interface contract before any code is written: signatures, return types, error type/mechanism, and a table of edge cases with expected results. Both implementation and tests derive from this contract.
+
+1. Contract (main) — signatures, error types, edge-case table.
+2. Implementer (subagent) — implementation + tests, run to green.
+3. Verifier (`test-verifier`) — given the contract and the tests only.
+
+### Rules for tests
+
+- Expected values are established by running the code, never by estimation.
+- Time, randomness, network, and filesystem are injected, not called directly.
+- Errors are asserted by type, not by the fact that something threw.
+- Every edge case in the contract table has a test.
