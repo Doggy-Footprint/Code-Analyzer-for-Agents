@@ -22,8 +22,6 @@ class TestFastAPIVisualizer(unittest.TestCase):
         shutil.rmtree(self.test_dir, ignore_errors=True)
 
     def _create_sample_fastapi_app(self):
-        """Creates a mini modular FastAPI project for testing."""
-        # 1. Models
         models_dir = self.project_path / "app" / "models"
         models_dir.mkdir(parents=True, exist_ok=True)
         (models_dir / "__init__.py").write_text("")
@@ -42,7 +40,6 @@ class UserResponse(UserBase):
     id: int
 """)
 
-        # 2. Dependencies
         core_dir = self.project_path / "app" / "core"
         core_dir.mkdir(parents=True, exist_ok=True)
         (core_dir / "__init__.py").write_text("")
@@ -66,7 +63,6 @@ def get_current_user(session: SessionDep) -> UserResponse:
 CurrentUser = Annotated[UserResponse, Depends(get_current_user)]
 """)
 
-        # 3. Routes / Endpoints
         routes_dir = self.project_path / "app" / "api" / "routes"
         routes_dir.mkdir(parents=True, exist_ok=True)
         (routes_dir / "__init__.py").write_text("")
@@ -88,7 +84,6 @@ def create_user(user_in: UserCreate, db=Depends(get_db)):
     return UserResponse(id=2, email=user_in.email)
 """)
 
-        # 4. Main App
         app_dir = self.project_path / "app"
         (app_dir / "main.py").write_text("""
 from fastapi import FastAPI
@@ -103,17 +98,14 @@ app.include_router(users_router, prefix="/api/v1")
         analyzer = FastAPIAnalyzer(str(self.project_path))
         arch = analyzer.analyze()
 
-        # Verify Apps
         self.assertEqual(len(arch.apps), 1)
         self.assertEqual(arch.apps[0].title, "Sample API")
         self.assertEqual(arch.apps[0].version, "2.0.0")
 
-        # Verify Routers
         self.assertGreaterEqual(len(arch.routers), 1)
         users_router = next((r for r in arch.routers if "users" in r.var_name or "router" in r.var_name), None)
         self.assertIsNotNone(users_router)
 
-        # Verify Endpoints
         self.assertEqual(len(arch.endpoints), 2)
         me_ep = next((ep for ep in arch.endpoints if "read_user_me" in ep.function_name), None)
         self.assertIsNotNone(me_ep)
@@ -122,15 +114,12 @@ app.include_router(users_router, prefix="/api/v1")
         self.assertEqual(me_ep.summary, "Get current user")
         self.assertIn("Return current authenticated user profile.", me_ep.docstring)
 
-        # Verify Full Path Resolution (/api/v1 + /users + /me)
         self.assertEqual(me_ep.full_path, "/api/v1/users/me")
 
-        # Verify Schemas
         schema_names = [s.name for s in arch.schemas]
         self.assertIn("UserCreate", schema_names)
         self.assertIn("UserResponse", schema_names)
 
-        # Verify Dependencies and Annotated alias resolution
         dep_names = [d.name for d in arch.dependencies]
         self.assertIn("get_db", dep_names)
         self.assertIn("get_current_user", dep_names)
@@ -143,16 +132,13 @@ app.include_router(users_router, prefix="/api/v1")
         builder = ArchitectureGraphBuilder(include_models=True, include_dependencies=True)
         arch = builder.build_graph(arch)
 
-        # Check nodes and edges created
         self.assertGreater(len(arch.nodes), 0)
         self.assertGreater(len(arch.edges), 0)
 
-        # Check stats
         self.assertEqual(arch.stats["total_endpoints"], 2)
         self.assertEqual(arch.stats["methods_breakdown"]["GET"], 1)
         self.assertEqual(arch.stats["methods_breakdown"]["POST"], 1)
 
-        # Check HTML rendering
         out_html = self.project_path / "output.html"
         renderer = HTMLRenderer(title="Test Visualizer")
         rendered_file = renderer.render(arch, str(out_html))
@@ -176,14 +162,12 @@ app.include_router(users_router, prefix="/api/v1")
         self.assertIn("Sample API", mermaid)
 
     def _init_git_repo(self):
-        """Initializes a git repository in test_dir."""
         import subprocess
         subprocess.run(["git", "init"], cwd=self.project_path, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         subprocess.run(["git", "config", "user.email", "test@example.com"], cwd=self.project_path, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         subprocess.run(["git", "config", "user.name", "Test User"], cwd=self.project_path, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     def _git_commit(self, msg: str):
-        """Stages all changes and commits in test_dir."""
         import subprocess
         subprocess.run(["git", "add", "."], cwd=self.project_path, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         subprocess.run(["git", "commit", "-m", msg], cwd=self.project_path, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -202,11 +186,9 @@ app.include_router(users_router, prefix="/api/v1")
         self._init_git_repo()
         self._git_commit("initial commit")
 
-        # 1. Modify an existing file
         main_file = self.project_path / "app" / "main.py"
         main_file.write_text(main_file.read_text() + "\n# new comment\n")
 
-        # 2. Add an untracked file
         untracked_file = self.project_path / "app" / "untracked.py"
         untracked_file.write_text("x = 10\ny = 20\n")
 
@@ -225,7 +207,6 @@ app.include_router(users_router, prefix="/api/v1")
         self.assertIn("app/main.py", file_paths)
         self.assertIn("app/untracked.py", file_paths)
 
-        # Check untracked file diff
         untracked_diff = next(f for f in arch.git_diff.files if f.file_path == "app/untracked.py")
         self.assertEqual(untracked_diff.status, "untracked")
         self.assertEqual(untracked_diff.additions, 2)
@@ -237,7 +218,6 @@ app.include_router(users_router, prefix="/api/v1")
         self._init_git_repo()
         self._git_commit("commit 1 - base architecture")
 
-        # Create a second commit
         new_route_file = self.project_path / "app" / "api" / "routes" / "items.py"
         new_route_file.write_text("""
 from fastapi import APIRouter
@@ -248,7 +228,6 @@ def get_items():
 """)
         self._git_commit("commit 2 - add items endpoint")
 
-        # Working tree is clean now (no uncommitted changes, no untracked files)
         analyzer = FastAPIAnalyzer(str(self.project_path))
         arch = analyzer.analyze()
 
@@ -269,7 +248,6 @@ def get_items():
         self._init_git_repo()
         self._git_commit("initial commit")
 
-        # Modify users.py which contains endpoints
         users_file = self.project_path / "app" / "api" / "routes" / "users.py"
         content = users_file.read_text()
         users_file.write_text(content + "\n# added note\n")
@@ -286,7 +264,6 @@ def get_items():
         self._init_git_repo()
         self._git_commit("initial commit")
 
-        # Add changes
         (self.project_path / "app" / "main.py").write_text("# modified\n")
 
         analyzer = FastAPIAnalyzer(str(self.project_path))

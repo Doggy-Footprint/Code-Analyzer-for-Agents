@@ -17,13 +17,11 @@ class HTMLRenderer:
         self.title = title
 
     def render(self, arch: ProjectArchitecture, output_path: str) -> Path:
-        """Renders the architecture graph into a standalone HTML file."""
         out = Path(output_path).resolve()
         out.parent.mkdir(parents=True, exist_ok=True)
 
         doc_title = self.title or f"FastAPI Architecture - {arch.project_name}"
         
-        # Serialize graph data
         nodes_data = [
             {
                 "id": n.id,
@@ -616,7 +614,6 @@ class HTMLRenderer:
       HEAD: true,
     }};
 
-    // Initialize on page load
     document.addEventListener('DOMContentLoaded', () => {{
       lucide.createIcons();
       initNetwork();
@@ -717,7 +714,6 @@ class HTMLRenderer:
 
       network = new vis.Network(container, data, options);
 
-      // Node click handler
       network.on('click', (params) => {{
         if (params.nodes.length > 0) {{
           const nodeId = params.nodes[0];
@@ -732,7 +728,6 @@ class HTMLRenderer:
         }}
       }});
 
-      // Hover handler for neighborhood highlighting
       network.on('hoverNode', (params) => {{
         if (!selectedNodeId) {{
           highlightNodeNeighborhood(params.node);
@@ -745,7 +740,6 @@ class HTMLRenderer:
         }}
       }});
 
-      // Double click to focus & zoom smoothly
       network.on('doubleClick', (params) => {{
         if (params.nodes.length > 0) {{
           network.focus(params.nodes[0], {{
@@ -755,7 +749,6 @@ class HTMLRenderer:
         }}
       }});
 
-      // Initial fit after stabilization
       network.once('stabilizationIterationsDone', () => {{
         fitView();
       }});
@@ -1292,7 +1285,6 @@ class HTMLRenderer:
       `).join('');
     }}
 
-    // Export Utilities
     function exportPNG() {{
       const canvas = document.querySelector('#network-container canvas');
       if (!canvas) return;
@@ -1322,9 +1314,6 @@ class HTMLRenderer:
       }});
     }}
 
-    // ==========================================
-    // Git Diff & Architecture Changes Functions
-    // ==========================================
     let currentGitStatusFilter = 'ALL';
     let currentGitSearchQuery = '';
 
@@ -1360,7 +1349,6 @@ class HTMLRenderer:
         return;
       }}
 
-      // Update Nav Badge
       if (navBadge) {{
         if (gd.total_files > 0) {{
           navBadge.innerText = `${{gd.total_files}} ${{gd.total_files === 1 ? 'file' : 'files'}}`;
@@ -1370,7 +1358,6 @@ class HTMLRenderer:
         }}
       }}
 
-      // Populate Hero Banner
       let modeBadgeCls = 'bg-slate-800 text-slate-300 border-slate-700';
       let modeIcon = 'git-commit';
       let modePillText = 'Git Diff';
@@ -1523,7 +1510,6 @@ class HTMLRenderer:
         `;
       }}
 
-      // Populate Architecture Impact
       const impactedEps = gd.impacted_endpoints || [];
       const impactedRouters = gd.impacted_routers || [];
       const impactedDeps = gd.impacted_dependencies || [];
@@ -1663,7 +1649,6 @@ class HTMLRenderer:
       if (sidebarCount) sidebarCount.innerText = `${{filteredFiles.length}} of ${{gd.files.length}} files`;
       if (showingCount) showingCount.innerText = filteredFiles.length;
 
-      // Render Left Sidebar List
       if (fileListContainer) {{
         fileListContainer.innerHTML = filteredFiles.map((f, idx) => {{
           const sCls = statusBadgeClasses[f.status] || 'bg-slate-800 text-slate-300 border-slate-700';
@@ -1690,7 +1675,6 @@ class HTMLRenderer:
         }}).join('') || '<div class="p-4 text-center text-xs text-slate-500 font-mono">No matching files</div>';
       }}
 
-      // Render Diff Cards
       if (diffCardsContainer) {{
         diffCardsContainer.innerHTML = filteredFiles.map((f, idx) => {{
           const sCls = statusBadgeClasses[f.status] || 'bg-slate-800 text-slate-300 border-slate-700';

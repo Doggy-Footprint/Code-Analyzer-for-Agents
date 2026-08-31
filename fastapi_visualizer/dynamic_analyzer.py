@@ -26,7 +26,6 @@ class DynamicFastAPIAnalyzer:
         self.app_instance = None
 
     def analyze(self) -> Optional[ProjectArchitecture]:
-        """Dynamically imports the FastAPI app and inspects routes & dependencies."""
         if str(self.project_path) not in sys.path:
             sys.path.insert(0, str(self.project_path))
 
@@ -55,7 +54,6 @@ class DynamicFastAPIAnalyzer:
         )
         apps.append(app_info)
 
-        # Inspect routes
         for route in getattr(self.app_instance, "routes", []):
             methods = list(getattr(route, "methods", []))
             path = getattr(route, "path", "/")
@@ -67,7 +65,6 @@ class DynamicFastAPIAnalyzer:
             resp_model = getattr(route, "response_model", None)
             resp_model_name = getattr(resp_model, "__name__", str(resp_model)) if resp_model else None
 
-            # Inspect dependants
             route_deps = []
             dependant = getattr(route, "dependant", None)
             if dependant:
@@ -125,7 +122,6 @@ class DynamicFastAPIAnalyzer:
                 )
                 dep_registry[call_name] = dep_info
                 
-                # Check sub-dependencies
                 for sub in getattr(dependant, "dependencies", []):
                     sub_call = getattr(sub, "call", None)
                     if sub_call:

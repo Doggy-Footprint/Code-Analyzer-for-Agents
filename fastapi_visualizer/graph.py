@@ -20,7 +20,6 @@ from .models import (
 
 
 class ArchitectureGraphBuilder:
-    # Rich modern color palette with borders and high-contrast text
     COLORS = {
         "app": {
             "background": "#4338CA",
@@ -95,12 +94,10 @@ class ArchitectureGraphBuilder:
         self.include_dependencies = include_dependencies
 
     def build_graph(self, arch: ProjectArchitecture) -> ProjectArchitecture:
-        """Populates nodes, edges, and statistics on ProjectArchitecture."""
         nodes: List[GraphNode] = []
         edges: List[GraphEdge] = []
         node_ids: Set[str] = set()
 
-        # 1. Apps
         for app in arch.apps:
             node = GraphNode(
                 id=app.id,
@@ -124,7 +121,6 @@ class ArchitectureGraphBuilder:
             nodes.append(node)
             node_ids.add(node.id)
 
-            # Add middleware nodes
             for mw in app.middlewares:
                 mw_id = f"mw_{app.id}_{mw['name']}"
                 if mw_id not in node_ids:
@@ -150,7 +146,6 @@ class ArchitectureGraphBuilder:
                         color="#94A3B8"
                     ))
 
-        # 2. Routers
         for router in arch.routers:
             prefix_label = f"\nprefix: {router.prefix}" if router.prefix else "\nprefix: /"
             node = GraphNode(
@@ -176,8 +171,6 @@ class ArchitectureGraphBuilder:
             nodes.append(node)
             node_ids.add(node.id)
 
-        # 3. Router Inclusions (Edges)
-        # From Apps to Routers
         for app in arch.apps:
             for inc in app.inclusions:
                 target_id = inc.target_router_id or self._find_router_id(inc.module_or_source, inc.router_var, arch.routers)
@@ -191,7 +184,6 @@ class ArchitectureGraphBuilder:
                         color="#818CF8"
                     ))
 
-        # From Routers to Routers
         for router in arch.routers:
             for inc in router.inclusions:
                 target_id = inc.target_router_id or self._find_router_id(inc.module_or_source, inc.router_var, arch.routers)
@@ -205,7 +197,6 @@ class ArchitectureGraphBuilder:
                         color="#C084FC"
                     ))
 
-        # 4. Endpoints
         for ep in arch.endpoints:
             method = ep.http_method.lower()
             group_name = f"endpoint_{method}" if f"endpoint_{method}" in self.COLORS else "endpoint_other"
@@ -243,7 +234,6 @@ class ArchitectureGraphBuilder:
             nodes.append(node)
             node_ids.add(node.id)
 
-            # Connect to parent router or app
             if ep.router_id and ep.router_id in node_ids:
                 edges.append(GraphEdge(
                     from_id=ep.router_id,
@@ -252,7 +242,6 @@ class ArchitectureGraphBuilder:
                     color="#A855F7"
                 ))
             else:
-                # Find router in same module or connect to default app
                 matching_router = next((r for r in arch.routers if r.module == ep.module), None)
                 if matching_router and matching_router.id in node_ids:
                     edges.append(GraphEdge(
@@ -269,7 +258,6 @@ class ArchitectureGraphBuilder:
                         color="#818CF8"
                     ))
 
-        # 5. Dependencies (if enabled)
         if self.include_dependencies:
             for dep in arch.dependencies:
                 dep_label = f"⚙️ {dep.name}"
@@ -297,7 +285,6 @@ class ArchitectureGraphBuilder:
                 nodes.append(dep_node)
                 node_ids.add(dep.id)
 
-            # Edges from Endpoints/Routers to Dependencies
             for ep in arch.endpoints:
                 for d_name in ep.dependencies:
                     target_dep = self._find_dep_by_name(d_name, arch.dependencies)
@@ -311,7 +298,6 @@ class ArchitectureGraphBuilder:
                             color="#38BDF8"
                         ))
 
-            # Edges between Dependencies (Sub-dependencies)
             for dep in arch.dependencies:
                 for sub_name in dep.sub_dependencies:
                     target_sub = self._find_dep_by_name(sub_name, arch.dependencies)
@@ -325,7 +311,6 @@ class ArchitectureGraphBuilder:
                             color="#38BDF8"
                         ))
 
-        # 6. Schemas (if enabled)
         if self.include_models:
             for schema in arch.schemas:
                 schema_node = GraphNode(
@@ -351,7 +336,6 @@ class ArchitectureGraphBuilder:
                 nodes.append(schema_node)
                 node_ids.add(schema.id)
 
-            # Connect endpoints to schemas
             for ep in arch.endpoints:
                 for req_s in ep.request_schemas:
                     target_schema = self._find_schema_by_name(req_s, arch.schemas)
@@ -376,7 +360,6 @@ class ArchitectureGraphBuilder:
                             color="#E879F9"
                         ))
 
-        # 7. Compute Architecture Statistics
         methods_counter = Counter([ep.http_method for ep in arch.endpoints])
         deps_counter = Counter([d for ep in arch.endpoints for d in ep.dependencies])
 
@@ -436,7 +419,6 @@ class ArchitectureGraphBuilder:
         return icons.get(method.upper(), method.upper())
 
     def generate_mermaid(self, arch: ProjectArchitecture) -> str:
-        """Generates Mermaid diagram definition string from architecture."""
         lines = ["graph TD", "  %% FastAPI Architecture Diagram"]
         
         for app in arch.apps:

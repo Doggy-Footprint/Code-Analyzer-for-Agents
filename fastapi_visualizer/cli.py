@@ -87,7 +87,6 @@ def main():
 
     print(f"[*] Analyzing FastAPI project at: {project_path}")
 
-    # 1. Analysis Phase
     if args.app:
         print(f"[*] Attempting dynamic introspection with app import: {args.app}...")
         dyn_analyzer = DynamicFastAPIAnalyzer(str(project_path), args.app)
@@ -100,19 +99,16 @@ def main():
         analyzer = FastAPIAnalyzer(str(project_path), entrypoint=args.entrypoint)
         arch = analyzer.analyze()
 
-    # 2. Graph Building Phase
     builder = ArchitectureGraphBuilder(
         include_models=not args.no_models,
         include_dependencies=not args.no_deps,
     )
     arch = builder.build_graph(arch)
 
-    # 3. HTML Rendering Phase
     renderer = HTMLRenderer(title=args.title)
     output_html_path = renderer.render(arch, args.output)
     print(f"[✓] Generated interactive HTML dashboard: {output_html_path}")
 
-    # 4. Optional JSON Export
     if args.json:
         from dataclasses import asdict
         json_output_path = output_html_path.with_suffix(".json")
@@ -132,14 +128,12 @@ def main():
             json.dump(json_data, f, indent=2, ensure_ascii=False, default=str)
         print(f"[✓] Exported architecture JSON: {json_output_path}")
 
-    # 5. Optional Mermaid Output
     if args.mermaid:
         mermaid_code = builder.generate_mermaid(arch)
         print("\n--- Mermaid Architecture Diagram ---")
         print(mermaid_code)
         print("------------------------------------\n")
 
-    # 6. Summary Stats
     stats = arch.stats
     print(f"\n📊 Summary Statistics:")
     print(f"  • Applications: {stats.get('total_apps', 0)}")
@@ -155,7 +149,6 @@ def main():
         if gd.impacted_endpoints:
             print(f"  • Impacted API: {len(gd.impacted_endpoints)} endpoint(s)")
 
-    # 7. Open in browser
     if args.open:
         print(f"[*] Opening {output_html_path} in default browser...")
         webbrowser.open(f"file://{output_html_path}")

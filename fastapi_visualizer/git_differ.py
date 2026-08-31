@@ -22,15 +22,12 @@ from .models import (
 
 
 class GitDiffer:
-    """Extracts git difference information and correlates it with FastAPI architecture."""
-
     def __init__(self, project_path: Union[str, Path]):
         self.project_path = Path(project_path).resolve()
         self.repo_root: Optional[Path] = None
         self.rel_prefix: str = ""
 
     def get_diff_info(self, arch: Optional[ProjectArchitecture] = None) -> GitDiffInfo:
-        """Main entrypoint: retrieves git diff info and correlates with architecture."""
         if not self._init_git_repo():
             return GitDiffInfo(
                 is_git_repo=False,
@@ -70,7 +67,6 @@ class GitDiffer:
             )
 
     def _run_git(self, args: List[str]) -> Tuple[int, str, str]:
-        """Runs a git command in the project directory safely."""
         try:
             proc = subprocess.run(
                 ["git", "-C", str(self.project_path)] + args,
@@ -86,7 +82,6 @@ class GitDiffer:
             return -1, "", str(e)
 
     def _init_git_repo(self) -> bool:
-        """Checks if project_path is inside a git repository and discovers repo root."""
         code, out, _ = self._run_git(["rev-parse", "--is-inside-work-tree"])
         if code != 0 or out.strip() != "true":
             return False
@@ -105,7 +100,6 @@ class GitDiffer:
         return True
 
     def _get_commit_info(self, ref: str) -> Optional[GitCommitInfo]:
-        """Fetches commit metadata for a given ref (e.g. HEAD, HEAD~1)."""
         code, out, _ = self._run_git([
             "log", "-1", "--format=%H%x00%h%x00%an%x00%ae%x00%ad%x00%s",
             "--date=iso", ref
@@ -126,14 +120,12 @@ class GitDiffer:
         return None
 
     def _get_commit_count(self) -> int:
-        """Returns total commit count reachable from HEAD."""
         code, out, _ = self._run_git(["rev-list", "--count", "HEAD"])
         if code == 0 and out.strip().isdigit():
             return int(out.strip())
         return 0
 
     def _check_uncommitted_changes(self) -> Tuple[bool, List[str]]:
-        """Checks if there are uncommitted changes (staged, unstaged, untracked) in project."""
         code, out, _ = self._run_git(["status", "--porcelain=v1", "-uall", "."])
         if code != 0:
             return False, []
@@ -141,7 +133,8 @@ class GitDiffer:
         return len(lines) > 0, lines
 
     def _normalize_path(self, raw_path: str) -> str:
-        """Normalizes a repo-relative path to project_path relative path."""
+        # git paths are repo-root-relative, but callers want them relative to
+        # project_path (which may be a subdirectory of the repo).
         p = raw_path.strip()
         if p.startswith('"') and p.endswith('"'):
             p = p[1:-1]
@@ -150,15 +143,12 @@ class GitDiffer:
         return p
 
     def _extract_working_tree_diff(self, status_lines: List[str]) -> GitDiffInfo:
-        """Extracts diff between Working Tree (including untracked files) and HEAD."""
         base_commit = self._get_commit_info("HEAD")
-        
-        # 1. Get tracked changes (staged + unstaged vs HEAD)
+
         _, tracked_diff_out, _ = self._run_git(["diff", "-M", "HEAD", "--", "."])
         file_diffs = self._parse_unified_diff(tracked_diff_out)
         existing_paths = {f.file_path for f in file_diffs}
 
-        # 2. Get untracked files
         _, untracked_out, _ = self._run_git(["ls-files", "--others", "--exclude-standard", "."])
         untracked_files = [line.strip() for line in untracked_out.splitlines() if line.strip()]
 
@@ -178,7 +168,6 @@ class GitDiffer:
             file_diffs.append(untracked_diff)
             existing_paths.add(norm_path)
 
-        # 3. Aggregate totals
         total_add = sum(f.additions for f in file_diffs)
         total_del = sum(f.deletions for f in file_diffs)
 
@@ -197,7 +186,6 @@ class GitDiffer:
         )
 
     def _extract_last_two_commits_diff(self) -> GitDiffInfo:
-        """Extracts diff between HEAD~1 and HEAD when working directory is clean."""
         target_commit = self._get_commit_info("HEAD")
         base_commit = self._get_commit_info("HEAD~1")
 
@@ -222,8 +210,8 @@ class GitDiffer:
         )
 
     def _extract_single_commit_diff(self) -> GitDiffInfo:
-        """Extracts diff for initial single commit against empty tree."""
         target_commit = self._get_commit_info("HEAD")
+        # git's fixed hash for the empty tree object, used to diff a single commit as if it were a full add.
         empty_tree_sha = "4b825dc642cb6eb9a060e54bf8d69288fbee4904"
 
         _, diff_out, _ = self._run_git(["diff", "-M", empty_tree_sha, "HEAD", "--", "."])
@@ -247,7 +235,6 @@ class GitDiffer:
         )
 
     def _create_untracked_file_diff(self, norm_path: str, full_path: Path) -> GitFileDiff:
-        """Generates a synthetic GitFileDiff for an untracked new file."""
         is_binary = False
         content_lines: List[str] = []
         try:
@@ -307,7 +294,6 @@ class GitDiffer:
         )
 
     def _parse_unified_diff(self, diff_text: str) -> List[GitFileDiff]:
-        """Parses a multi-file unified git diff string into structured GitFileDiff objects."""
         if not diff_text.strip():
             return []
 
@@ -432,7 +418,6 @@ class GitDiffer:
         return file_diffs
 
     def _correlate_with_architecture(self, diff_info: GitDiffInfo, arch: ProjectArchitecture):
-        """Cross-references changed files with FastAPI endpoints, routers, dependencies, and schemas."""
         def matches_file(element_file_path: str, diff_file_path: str) -> bool:
             if not element_file_path or not diff_file_path:
                 return False
@@ -440,7 +425,6 @@ class GitDiffer:
             norm_diff = diff_file_path.replace("\\", "/").lstrip("./")
             return norm_elem == norm_diff or norm_elem.endswith("/" + norm_diff) or norm_diff.endswith("/" + norm_elem)
 
-        # 1. Match Endpoints
         impacted_endpoints = []
         for ep in arch.endpoints:
             for f in diff_info.files:
@@ -460,7 +444,6 @@ class GitDiffer:
                         "id": ep.id,
                     })
 
-        # 2. Match Routers
         impacted_routers = []
         for r in arch.routers:
             for f in diff_info.files:
@@ -479,7 +462,6 @@ class GitDiffer:
                         "id": r.id,
                     })
 
-        # 3. Match Dependencies
         impacted_dependencies = []
         for d in arch.dependencies:
             for f in diff_info.files:
@@ -498,7 +480,6 @@ class GitDiffer:
                         "id": d.id,
                     })
 
-        # 4. Match Schemas
         impacted_schemas = []
         for s in arch.schemas:
             for f in diff_info.files:
@@ -516,7 +497,6 @@ class GitDiffer:
                         "id": s.id,
                     })
 
-        # Deduplicate and attach
         diff_info.impacted_endpoints = list({e["id"]: e for e in impacted_endpoints}.values())
         diff_info.impacted_routers = list({r["id"]: r for r in impacted_routers}.values())
         diff_info.impacted_dependencies = list({d["id"]: d for d in impacted_dependencies}.values())
