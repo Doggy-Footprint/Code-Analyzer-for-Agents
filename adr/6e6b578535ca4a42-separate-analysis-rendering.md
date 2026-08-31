@@ -18,35 +18,16 @@ Use three one-way layers:
 
 The renderer writes assets beside each report instead of embedding application code and styles in Python. Token cost initially uses a configurable characters-per-token estimate over the smallest AST definition containing a node's source line. This approximation remains explicit and replaceable.
 
-## Options Considered
+## Alternatives Considered
 
-### Keep one FastAPI package
-
-| Dimension | Assessment |
-|---|---|
-| Complexity | Low initially |
-| Extensibility | Low |
-| Rendering maintenance | Low |
-
-This preserves imports but keeps generic metrics coupled to FastAPI and UI concerns.
-
-### Separate one-way layers
-
-| Dimension | Assessment |
-|---|---|
-| Complexity | Medium |
-| Extensibility | High |
-| Rendering maintenance | High |
-
-This requires import migration and multiple report files but gives each framework and renderer a stable boundary.
+- **Keep one FastAPI package**: simpler short-term, but keeps generic metrics coupled to FastAPI and UI concerns. Rejected for lacking a stable boundary for future framework helpers.
 
 ## Consequences
 
-- New framework helpers can reuse graph metrics without importing FastAPI code.
-- Renderers can change without changing graph algorithms.
+- New framework helpers can reuse graph metrics without importing FastAPI code; renderers can change independently of graph algorithms.
 - HTML reports now depend on a sibling `<report-name>_assets/` directory.
 - Source token costs are estimates until calibrated against a model tokenizer or agent traces.
-- The current FastAPI graph model remains inside the FastAPI helper and is not yet the final generic repository graph schema.
+- The FastAPI graph model is not yet the final generic repository graph schema.
 
 ## Action Items
 
