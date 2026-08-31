@@ -61,6 +61,23 @@ code_hash: <hash of participating files' non-comment content>
 - Remove all corresponding comments/docstrings from every referenced code location.
 - Increment the document's version, record the removal reason in the version log, and add obsolete: true to the frontmatter.
 
+## Architecture Decision Record Rule
+
+To write ADR, prompt user with your decision. (Do not write by your decision)
+
+### Checklist for updating ADR
+
+1. The decision is expensive to reverse
+2. A concrete alternative was seriously considered and rejected.
+3. The reasoning cannot be recovered by reading the code.
+
+### Proposal
+
+- Context
+- Decision
+- Alternatives: with reason to reject
+- Consequences: expected consequences of this decision
+
 # Task Guide
 1. DO NOT arbitrary determine unspecified details of task. Freely talk back to resolve undermined and ambiguous details.
 2. Once task specifications are finalized, invoke an isolated sub-agent (fresh session, NO session `fork`) to write and run independent test suites
