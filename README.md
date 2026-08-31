@@ -1,6 +1,6 @@
 # Agent-Friendly Repository Analyzer
 
-> AI 코딩 에이전트가 저장소를 탐색할 때 어디에서 문맥과 토큰을 낭비하는지 정적 분석으로 찾는 프로젝트입니다. 현재는 FastAPI를 첫 번째 프레임워크 사례로 지원합니다.
+> AI 코딩 에이전트가 저장소를 탐색할 때 어디에서 문맥과 토큰을 낭비하는지 정적 분석으로 찾는 프로젝트입니다. FastAPI(Python)를 첫 번째 프레임워크 사례로, Android(Kotlin)를 두 번째 사례로 지원합니다.
 
 이 프로젝트는 코드의 전통적인 복잡도보다 **에이전트가 작업 대상을 찾고 영향 범위를 확신하기까지 지불하는 탐색 비용**에 집중합니다. AST로 애플리케이션 구조를 복원하고, 이를 그래프로 변환한 뒤 중심성·소스 토큰 비용·2/3-hop 문맥 비용을 결합해 탐색 병목을 찾습니다.
 
@@ -20,20 +20,32 @@ AI 에이전트는 코드를 수정하기 전에 반복적으로 검색하고 �
 
 ## 현재 구현 범위
 
-현재 버전은 FastAPI 프로젝트를 대상으로 다음 기능을 제공합니다.
+### FastAPI (Python)
 
 - Python `ast` 기반 정적 분석
 - FastAPI app, nested router, endpoint, middleware 추출
 - `Depends`, `Security`, `Annotated` 기반 dependency chain 복원
 - Pydantic·SQLModel schema와 request/response 연결
 - app → router → endpoint → dependency/schema 방향 그래프 생성
+
+### Android (Kotlin)
+
+- `tree-sitter` 기반 `.kt` 정적 분석 (`pip install -r requirements.txt` 필요)
+- Jetpack Compose `@Composable` 함수와 호출 그래프 추출
+- Hilt/Dagger DI(`@Module`/`@Provides`/`@Binds`/`@HiltViewModel`/`@Inject`) 그래프 복원
+- ViewModel ↔ UI(Composable) 연결 추적
+- Room(`@Entity`/`@Dao`/`@Database`)과 쿼리·엔티티 연결
+- Retrofit API 인터페이스(`@GET`/`@POST` 등) 추출
+
+### 공통
+
 - PageRank, HITS, degree/betweenness centrality 계산
 - 소스 범위의 추정 토큰 비용과 PageRank 가중 비용 계산
 - 각 노드에서 2-hop·3-hop 탐색 시 필요한 누적 토큰 비용 계산
 - Git working tree 또는 최근 commit 간 architecture diff
 - JSON, Mermaid, 대화형 HTML dashboard 출력
 
-FastAPI는 최종 목적이 아니라 프레임워크가 숨기는 연결을 분석 코어에 보강하는 **reference adapter**입니다. 범용 Python symbol graph와 다른 프레임워크 adapter는 다음 단계입니다.
+FastAPI와 Android는 최종 목적이 아니라 프레임워크가 숨기는 연결을 분석 코어에 보강하는 **reference adapter**입니다. 범용 symbol graph와 다른 프레임워크 adapter는 다음 단계입니다.
 
 ## 분석 방법론
 
@@ -113,9 +125,11 @@ read_utility = task_relevance + edge_confidence + impact_value - normalized_toke
 
 ```mermaid
 flowchart TD
-    CLI[code_analyzer CLI] --> FA[FastAPI AST Analyzer]
+    CLI["code_analyzer CLI (--framework)"] --> FA[FastAPI AST Analyzer]
+    CLI --> AA[Android tree-sitter Analyzer]
     FA --> PA[Project Architecture]
-    PA --> GB[FastAPI Graph Builder]
+    AA --> PA
+    PA --> GB[Framework Graph Builder]
     GB --> GA[Generic Graph Analyzer]
     GA --> M[Centrality and Token Metrics]
     M --> JSON[JSON / Mermaid]
@@ -125,6 +139,7 @@ flowchart TD
 
     subgraph Framework Layer
         FA
+        AA
         GB
     end
 
@@ -137,8 +152,10 @@ flowchart TD
 ```text
 analysis/                   # 프레임워크 비종속 그래프 지표
 code_analyzer/              # CLI와 전체 파이프라인 조합
+framework_helpers/common/   # 두 어댑터가 공유하는 graph/report/git-diff 모델
 framework_helpers/fastapi/  # FastAPI AST·runtime 의미 해석
-renderers/html/             # HTML template, CSS, JavaScript, renderer
+framework_helpers/android/  # Android tree-sitter 의미 해석
+renderers/html/             # HTML template, CSS, JavaScript, renderer (프레임워크 중립)
 tests/                      # 분석·패키지 경계·통합 테스트
 ```
 
@@ -146,11 +163,11 @@ tests/                      # 분석·패키지 경계·통합 테스트
 
 ### 프레임워크 지식과 범용 지표 분리
 
-`Depends`, router registration 같은 연결은 Python call graph만으로 충분히 복원하기 어렵습니다. 이 의미는 `framework_helpers/fastapi/`가 보강하고, PageRank나 hop cost는 FastAPI를 import하지 않는 `analysis/`가 계산합니다.
+`Depends`, router registration 같은 FastAPI 연결이나 `@Composable`, Hilt `@Inject` 같은 Android 연결은 언어 문법만으로 충분히 복원하기 어렵습니다. 이 의미는 각각 `framework_helpers/fastapi/`와 `framework_helpers/android/`가 보강하고, PageRank나 hop cost는 두 패키지 모두 import하지 않는 `analysis/`가 계산합니다. 두 어댑터가 공통으로 쓰는 graph node/edge, git-diff 추출, dashboard report 스키마는 `framework_helpers/common/`에 둡니다.
 
 ### 분석과 표현 분리
 
-HTML, CSS, JavaScript를 Python 문자열에 넣지 않았습니다. renderer는 분석 결과를 직렬화하고 template placeholder를 채우며, 정적 자산은 별도 파일로 관리합니다. 같은 분석 결과를 향후 CLI, JSON, 다른 UI에서 재사용할 수 있습니다.
+HTML, CSS, JavaScript를 Python 문자열에 넣지 않았습니다. renderer는 프레임워크마다 스스로 선언하는 `ReportCollection`(예: FastAPI의 endpoints/routers, Android의 composables/room entities)을 순회해 template placeholder를 채우며, 정적 자산은 별도 파일로 관리합니다. renderer는 특정 프레임워크의 어휘를 하드코딩하지 않으므로 같은 분석 결과를 향후 CLI, JSON, 다른 UI, 다른 프레임워크 adapter에서 재사용할 수 있습니다.
 
 ## 검증
 
@@ -161,17 +178,20 @@ python3 -m unittest discover -s tests -v
 테스트는 다음 경계를 확인합니다.
 
 - FastAPI route, dependency, schema 추출과 nested prefix 해석
-- PageRank·HITS·betweenness·hop token cost 계산
-- 범용 분석 계층과 renderer가 FastAPI package를 import하지 않는지 여부
+- Android Compose/Hilt-Dagger/Room/Retrofit 추출과 그래프 연결
+- PageRank·HITS·betweenness·hop token cost 계산, 정확한 소스 범위가 주어졌을 때의 토큰 비용 우선순위
+- 범용 분석 계층과 renderer가 어떤 `framework_helpers` 패키지도 import하지 않는지 여부
 - HTML이 sibling CSS/JS asset을 생성하고 참조하는지 여부
 - Git working tree와 commit diff가 architecture component에 연결되는지 여부
 
-샘플 프로젝트는 `examples/official_template`과 `examples/realworld_app`에 포함되어 있습니다.
+샘플 프로젝트는 `examples/official_template`, `examples/realworld_app`(FastAPI), `examples/nowinandroid_sample`(Android, `examples/download_android_samples.py`로 받음)에 포함되어 있습니다.
 
 ## 한계
 
-- 현재 graph node는 모든 Python 파일·함수·클래스가 아니라 FastAPI architecture component 중심입니다.
+- 현재 graph node는 모든 파일·함수·클래스가 아니라 각 프레임워크의 architecture component 중심입니다.
 - 동적 import, reflection, monkey patching, 문자열 기반 registration은 정적으로 완전히 복원할 수 없습니다.
+- Android 추출은 어노테이션·상위타입 이름 매칭에 의존하는 heuristic이며 (FastAPI의 기존 방식과 동일한 한계), wildcard import로 인한 이름 충돌을 완전히 구분하지 못합니다.
+- Android 트랙은 `.kt` 소스만 다루며 `AndroidManifest.xml`이나 Navigation graph XML은 아직 분석하지 않습니다.
 - 토큰 비용은 문자 수 기반 근사치이며 모델별 tokenizer 차이를 반영하지 않습니다.
 - 2/3-hop 탐색은 topology 기반 근사로, 실제 에이전트의 semantic search와 tool 선택을 재현하지 않습니다.
 - exact betweenness 계산은 매우 큰 graph에서 비용이 커질 수 있습니다.
@@ -179,13 +199,13 @@ python3 -m unittest discover -s tests -v
 
 ## 다음 단계
 
-1. 일반 Python file/module/class/function symbol graph 추가
+1. 일반 Python/Kotlin file/module/class/function symbol graph 추가
 2. import, call, inheritance, type use, test-to-production edge 확장
 3. 작업 설명·오류 메시지에서 seed node를 찾는 retrieval 계층 추가
 4. relevance와 token budget을 결합한 확률적 exploration policy 구현
 5. 실제 agent의 파일 열기·검색·backtracking trace로 지표 보정
 6. Git co-change와 정적 dependency 불일치 탐지
-7. Django, Flask 등 framework adapter 추가
+7. Django, Flask 등 다른 Python framework adapter, AndroidManifest/Navigation 분석 추가
 8. 변경 전후 agent-friendliness diff와 개선 제안 제공
 
 더 자세한 제품 가설과 열린 질문은 [IDEA.md](IDEA.md)에 정리되어 있습니다.

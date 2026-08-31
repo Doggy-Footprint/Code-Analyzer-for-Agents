@@ -1,0 +1,351 @@
+"""
+Graph Builder for Android Architecture.
+Converts extracted Compose/Hilt-Dagger/Room/Retrofit metadata into an interactive
+network graph (nodes and edges) and computes architecture metrics via the
+framework-neutral analysis layer.
+"""
+
+from collections import Counter
+from typing import Dict, List, Optional, Set
+
+from analysis import GraphAnalyzer
+from framework_helpers.common.report_schema import ColumnSpec, ReportCollection
+
+from .models import AndroidProjectArchitecture, GraphEdge, GraphNode
+
+
+class AndroidArchitectureGraphBuilder:
+    COLORS = {
+        "composable": {
+            "background": "#065F46", "border": "#10B981",
+            "highlight": {"background": "#047857", "border": "#6EE7B7"},
+            "hover": {"background": "#047857", "border": "#34D399"},
+        },
+        "viewmodel": {
+            "background": "#1E40AF", "border": "#3B82F6",
+            "highlight": {"background": "#1D4ED8", "border": "#93C5FD"},
+            "hover": {"background": "#1D4ED8", "border": "#60A5FA"},
+        },
+        "di_module": {
+            "background": "#7E22CE", "border": "#A855F7",
+            "highlight": {"background": "#9333EA", "border": "#E9D5FF"},
+            "hover": {"background": "#9333EA", "border": "#C084FC"},
+        },
+        "di_binding": {
+            "background": "#0369A1", "border": "#38BDF8",
+            "highlight": {"background": "#0284C7", "border": "#BAE6FD"},
+            "hover": {"background": "#0284C7", "border": "#7DD3FC"},
+        },
+        "dagger_component": {
+            "background": "#4338CA", "border": "#6366F1",
+            "highlight": {"background": "#4F46E5", "border": "#A5B4FC"},
+            "hover": {"background": "#4F46E5", "border": "#818CF8"},
+        },
+        "room_entity": {
+            "background": "#86198F", "border": "#E879F9",
+            "highlight": {"background": "#A21CAF", "border": "#F5D0FE"},
+            "hover": {"background": "#A21CAF", "border": "#F0ABFC"},
+        },
+        "room_dao": {
+            "background": "#92400E", "border": "#F59E0B",
+            "highlight": {"background": "#B45309", "border": "#FDE68A"},
+            "hover": {"background": "#B45309", "border": "#FBBF24"},
+        },
+        "room_query": {
+            "background": "#115E59", "border": "#14B8A6",
+            "highlight": {"background": "#0F766E", "border": "#99F6E4"},
+            "hover": {"background": "#0F766E", "border": "#2DD4BF"},
+        },
+        "room_database": {
+            "background": "#9F1239", "border": "#F43F5E",
+            "highlight": {"background": "#BE123C", "border": "#FECDD3"},
+            "hover": {"background": "#BE123C", "border": "#FB7185"},
+        },
+        "retrofit_api": {
+            "background": "#7E22CE", "border": "#A855F7",
+            "highlight": {"background": "#9333EA", "border": "#E9D5FF"},
+            "hover": {"background": "#9333EA", "border": "#C084FC"},
+        },
+        "retrofit_endpoint": {
+            "background": "#1E40AF", "border": "#3B82F6",
+            "highlight": {"background": "#1D4ED8", "border": "#93C5FD"},
+            "hover": {"background": "#1D4ED8", "border": "#60A5FA"},
+        },
+        "activity_fragment": {
+            "background": "#374151", "border": "#9CA3AF",
+            "highlight": {"background": "#4B5563", "border": "#E5E7EB"},
+            "hover": {"background": "#4B5563", "border": "#D1D5DB"},
+        },
+    }
+
+    def __init__(self, include_models: bool = True, include_dependencies: bool = True):
+        self.include_models = include_models
+        self.include_dependencies = include_dependencies
+
+    def build_graph(self, arch: AndroidProjectArchitecture) -> AndroidProjectArchitecture:
+        nodes: List[GraphNode] = []
+        edges: List[GraphEdge] = []
+        node_ids: Set[str] = set()
+
+        def add_node(node: GraphNode):
+            nodes.append(node)
+            node_ids.add(node.id)
+
+        def by_name(items, attr="name") -> Dict[str, object]:
+            result: Dict[str, object] = {}
+            for item in items:
+                result.setdefault(getattr(item, attr), item)
+            return result
+
+        composable_by_name = by_name(arch.composables)
+        viewmodel_by_name = by_name(arch.viewmodels)
+        entity_by_name = by_name(arch.room_entities)
+        dao_by_name = by_name(arch.room_daos)
+        api_by_name = by_name(arch.retrofit_apis)
+        component_by_name = by_name(arch.dagger_components)
+        binding_by_injected_type = {b.injected_type: b for b in arch.di_bindings if b.injected_type}
+        binding_by_provided_type = {b.provided_type: b for b in arch.di_bindings if b.provided_type}
+
+        for c in arch.composables:
+            add_node(GraphNode(
+                id=c.id, label=f"🧩 {c.name}", group="composable", category="composable",
+                title=f"<b>Composable: {c.name}</b><br>Module: {c.module}<br>File: {c.file_path}:{c.line_number}",
+                shape="box", size=24, color=self.COLORS["composable"],
+                metadata={"name": c.name, "module": c.module, "file_path": c.file_path,
+                          "line_number": c.line_number, "end_line_number": c.end_line_number,
+                          "calls": c.calls, "uses_viewmodel": c.uses_viewmodel},
+            ))
+        for c in arch.composables:
+            for call_name in c.calls:
+                target = composable_by_name.get(call_name)
+                if target and target.id != c.id and target.id in node_ids:
+                    edges.append(GraphEdge(from_id=c.id, to_id=target.id, relation="CALLS", color="#10B981"))
+            if c.uses_viewmodel:
+                target = viewmodel_by_name.get(c.uses_viewmodel)
+                if target:
+                    edges.append(GraphEdge(from_id=c.id, to_id=target.id, relation="USES_VIEWMODEL",
+                                            label="uses", dashes=True, color="#3B82F6"))
+
+        for v in arch.viewmodels:
+            add_node(GraphNode(
+                id=v.id, label=f"🧠 {v.name}", group="viewmodel", category="viewmodel",
+                title=f"<b>ViewModel: {v.name}</b><br>Hilt: {v.is_hilt}<br>Module: {v.module}<br>File: {v.file_path}:{v.line_number}",
+                shape="box", size=28, color=self.COLORS["viewmodel"],
+                metadata={"name": v.name, "module": v.module, "file_path": v.file_path,
+                          "line_number": v.line_number, "end_line_number": v.end_line_number,
+                          "is_hilt": v.is_hilt, "injected_types": v.injected_types},
+            ))
+
+        if self.include_dependencies:
+            for m in arch.di_modules:
+                add_node(GraphNode(
+                    id=m.id, label=f"📁 {m.name}", group="di_module", category="di_module",
+                    title=f"<b>DI Module: {m.name}</b><br>Install In: {', '.join(m.install_in)}<br>File: {m.file_path}:{m.line_number}",
+                    shape="box", size=30, color=self.COLORS["di_module"],
+                    metadata={"name": m.name, "module": m.module, "file_path": m.file_path,
+                              "line_number": m.line_number, "end_line_number": m.end_line_number,
+                              "install_in": m.install_in},
+                ))
+
+            for comp in arch.dagger_components:
+                add_node(GraphNode(
+                    id=comp.id, label=f"🚀 {comp.name}", group="dagger_component", category="dagger_component",
+                    title=f"<b>Dagger Component: {comp.name}</b>{'<br>(synthesized)' if comp.synthesized else ''}",
+                    shape="box", size=34, color=self.COLORS["dagger_component"],
+                    metadata={"name": comp.name, "file_path": comp.file_path,
+                              "line_number": comp.line_number, "end_line_number": comp.end_line_number,
+                              "synthesized": comp.synthesized},
+                ))
+
+            for b in arch.di_bindings:
+                add_node(GraphNode(
+                    id=b.id, label=f"⚙️ {b.name}", group="di_binding", category="di_binding",
+                    title=f"<b>DI Binding: {b.name}</b><br>Kind: {b.kind}<br>File: {b.file_path}:{b.line_number}",
+                    shape="ellipse", size=20, color=self.COLORS["di_binding"],
+                    metadata={"name": b.name, "kind": b.kind, "module": b.module, "file_path": b.file_path,
+                              "line_number": b.line_number, "end_line_number": b.end_line_number,
+                              "provided_type": b.provided_type, "injected_type": b.injected_type},
+                ))
+
+            for m in arch.di_modules:
+                for b in arch.di_bindings:
+                    if b.owner_module_id == m.id and b.id in node_ids:
+                        edges.append(GraphEdge(from_id=m.id, to_id=b.id,
+                                                relation="PROVIDES" if b.kind == "provides" else "BINDS",
+                                                dashes=True, color="#A855F7"))
+                for target_name in m.install_in:
+                    target = component_by_name.get(target_name)
+                    if target and target.id in node_ids:
+                        edges.append(GraphEdge(from_id=m.id, to_id=target.id, relation="INSTALLS_IN", color="#818CF8"))
+
+            for v in arch.viewmodels:
+                for injected_type in v.injected_types:
+                    binding = binding_by_injected_type.get(injected_type) or binding_by_provided_type.get(injected_type)
+                    if binding and binding.id in node_ids:
+                        edges.append(GraphEdge(from_id=v.id, to_id=binding.id, relation="INJECTS",
+                                                label="injects", dashes=True, color="#38BDF8"))
+                    api = api_by_name.get(injected_type)
+                    if api and any(call in {e.name for e in api.endpoints} for call in v.calls):
+                        edges.append(GraphEdge(from_id=v.id, to_id=api.id, relation="CALLS_API",
+                                                label="calls", dashes=True, color="#A855F7"))
+
+        if self.include_models:
+            for e in arch.room_entities:
+                add_node(GraphNode(
+                    id=e.id, label=f"📦 {e.name}\n({len(e.fields)} fields)", group="room_entity", category="room_entity",
+                    title=f"<b>Room Entity: {e.name}</b><br>Fields: {len(e.fields)}<br>File: {e.file_path}:{e.line_number}",
+                    shape="box", size=20, color=self.COLORS["room_entity"],
+                    metadata={"name": e.name, "module": e.module, "file_path": e.file_path,
+                              "line_number": e.line_number, "end_line_number": e.end_line_number,
+                              "fields": [f.__dict__ for f in e.fields]},
+                ))
+
+        for d in arch.room_daos:
+            add_node(GraphNode(
+                id=d.id, label=f"🗄️ {d.name}", group="room_dao", category="room_dao",
+                title=f"<b>Room DAO: {d.name}</b><br>Methods: {len(d.methods)}<br>File: {d.file_path}:{d.line_number}",
+                shape="box", size=28, color=self.COLORS["room_dao"],
+                metadata={"name": d.name, "module": d.module, "file_path": d.file_path,
+                          "line_number": d.line_number, "end_line_number": d.end_line_number},
+            ))
+            for method in d.methods:
+                add_node(GraphNode(
+                    id=method.id, label=f"{method.kind.upper()} {method.name}()", group="room_query", category="room_query",
+                    title=f"<b>{method.kind}: {method.name}()</b><br>{method.query_text or ''}",
+                    shape="box", size=18, color=self.COLORS["room_query"],
+                    metadata={"name": method.name, "kind": method.kind, "query_text": method.query_text,
+                              "return_type": method.return_type, "file_path": d.file_path,
+                              "line_number": method.line_number, "end_line_number": method.end_line_number},
+                ))
+                edges.append(GraphEdge(from_id=d.id, to_id=method.id, relation="ROUTES", color="#F59E0B"))
+                if self.include_models and method.return_type:
+                    entity = entity_by_name.get(method.return_type)
+                    if entity and entity.id in node_ids:
+                        edges.append(GraphEdge(from_id=method.id, to_id=entity.id, relation="QUERIES",
+                                                label="queries", dashes=True, color="#E879F9"))
+
+        for db in arch.room_databases:
+            add_node(GraphNode(
+                id=db.id, label=f"🚀 {db.name}", group="room_database", category="room_database",
+                title=f"<b>Room Database: {db.name}</b><br>Entities: {', '.join(db.entity_names)}",
+                shape="box", size=34, color=self.COLORS["room_database"],
+                metadata={"name": db.name, "module": db.module, "file_path": db.file_path,
+                          "line_number": db.line_number, "end_line_number": db.end_line_number,
+                          "entity_names": db.entity_names},
+            ))
+            for dao_type in db.dao_accessors:
+                dao = dao_by_name.get(dao_type)
+                if dao and dao.id in node_ids:
+                    edges.append(GraphEdge(from_id=db.id, to_id=dao.id, relation="CONTAINS", color="#F43F5E"))
+            if self.include_models:
+                for entity_name in db.entity_names:
+                    entity = entity_by_name.get(entity_name)
+                    if entity and entity.id in node_ids:
+                        edges.append(GraphEdge(from_id=db.id, to_id=entity.id, relation="DEFINES_ENTITY", color="#F43F5E"))
+
+        for api in arch.retrofit_apis:
+            add_node(GraphNode(
+                id=api.id, label=f"📁 {api.name}", group="retrofit_api", category="retrofit_api",
+                title=f"<b>Retrofit API: {api.name}</b><br>Endpoints: {len(api.endpoints)}<br>File: {api.file_path}:{api.line_number}",
+                shape="box", size=30, color=self.COLORS["retrofit_api"],
+                metadata={"name": api.name, "module": api.module, "file_path": api.file_path,
+                          "line_number": api.line_number, "end_line_number": api.end_line_number},
+            ))
+            for ep in api.endpoints:
+                add_node(GraphNode(
+                    id=ep.id, label=f"{ep.http_method} {ep.path}\n{ep.name}()", group="retrofit_endpoint", category="retrofit_endpoint",
+                    title=f"<b>[{ep.http_method}] {ep.path}</b><br>Handler: {ep.name}()",
+                    shape="box", size=20, color=self.COLORS["retrofit_endpoint"],
+                    metadata={"name": ep.name, "http_method": ep.http_method, "path": ep.path,
+                              "file_path": api.file_path,
+                              "line_number": ep.line_number, "end_line_number": ep.end_line_number},
+                ))
+                edges.append(GraphEdge(from_id=api.id, to_id=ep.id, relation="ROUTES", color="#A855F7"))
+
+        for af in arch.activities_fragments:
+            add_node(GraphNode(
+                id=af.id, label=f"📱 {af.name}", group="activity_fragment", category="activity_fragment",
+                title=f"<b>{af.kind.title()}: {af.name}</b><br>Hilt Entry Point: {af.is_hilt_entry_point}<br>File: {af.file_path}:{af.line_number}",
+                shape="box", size=32, color=self.COLORS["activity_fragment"],
+                metadata={"name": af.name, "kind": af.kind, "module": af.module, "file_path": af.file_path,
+                          "line_number": af.line_number, "end_line_number": af.end_line_number,
+                          "is_hilt_entry_point": af.is_hilt_entry_point},
+            ))
+            for composable_name in af.hosted_composables:
+                target = composable_by_name.get(composable_name)
+                if target and target.id in node_ids:
+                    edges.append(GraphEdge(from_id=af.id, to_id=target.id, relation="HOSTS", color="#9CA3AF"))
+
+        arch.nodes = nodes
+        arch.edges = edges
+        arch.stats = {
+            "total_composables": len(arch.composables),
+            "total_viewmodels": len(arch.viewmodels),
+            "total_di_bindings": len(arch.di_bindings),
+            "total_room_entities": len(arch.room_entities),
+            "total_retrofit_apis": len(arch.retrofit_apis),
+        }
+        arch.stats["analysis"] = GraphAnalyzer().analyze(
+            arch.nodes,
+            arch.edges,
+            project_path=arch.project_path,
+        )
+        arch.report_collections = self._build_report_collections(arch)
+
+        return arch
+
+    @staticmethod
+    def _build_report_collections(arch: AndroidProjectArchitecture) -> List[ReportCollection]:
+        return [
+            ReportCollection(
+                key="composables", label="Composables", view="grid", node_category="composable",
+                columns=[
+                    ColumnSpec("module", "Module", "mono"),
+                    ColumnSpec("uses_viewmodel", "ViewModel", "text"),
+                    ColumnSpec("calls", "Calls", "list"),
+                ],
+                rows=[{"id": c.id, "name": c.name, "module": c.module,
+                       "uses_viewmodel": c.uses_viewmodel, "calls": c.calls} for c in arch.composables],
+            ),
+            ReportCollection(
+                key="viewmodels", label="ViewModels", view="grid", node_category="viewmodel",
+                columns=[
+                    ColumnSpec("is_hilt", "Hilt", "text"),
+                    ColumnSpec("injected_types", "Injected Types", "list"),
+                ],
+                rows=[{"id": v.id, "name": v.name, "is_hilt": v.is_hilt,
+                       "injected_types": v.injected_types} for v in arch.viewmodels],
+            ),
+            ReportCollection(
+                key="di_bindings", label="DI Bindings", view="grid", node_category="di_binding",
+                columns=[
+                    ColumnSpec("kind", "Kind", "text"),
+                    ColumnSpec("module", "Module", "mono"),
+                ],
+                rows=[{"id": b.id, "name": b.name, "kind": b.kind, "module": b.module} for b in arch.di_bindings],
+            ),
+            ReportCollection(
+                key="room_entities", label="Room Entities", view="grid", node_category="room_entity",
+                columns=[
+                    ColumnSpec("fields", "Fields", "list"),
+                ],
+                rows=[{"id": e.id, "name": e.name,
+                       "fields": [f"{f.name}: {f.type_annotation}" for f in e.fields]} for e in arch.room_entities],
+            ),
+            ReportCollection(
+                key="retrofit_apis", label="Retrofit APIs", view="grid", node_category="retrofit_api",
+                columns=[
+                    ColumnSpec("endpoints", "Endpoints", "list"),
+                ],
+                rows=[{"id": a.id, "name": a.name,
+                       "endpoints": [f"{ep.http_method} {ep.path}" for ep in a.endpoints]} for a in arch.retrofit_apis],
+            ),
+        ]
+
+    def generate_mermaid(self, arch: AndroidProjectArchitecture) -> str:
+        lines = ["graph TD", "  %% Android Architecture Diagram"]
+        for edge in arch.edges:
+            lbl = f"|{edge.label}|" if edge.label else ""
+            arrow = "-.->" if edge.dashes else "-->"
+            lines.append(f"  {edge.from_id} {arrow}{lbl} {edge.to_id}")
+        return "\n".join(lines)

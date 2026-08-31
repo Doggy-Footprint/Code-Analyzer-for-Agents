@@ -3,8 +3,10 @@
 # Python bytecode caches
 **/__pycache__/
 
-# Generated visualizer reports and data exports
-*.json
-*.html
+# Generated visualizer reports and data exports written at the repository root
+/architecture.html
+/architecture.json
+/*_architecture.html
+/*_architecture.json
 
 myTODO.md

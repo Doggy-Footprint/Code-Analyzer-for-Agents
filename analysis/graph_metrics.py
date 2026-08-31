@@ -208,11 +208,12 @@ class GraphAnalyzer:
         metadata = getattr(node, "metadata", {}) or {}
         file_value = metadata.get("file_path")
         line_number = metadata.get("line_number")
+        end_line_number = metadata.get("end_line_number")
         if file_value:
             file_path = Path(file_value)
             if not file_path.is_absolute() and project_path:
                 file_path = Path(project_path) / file_path
-            source = self._source_for_line(file_path, line_number)
+            source = self._source_for_line(file_path, line_number, end_line_number)
             if source:
                 return self._estimate_tokens(source)
         fallback = json.dumps(
@@ -226,7 +227,7 @@ class GraphAnalyzer:
         )
         return self._estimate_tokens(fallback)
 
-    def _source_for_line(self, path: Path, line_number: Any) -> str:
+    def _source_for_line(self, path: Path, line_number: Any, end_line_number: Any = None) -> str:
         if path not in self._source_cache:
             try:
                 self._source_cache[path] = path.read_text(encoding="utf-8")
@@ -237,6 +238,14 @@ class GraphAnalyzer:
             line = int(line_number)
         except (TypeError, ValueError):
             return source
+        if end_line_number is not None:
+            try:
+                end_line = int(end_line_number)
+            except (TypeError, ValueError):
+                end_line = None
+            if end_line is not None and end_line >= line:
+                lines = source.splitlines()
+                return "\n".join(lines[max(0, line - 1):end_line])
         tree = self._tree_cache.get(path)
         if path not in self._tree_cache:
             try:

@@ -43,6 +43,26 @@ class TestArchitectureBoundaries(unittest.TestCase):
                     source_path,
                 )
 
+    def test_android_and_fastapi_helpers_do_not_cross_import(self):
+        root = Path(__file__).resolve().parents[1]
+        pairs = (
+            (root / "framework_helpers" / "android", "framework_helpers.fastapi"),
+            (root / "framework_helpers" / "fastapi", "framework_helpers.android"),
+        )
+        for package, forbidden in pairs:
+            for source_path in package.rglob("*.py"):
+                tree = ast.parse(source_path.read_text(encoding="utf-8"))
+                imported = []
+                for node in ast.walk(tree):
+                    if isinstance(node, ast.Import):
+                        imported.extend(alias.name for alias in node.names)
+                    elif isinstance(node, ast.ImportFrom) and node.module:
+                        imported.append(node.module)
+                self.assertFalse(
+                    any(name == forbidden or name.startswith(forbidden + ".") for name in imported),
+                    source_path,
+                )
+
     def test_analysis_accepts_framework_neutral_nodes_and_mapping_edges(self):
         nodes = [GenericNode("a", "A"), GenericNode("b", "B"), GenericNode("c", "C")]
         edges = [{"from": "a", "to": "b"}, {"from": "b", "to": "c"}]
@@ -79,10 +99,7 @@ class TestArchitectureBoundaries(unittest.TestCase):
             stats={},
             nodes=[node],
             edges=[],
-            endpoints=[],
-            routers=[],
-            dependencies=[],
-            schemas=[],
+            report_collections=[],
             git_diff=None,
         )
         with tempfile.TemporaryDirectory() as directory:

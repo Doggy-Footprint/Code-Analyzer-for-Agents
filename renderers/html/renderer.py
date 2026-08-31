@@ -7,8 +7,9 @@ from typing import Any, Optional
 
 
 class HTMLRenderer:
-    def __init__(self, title: Optional[str] = None):
+    def __init__(self, title: Optional[str] = None, framework_label: str = ""):
         self.title = title
+        self.framework_label = framework_label
         self.package_dir = Path(__file__).resolve().parent
 
     def render(self, arch: Any, output_path: str) -> Path:
@@ -60,22 +61,25 @@ class HTMLRenderer:
                 }
                 for edge in arch.edges
             ],
-            "endpoints": [asdict(endpoint) for endpoint in arch.endpoints],
-            "routers": [asdict(router) for router in arch.routers],
-            "dependencies": [asdict(dependency) for dependency in arch.dependencies],
-            "schemas": [asdict(schema) for schema in arch.schemas],
+            "collections": {
+                collection.key: {
+                    "label": collection.label,
+                    "icon": getattr(collection, "icon", "box"),
+                    "view": collection.view,
+                    "node_category": collection.node_category,
+                    "columns": [asdict(column) for column in collection.columns],
+                    "rows": collection.rows,
+                }
+                for collection in getattr(arch, "report_collections", [])
+            },
             "git_diff": asdict(arch.git_diff) if arch.git_diff else None,
         }
 
         document = (self.package_dir / "templates" / "dashboard.html").read_text(encoding="utf-8")
-        stats = arch.stats
         replacements = {
-            "{{DOC_TITLE}}": html.escape(self.title or f"FastAPI Architecture - {arch.project_name}"),
+            "{{DOC_TITLE}}": html.escape(self.title or f"Architecture - {arch.project_name}"),
             "{{PROJECT_PATH}}": html.escape(arch.project_path),
-            "{{TOTAL_ENDPOINTS}}": str(stats.get("total_endpoints", 0)),
-            "{{TOTAL_ROUTERS}}": str(stats.get("total_routers", 0)),
-            "{{TOTAL_DEPENDENCIES}}": str(stats.get("total_dependencies", 0)),
-            "{{TOTAL_SCHEMAS}}": str(stats.get("total_schemas", 0)),
+            "{{FRAMEWORK_LABEL}}": html.escape(self.framework_label or "Analyzer"),
             "{{ASSET_DIR}}": asset_dir.name,
             "{{ARCH_DATA}}": json.dumps(raw_data, ensure_ascii=False, default=str).replace("<", "\\u003c"),
         }

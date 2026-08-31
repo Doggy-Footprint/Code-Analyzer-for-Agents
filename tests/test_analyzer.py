@@ -264,7 +264,7 @@ def get_items():
         arch = analyzer.analyze()
 
         self.assertIsNotNone(arch.git_diff)
-        impacted_paths = [ep["path"] for ep in arch.git_diff.impacted_endpoints]
+        impacted_paths = [ep["path"] for ep in arch.git_diff.impacted_by_collection.get("endpoints", [])]
         self.assertIn("/api/v1/users/me", impacted_paths)
 
     def test_html_rendering_with_git_diff(self):

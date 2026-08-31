@@ -23,13 +23,7 @@ let physicsEnabled = true;
 let currentSpringLength = 240;
 let selectedNodeId = null;
 
-let activeFilters = {
-  endpoint: true,
-  router: true,
-  dependency: true,
-  schema: true,
-  app: true,
-};
+let activeFilters = {};
 
 let activeMethods = {
   GET: true,
@@ -41,12 +35,19 @@ let activeMethods = {
   HEAD: true,
 };
 
+function titleCase(str) {
+  return String(str).replace(/[_-]+/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+}
+
 document.addEventListener('DOMContentLoaded', () => {
+  renderCollectionNavAndViews();
+  buildNodeCategoryFilters();
+  buildLegend();
+  toggleMethodsFilterVisibility();
+
   lucide.createIcons();
   initNetwork();
-  populateRouteTable();
-  populateDepsGrid();
-  populateSchemasGrid();
+  Object.keys(ARCH_DATA.collections || {}).forEach(populateCollectionView);
   populateGitDiff();
 
   window.addEventListener('resize', () => {
@@ -223,8 +224,10 @@ function switchTab(tabId) {
     b.classList.add('text-slate-400');
   });
 
-  document.getElementById(`view-${tabId}`).classList.remove('hidden');
+  const view = document.getElementById(`view-${tabId}`);
   const activeBtn = document.getElementById(`tab-btn-${tabId}`);
+  if (!view || !activeBtn) return;
+  view.classList.remove('hidden');
   activeBtn.classList.add('bg-indigo-600', 'text-white', 'shadow-sm');
   activeBtn.classList.remove('text-slate-400');
 
@@ -457,6 +460,75 @@ function clearSearch() {
   applyFilters();
 }
 
+function renderGenericMetadata(meta) {
+  const skipKeys = new Set(['analysis', 'type']);
+  let html = '';
+
+  if (meta.file_path) {
+    html += `
+      <div class="bg-slate-900/90 p-4 rounded-xl border border-slate-700/80 space-y-1.5 shadow-inner">
+        <div class="text-slate-500 text-[11px] font-mono break-all">${escapeHtml(meta.file_path)}${meta.line_number ? ':' + meta.line_number : ''}</div>
+      </div>
+    `;
+    skipKeys.add('file_path');
+    skipKeys.add('line_number');
+    skipKeys.add('end_line_number');
+  }
+
+  Object.entries(meta).forEach(([key, value]) => {
+    if (skipKeys.has(key)) return;
+    if (value === null || value === undefined || value === '') return;
+    if (Array.isArray(value) && value.length === 0) return;
+
+    const label = titleCase(key);
+
+    if (Array.isArray(value) && typeof value[0] === 'object' && value[0] !== null) {
+      html += `
+        <div>
+          <div class="text-slate-400 font-semibold mb-1.5 text-[11px] uppercase tracking-wider">${label} (${value.length})</div>
+          <div class="space-y-1.5">
+            ${value.map(item => `
+              <div class="bg-slate-900/60 p-2.5 rounded-xl border border-slate-800 font-mono text-[11px]">
+                ${Object.entries(item).filter(([, v]) => v !== null && v !== undefined && v !== '').map(([k, v]) => `
+                  <div class="flex items-center justify-between">
+                    <span class="text-indigo-300 font-semibold">${escapeHtml(titleCase(k))}</span>
+                    <span class="text-slate-400">${escapeHtml(typeof v === 'object' ? JSON.stringify(v) : v)}</span>
+                  </div>
+                `).join('')}
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    } else if (Array.isArray(value)) {
+      html += `
+        <div>
+          <div class="text-slate-400 font-semibold mb-1.5 text-[11px] uppercase tracking-wider">${label}</div>
+          <div class="flex flex-wrap gap-1.5">
+            ${value.map(v => `<span class="bg-sky-500/20 text-sky-300 px-2.5 py-1 rounded-lg text-[11px] border border-sky-500/30 font-mono font-medium">${escapeHtml(v)}</span>`).join('')}
+          </div>
+        </div>
+      `;
+    } else if (typeof value === 'string' && (key.toLowerCase().includes('docstring') || value.length > 80)) {
+      html += `
+        <div>
+          <div class="text-slate-400 font-semibold mb-1 text-[11px] uppercase tracking-wider">${label}</div>
+          <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-800 text-slate-300 font-mono text-[11px] whitespace-pre-wrap">${escapeHtml(value)}</div>
+        </div>
+      `;
+    } else {
+      html += `
+        <div class="bg-slate-900/60 p-2.5 rounded-xl border border-slate-800 flex items-center justify-between">
+          <span class="text-slate-400 text-[11px] uppercase tracking-wider font-semibold">${label}</span>
+          <span class="text-white font-mono text-xs break-all text-right ml-2">${escapeHtml(value)}</span>
+        </div>
+      `;
+    }
+  });
+
+  return html;
+}
+
 function showInspector(node) {
   const drawer = document.getElementById('inspector-drawer');
   const badge = document.getElementById('inspector-badge');
@@ -469,134 +541,7 @@ function showInspector(node) {
   let html = '';
   const meta = node.metadata || {};
 
-  if (node.category === 'endpoint') {
-    const methodColors = {
-      GET: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40',
-      POST: 'bg-blue-500/20 text-blue-400 border-blue-500/40',
-      PUT: 'bg-amber-500/20 text-amber-400 border-amber-500/40',
-      DELETE: 'bg-rose-500/20 text-rose-400 border-rose-500/40',
-      PATCH: 'bg-teal-500/20 text-teal-400 border-teal-500/40',
-    };
-    const mCls = methodColors[meta.http_method] || 'bg-slate-700 text-slate-200 border-slate-600';
-
-    html += `
-      <div class="bg-slate-900/90 p-4 rounded-xl border border-slate-700/80 space-y-2.5 shadow-inner">
-        <div class="flex items-center space-x-2">
-          <span class="px-2.5 py-0.5 rounded-lg font-mono font-bold text-xs border ${mCls}">${meta.http_method}</span>
-          <span class="font-mono text-white text-xs font-semibold break-all">${meta.full_path}</span>
-        </div>
-        <div class="text-slate-400 text-xs font-mono">Handler: <span class="text-indigo-300 font-semibold">${meta.function_name}()</span></div>
-        <div class="text-slate-500 text-[11px] font-mono break-all">${meta.file_path}:${meta.line_number}</div>
-      </div>
-    `;
-
-    if (meta.docstring) {
-      html += `
-        <div>
-          <div class="text-slate-400 font-semibold mb-1 text-[11px] uppercase tracking-wider">Docstring</div>
-          <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-800 text-slate-300 font-mono text-[11px] whitespace-pre-wrap">${meta.docstring}</div>
-        </div>
-      `;
-    }
-
-    if (meta.parameters && meta.parameters.length > 0) {
-      html += `
-        <div>
-          <div class="text-slate-400 font-semibold mb-1.5 text-[11px] uppercase tracking-wider">Parameters (${meta.parameters.length})</div>
-          <div class="space-y-1.5">
-            ${meta.parameters.map(p => `
-              <div class="bg-slate-900/60 p-2.5 rounded-xl border border-slate-800 flex flex-col">
-                <div class="flex items-center justify-between">
-                  <span class="font-mono text-indigo-300 font-semibold">${p.name}</span>
-                  <span class="text-[10px] bg-slate-800 px-2 py-0.5 rounded text-slate-400 font-mono">${p.kind}</span>
-                </div>
-                ${p.type_annotation ? `<span class="text-slate-400 text-[11px] font-mono mt-0.5">Type: ${p.type_annotation}</span>` : ''}
-                ${p.default_value ? `<span class="text-slate-500 text-[10px] font-mono mt-0.5">Default: ${p.default_value}</span>` : ''}
-              </div>
-            `).join('')}
-          </div>
-        </div>
-      `;
-    }
-
-    if (meta.dependencies && meta.dependencies.length > 0) {
-      html += `
-        <div>
-          <div class="text-slate-400 font-semibold mb-1.5 text-[11px] uppercase tracking-wider">Injected Dependencies</div>
-          <div class="flex flex-wrap gap-1.5">
-            ${meta.dependencies.map(d => `<span class="bg-sky-500/20 text-sky-300 px-2.5 py-1 rounded-lg text-[11px] border border-sky-500/30 font-mono font-medium">${d}</span>`).join('')}
-          </div>
-        </div>
-      `;
-    }
-
-    if (meta.response_model) {
-      html += `
-        <div>
-          <div class="text-slate-400 font-semibold mb-1.5 text-[11px] uppercase tracking-wider">Response Model</div>
-          <div class="bg-fuchsia-500/20 text-fuchsia-300 px-3 py-1.5 rounded-xl border border-fuchsia-500/30 font-mono font-semibold">${meta.response_model}</div>
-        </div>
-      `;
-    }
-  } else if (node.category === 'router') {
-    html += `
-      <div class="bg-slate-900/90 p-4 rounded-xl border border-slate-700/80 space-y-2 shadow-inner">
-        <div class="text-purple-300 font-bold text-sm">Router: ${meta.var_name}</div>
-        <div class="text-slate-400 text-xs">Prefix: <code class="text-white bg-slate-800 px-1.5 py-0.5 rounded font-mono">${meta.prefix || '/'}</code></div>
-        <div class="text-slate-400 text-xs">Tags: ${meta.tags && meta.tags.length ? meta.tags.join(', ') : 'None'}</div>
-        <div class="text-slate-500 text-[11px] font-mono break-all">${meta.file_path}:${meta.line_number}</div>
-      </div>
-    `;
-  } else if (node.category === 'dependency') {
-    html += `
-      <div class="bg-slate-900/90 p-4 rounded-xl border border-slate-700/80 space-y-2 shadow-inner">
-        <div class="text-sky-300 font-bold text-sm">Dependency: ${meta.name}</div>
-        <div class="text-slate-400 text-xs">Kind: <span class="text-slate-200">${meta.kind}</span></div>
-        <div class="text-slate-500 text-[11px] font-mono break-all">${meta.file_path}:${meta.line_number}</div>
-      </div>
-    `;
-    if (meta.docstring) {
-      html += `
-        <div>
-          <div class="text-slate-400 font-semibold mb-1 text-[11px] uppercase tracking-wider">Docstring</div>
-          <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-800 text-slate-300 font-mono text-[11px]">${meta.docstring}</div>
-        </div>
-      `;
-    }
-    if (meta.sub_dependencies && meta.sub_dependencies.length > 0) {
-      html += `
-        <div>
-          <div class="text-slate-400 font-semibold mb-1.5 text-[11px] uppercase tracking-wider">Sub-Dependencies</div>
-          <div class="flex flex-wrap gap-1.5">
-            ${meta.sub_dependencies.map(d => `<span class="bg-sky-500/20 text-sky-300 px-2.5 py-1 rounded-lg text-[11px] border border-sky-500/30 font-mono">${d}</span>`).join('')}
-          </div>
-        </div>
-      `;
-    }
-  } else if (node.category === 'schema') {
-    html += `
-      <div class="bg-slate-900/90 p-4 rounded-xl border border-slate-700/80 space-y-2 shadow-inner">
-        <div class="text-fuchsia-300 font-bold text-sm">Model: ${meta.name}</div>
-        <div class="text-slate-400 text-xs">Bases: ${meta.base_classes ? meta.base_classes.join(', ') : 'BaseModel'}</div>
-        <div class="text-slate-500 text-[11px] font-mono break-all">${meta.file_path}:${meta.line_number}</div>
-      </div>
-    `;
-    if (meta.fields && meta.fields.length > 0) {
-      html += `
-        <div>
-          <div class="text-slate-400 font-semibold mb-1.5 text-[11px] uppercase tracking-wider">Model Fields (${meta.fields.length})</div>
-          <div class="space-y-1.5">
-            ${meta.fields.map(f => `
-              <div class="bg-slate-900/60 p-2 rounded-lg border border-slate-800 flex items-center justify-between font-mono">
-                <span class="text-fuchsia-300 font-semibold">${f.name}</span>
-                <span class="text-slate-400 text-[11px]">${f.type_annotation}</span>
-              </div>
-            `).join('')}
-          </div>
-        </div>
-      `;
-    }
-  }
+  html += renderGenericMetadata(meta);
 
   if (meta.analysis) {
     const metrics = meta.analysis;
@@ -637,107 +582,162 @@ function closeInspector() {
   resetNodeHighlighting();
 }
 
-function populateRouteTable() {
-  const tbody = document.getElementById('routes-table-body');
-  const endpoints = ARCH_DATA.endpoints || [];
+function renderCollectionNavAndViews() {
+  const collections = ARCH_DATA.collections || {};
+  const nav = document.getElementById('collection-tabs-nav');
+  const views = document.getElementById('collection-tab-views');
+  const statsPill = document.getElementById('header-stats-pill');
 
-  const methodColors = {
-    GET: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
-    POST: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-    PUT: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
-    DELETE: 'bg-rose-500/20 text-rose-400 border-rose-500/30',
-    PATCH: 'bg-teal-500/20 text-teal-400 border-teal-500/30',
-  };
+  let navHtml = '';
+  let viewsHtml = '';
+  let statsHtml = '';
 
-  tbody.innerHTML = endpoints.map(ep => {
-    const mCls = methodColors[ep.http_method] || 'bg-slate-700 text-slate-300 border-slate-600';
-    return `
+  Object.entries(collections).forEach(([key, collection], idx) => {
+    navHtml += `
+      <button data-action="switchTab" data-arg="${key}" id="tab-btn-${key}" class="tab-btn flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition">
+        <i data-lucide="${collection.icon || 'box'}" class="w-3.5 h-3.5"></i>
+        <span>${escapeHtml(collection.label)}</span>
+      </button>
+    `;
+
+    const bodyId = collection.view === 'table' ? `collection-table-body-${key}` : `collection-grid-${key}`;
+    const bodyHtml = collection.view === 'table'
+      ? `
+        <div class="border border-slate-800 rounded-2xl overflow-hidden shadow-2xl glass-panel">
+          <table class="w-full text-left text-xs text-slate-300">
+            <thead class="bg-slate-900/90 text-slate-400 font-semibold border-b border-slate-800">
+              <tr>
+                ${collection.columns.map(c => `<th class="p-3.5">${escapeHtml(c.label)}</th>`).join('')}
+                <th class="p-3.5 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="${bodyId}" class="divide-y divide-slate-800"><!-- Populated by JS --></tbody>
+          </table>
+        </div>
+      `
+      : `<div id="${bodyId}" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"><!-- Populated by JS --></div>`;
+
+    viewsHtml += `
+      <div id="view-${key}" class="tab-view w-full h-full hidden overflow-auto p-6 bg-slate-950">
+        <div class="max-w-7xl mx-auto space-y-4">
+          <h2 class="text-lg font-bold text-white">${escapeHtml(collection.label)}</h2>
+          ${bodyHtml}
+        </div>
+      </div>
+    `;
+
+    if (idx > 0) statsHtml += `<div class="h-3 w-px bg-slate-700"></div>`;
+    statsHtml += `<div><span class="text-slate-500">${escapeHtml(collection.label)}:</span> <span class="font-bold text-indigo-400">${(collection.rows || []).length}</span></div>`;
+  });
+
+  if (nav) nav.innerHTML = navHtml;
+  if (views) views.innerHTML = viewsHtml;
+  if (statsPill) statsPill.innerHTML = statsHtml;
+}
+
+function collectionAccentColor(collection) {
+  if (!collection || !collection.node_category) return '#818CF8';
+  const node = (ARCH_DATA.nodes || []).find(n => n.category === collection.node_category);
+  return (node && node.color && node.color.border) || '#818CF8';
+}
+
+function formatCellValue(value, kind) {
+  if (value === null || value === undefined || value === '') return '<span class="text-slate-600">-</span>';
+  if (Array.isArray(value)) {
+    if (!value.length) return '<span class="text-slate-600">-</span>';
+    return value.map(v => `<span class="bg-slate-800 text-slate-300 px-2 py-0.5 rounded text-[10px] font-mono border border-slate-700 mr-1">${escapeHtml(typeof v === 'object' ? JSON.stringify(v) : v)}</span>`).join('');
+  }
+  const escaped = escapeHtml(value);
+  return kind === 'mono' ? `<span class="font-mono">${escaped}</span>` : escaped;
+}
+
+function populateCollectionView(key) {
+  const collection = (ARCH_DATA.collections || {})[key];
+  if (!collection) return;
+  const accent = collectionAccentColor(collection);
+
+  if (collection.view === 'table') {
+    const tbody = document.getElementById(`collection-table-body-${key}`);
+    if (!tbody) return;
+    tbody.innerHTML = (collection.rows || []).map(row => `
       <tr class="hover:bg-slate-800/60 transition">
-        <td class="p-3.5">
-          <span class="px-2.5 py-0.5 rounded font-mono font-bold text-[11px] border ${mCls}">${ep.http_method}</span>
-        </td>
-        <td class="p-3.5 font-mono font-semibold text-white">${ep.full_path || ep.path}</td>
-        <td class="p-3.5 font-mono text-indigo-300">${ep.function_name}()</td>
-        <td class="p-3.5 text-slate-400">${ep.tags && ep.tags.length ? ep.tags.join(', ') : '-'}</td>
-        <td class="p-3.5 text-sky-400 font-mono text-[11px]">${ep.dependencies && ep.dependencies.length ? ep.dependencies.join(', ') : '-'}</td>
-        <td class="p-3.5 text-fuchsia-400 font-mono text-[11px]">${ep.response_model || '-'}</td>
+        ${collection.columns.map(c => `<td class="p-3.5">${formatCellValue(row[c.key], c.kind)}</td>`).join('')}
         <td class="p-3.5 text-right">
-          <button data-action="focusEndpointInGraph" data-arg="${ep.id}" class="px-3 py-1 bg-slate-800 hover:bg-indigo-600 text-slate-300 hover:text-white rounded-lg text-xs font-medium transition border border-slate-700">
-            View in Graph
-          </button>
+          ${row.id ? `<button data-action="focusNodeInGraph" data-arg="${row.id}" class="px-3 py-1 bg-slate-800 hover:bg-indigo-600 text-slate-300 hover:text-white rounded-lg text-xs font-medium transition border border-slate-700">View in Graph</button>` : ''}
         </td>
       </tr>
-    `;
-  }).join('');
-}
-
-function filterRouteTable(q) {
-  const query = q.toLowerCase();
-  const rows = document.querySelectorAll('#routes-table-body tr');
-  rows.forEach(r => {
-    const text = r.innerText.toLowerCase();
-    r.style.display = text.includes(query) ? '' : 'none';
-  });
-}
-
-function focusEndpointInGraph(epId) {
-  switchTab('graph');
-  const node = nodesDataSet.get(epId);
-  if (node) {
-    selectedNodeId = epId;
-    network.focus(epId, { scale: 1.3, animation: { duration: 500, easingFunction: 'easeInOutQuad' } });
-    highlightNodeNeighborhood(epId);
-    showInspector(node);
+    `).join('');
+    return;
   }
-}
 
-function populateDepsGrid() {
-  const grid = document.getElementById('deps-grid');
-  const deps = ARCH_DATA.dependencies || [];
-
-  grid.innerHTML = deps.map(d => `
-    <div class="glass-panel rounded-2xl p-5 shadow-xl hover:border-sky-500/60 transition">
+  const grid = document.getElementById(`collection-grid-${key}`);
+  if (!grid) return;
+  grid.innerHTML = (collection.rows || []).map(row => `
+    <div class="glass-panel rounded-2xl p-5 shadow-xl transition" style="border-color: ${accent}55">
       <div class="flex items-center justify-between mb-2">
-        <h4 class="font-bold text-sky-300 font-mono text-sm">${d.name}</h4>
-        <span class="text-[10px] bg-sky-500/20 text-sky-300 px-2 py-0.5 rounded border border-sky-500/30">${d.kind}</span>
+        <h4 class="font-bold font-mono text-sm" style="color: ${accent}">${escapeHtml(row.name || row.label || row.id || '')}</h4>
+        ${row.id ? `<button data-action="focusNodeInGraph" data-arg="${row.id}" class="text-[10px] px-2 py-0.5 rounded border border-slate-700 text-slate-400 hover:text-white hover:bg-slate-800 transition">View</button>` : ''}
       </div>
-      <p class="text-slate-400 text-xs font-mono mb-2.5 truncate">${d.module}:${d.line_number}</p>
-      ${d.docstring ? `<p class="text-slate-300 text-xs bg-slate-900/80 p-2.5 rounded-xl mb-3 font-mono border border-slate-800">${d.docstring}</p>` : ''}
-
-      ${d.sub_dependencies && d.sub_dependencies.length ? `
-        <div class="mt-2 text-xs">
-          <span class="text-slate-500 font-semibold block mb-1 text-[11px] uppercase tracking-wider">Sub-Dependencies:</span>
-          <div class="flex flex-wrap gap-1.5">
-            ${d.sub_dependencies.map(s => `<span class="bg-slate-800 text-slate-300 px-2 py-0.5 rounded-lg text-[10px] font-mono border border-slate-700">${s}</span>`).join('')}
-          </div>
-        </div>
-      ` : ''}
-    </div>
-  `).join('');
-}
-
-function populateSchemasGrid() {
-  const grid = document.getElementById('schemas-grid');
-  const schemas = ARCH_DATA.schemas || [];
-
-  grid.innerHTML = schemas.map(s => `
-    <div class="glass-panel rounded-2xl p-5 shadow-xl hover:border-fuchsia-500/60 transition">
-      <div class="flex items-center justify-between mb-2">
-        <h4 class="font-bold text-fuchsia-300 font-mono text-sm">${s.name}</h4>
-        <span class="text-[10px] bg-fuchsia-500/20 text-fuchsia-300 px-2 py-0.5 rounded border border-fuchsia-500/30">${s.base_classes ? s.base_classes[0] || 'BaseModel' : 'BaseModel'}</span>
-      </div>
-      <p class="text-slate-400 text-xs font-mono mb-3 truncate">${s.module}:${s.line_number}</p>
-
       <div class="space-y-1.5 text-xs">
-        ${s.fields && s.fields.map(f => `
+        ${collection.columns.filter(c => c.key !== 'name' && c.key !== 'label' && c.key !== 'id').map(c => `
           <div class="bg-slate-900/70 p-2 rounded-lg flex items-center justify-between font-mono text-[11px] border border-slate-800">
-            <span class="text-slate-200 font-semibold">${f.name}</span>
-            <span class="text-fuchsia-400">${f.type_annotation}</span>
+            <span class="text-slate-500">${escapeHtml(c.label)}</span>
+            <span class="text-slate-200 text-right">${formatCellValue(row[c.key], c.kind)}</span>
           </div>
         `).join('')}
       </div>
     </div>
   `).join('');
+}
+
+function focusNodeInGraph(nodeId) {
+  switchTab('graph');
+  const node = nodesDataSet.get(nodeId);
+  if (node) {
+    selectedNodeId = nodeId;
+    network.focus(nodeId, { scale: 1.3, animation: { duration: 500, easingFunction: 'easeInOutQuad' } });
+    highlightNodeNeighborhood(nodeId);
+    showInspector(node);
+  }
+}
+
+function buildNodeCategoryFilters() {
+  const container = document.getElementById('node-category-filters');
+  if (!container) return;
+  const categories = [...new Set((ARCH_DATA.nodes || []).map(n => n.category))];
+  const collections = ARCH_DATA.collections || {};
+
+  container.innerHTML = categories.map(cat => {
+    activeFilters[cat] = true;
+    const count = (ARCH_DATA.nodes || []).filter(n => n.category === cat).length;
+    const label = Object.values(collections).find(c => c.node_category === cat)?.label || titleCase(cat);
+    return `
+      <button data-action="toggleFilterType" data-arg="${cat}" id="filter-btn-${cat}" class="filter-pill px-2.5 py-1 rounded-lg bg-slate-800 text-slate-200 border border-slate-600 text-[11px] font-medium transition flex items-center space-x-1">
+        <span>${escapeHtml(label)}</span>
+        <span class="text-[10px] opacity-75 font-mono">(${count})</span>
+      </button>
+    `;
+  }).join('');
+}
+
+function buildLegend() {
+  const container = document.getElementById('legend-content');
+  if (!container) return;
+  const seen = new Map();
+  (ARCH_DATA.nodes || []).forEach(n => {
+    const color = (n.color && n.color.border) || '#94A3B8';
+    if (!seen.has(n.category)) seen.set(n.category, color);
+  });
+  container.innerHTML = [...seen.entries()].map(([category, color]) => `
+    <div class="flex items-center space-x-1.5"><span class="w-2.5 h-2.5 rounded-full" style="background:${color}"></span><span class="text-slate-300">${escapeHtml(titleCase(category))}</span></div>
+  `).join('');
+}
+
+function toggleMethodsFilterVisibility() {
+  const block = document.getElementById('methods-filter-block');
+  if (!block) return;
+  const hasHttpMethods = (ARCH_DATA.nodes || []).some(n => n.metadata && n.metadata.http_method);
+  block.classList.toggle('hidden', !hasHttpMethods);
 }
 
 function exportPNG() {
@@ -965,99 +965,37 @@ function populateGitDiff() {
     `;
   }
 
-  const impactedEps = gd.impacted_endpoints || [];
-  const impactedRouters = gd.impacted_routers || [];
-  const impactedDeps = gd.impacted_dependencies || [];
-  const impactedSchemas = gd.impacted_schemas || [];
-  const totalImpacted = impactedEps.length + impactedRouters.length + impactedDeps.length + impactedSchemas.length;
+  const impactedByCollection = gd.impacted_by_collection || {};
+  const totalImpacted = Object.values(impactedByCollection).reduce((sum, items) => sum + items.length, 0);
 
   if (totalImpacted > 0 && impactContainer) {
     impactContainer.classList.remove('hidden');
     document.getElementById('impact-count-badge').innerText = `${totalImpacted} Component(s)`;
     const impactGrid = document.getElementById('git-arch-impact-grid');
-
-    const methodColors = {
-      GET: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
-      POST: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-      PUT: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
-      DELETE: 'bg-rose-500/20 text-rose-400 border-rose-500/30',
-      PATCH: 'bg-teal-500/20 text-teal-400 border-teal-500/30',
-    };
+    const collections = ARCH_DATA.collections || {};
 
     let impactHtml = '';
-
-    impactedEps.forEach(ep => {
-      const mCls = methodColors[ep.method] || 'bg-slate-800 text-slate-300 border-slate-700';
-      impactHtml += `
-        <div class="bg-slate-900/90 p-3 rounded-xl border border-slate-800 flex flex-col justify-between space-y-2 hover:border-indigo-500/50 transition">
-          <div>
-            <div class="flex items-center space-x-1.5 mb-1">
-              <span class="px-2 py-0.2 rounded font-mono font-bold text-[10px] border ${mCls}">${ep.method}</span>
-              <span class="text-[10px] bg-slate-800 text-slate-400 px-1.5 py-0.2 rounded font-mono">Endpoint</span>
+    Object.entries(impactedByCollection).forEach(([key, items]) => {
+      const collectionLabel = (collections[key] && collections[key].label) || titleCase(key);
+      items.forEach(item => {
+        const primaryLabel = item.method && item.path ? `${item.method} ${item.path}` : (item.name || item.var_name || item.id);
+        const secondaryLabel = item.func ? `${item.func}()` : (item.file || item.kind || item.prefix || '');
+        impactHtml += `
+          <div class="bg-slate-900/90 p-3 rounded-xl border border-slate-800 flex flex-col justify-between space-y-2 hover:border-indigo-500/50 transition">
+            <div>
+              <div class="flex items-center space-x-1.5 mb-1">
+                <span class="text-[10px] bg-slate-800 text-slate-400 px-1.5 py-0.2 rounded font-mono">${escapeHtml(collectionLabel)}</span>
+              </div>
+              <div class="font-mono text-white text-xs font-semibold truncate" title="${escapeHtml(primaryLabel)}">${escapeHtml(primaryLabel)}</div>
+              <div class="text-slate-400 text-[11px] font-mono truncate">${escapeHtml(secondaryLabel)}</div>
             </div>
-            <div class="font-mono text-white text-xs font-semibold truncate" title="${escapeHtml(ep.path)}">${escapeHtml(ep.path)}</div>
-            <div class="text-slate-400 text-[11px] font-mono truncate">${escapeHtml(ep.func)}()</div>
+            <button data-action="switchTab" data-arg="${key}" class="w-full py-1 bg-slate-800 hover:bg-indigo-600 text-slate-300 hover:text-white rounded-lg text-[11px] font-medium transition flex items-center justify-center space-x-1 border border-slate-700">
+              <i data-lucide="eye" class="w-3 h-3"></i>
+              <span>View ${escapeHtml(collectionLabel)}</span>
+            </button>
           </div>
-          <button data-action="focusEndpointInGraph" data-arg="${ep.id}" class="w-full py-1 bg-slate-800 hover:bg-indigo-600 text-slate-300 hover:text-white rounded-lg text-[11px] font-medium transition flex items-center justify-center space-x-1 border border-slate-700">
-            <i data-lucide="eye" class="w-3 h-3"></i>
-            <span>View in Graph</span>
-          </button>
-        </div>
-      `;
-    });
-
-    impactedSchemas.forEach(s => {
-      impactHtml += `
-        <div class="bg-slate-900/90 p-3 rounded-xl border border-slate-800 flex flex-col justify-between space-y-2 hover:border-fuchsia-500/50 transition">
-          <div>
-            <div class="flex items-center space-x-1.5 mb-1">
-              <span class="px-2 py-0.2 rounded font-mono font-bold text-[10px] bg-fuchsia-500/20 text-fuchsia-300 border border-fuchsia-500/30">Schema</span>
-            </div>
-            <div class="font-mono text-white text-xs font-semibold truncate">${escapeHtml(s.name)}</div>
-            <div class="text-slate-400 text-[11px] font-mono truncate">${escapeHtml(s.file)}</div>
-          </div>
-          <button data-action="switchTab" data-arg="schemas" class="w-full py-1 bg-slate-800 hover:bg-fuchsia-600 text-slate-300 hover:text-white rounded-lg text-[11px] font-medium transition flex items-center justify-center space-x-1 border border-slate-700">
-            <i data-lucide="database" class="w-3 h-3"></i>
-            <span>View Models</span>
-          </button>
-        </div>
-      `;
-    });
-
-    impactedRouters.forEach(r => {
-      impactHtml += `
-        <div class="bg-slate-900/90 p-3 rounded-xl border border-slate-800 flex flex-col justify-between space-y-2 hover:border-purple-500/50 transition">
-          <div>
-            <div class="flex items-center space-x-1.5 mb-1">
-              <span class="px-2 py-0.2 rounded font-mono font-bold text-[10px] bg-purple-500/20 text-purple-300 border border-purple-500/30">Router</span>
-            </div>
-            <div class="font-mono text-white text-xs font-semibold truncate">${escapeHtml(r.var_name)}</div>
-            <div class="text-slate-400 text-[11px] font-mono truncate">Prefix: ${escapeHtml(r.prefix || '/')}</div>
-          </div>
-          <button data-action="switchTab" data-arg="routes" class="w-full py-1 bg-slate-800 hover:bg-purple-600 text-slate-300 hover:text-white rounded-lg text-[11px] font-medium transition flex items-center justify-center space-x-1 border border-slate-700">
-            <i data-lucide="list-tree" class="w-3 h-3"></i>
-            <span>View Matrix</span>
-          </button>
-        </div>
-      `;
-    });
-
-    impactedDeps.forEach(d => {
-      impactHtml += `
-        <div class="bg-slate-900/90 p-3 rounded-xl border border-slate-800 flex flex-col justify-between space-y-2 hover:border-sky-500/50 transition">
-          <div>
-            <div class="flex items-center space-x-1.5 mb-1">
-              <span class="px-2 py-0.2 rounded font-mono font-bold text-[10px] bg-sky-500/20 text-sky-300 border border-sky-500/30">Dependency</span>
-            </div>
-            <div class="font-mono text-white text-xs font-semibold truncate">${escapeHtml(d.name)}</div>
-            <div class="text-slate-400 text-[11px] font-mono truncate">${escapeHtml(d.kind)}</div>
-          </div>
-          <button data-action="switchTab" data-arg="deps" class="w-full py-1 bg-slate-800 hover:bg-sky-600 text-slate-300 hover:text-white rounded-lg text-[11px] font-medium transition flex items-center justify-center space-x-1 border border-slate-700">
-            <i data-lucide="boxes" class="w-3 h-3"></i>
-            <span>View Tree</span>
-          </button>
-        </div>
-      `;
+        `;
+      });
     });
 
     impactGrid.innerHTML = impactHtml;

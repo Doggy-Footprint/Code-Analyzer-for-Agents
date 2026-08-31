@@ -8,6 +8,7 @@ from collections import Counter
 from typing import Any, Dict, List, Optional, Set
 
 from analysis import GraphAnalyzer
+from framework_helpers.common.report_schema import ColumnSpec, ReportCollection
 
 from .models import (
     AppInfo,
@@ -382,8 +383,101 @@ class ArchitectureGraphBuilder:
             arch.edges,
             project_path=arch.project_path,
         )
+        arch.report_collections = self._build_report_collections(arch)
 
         return arch
+
+    @staticmethod
+    def _build_report_collections(arch: ProjectArchitecture) -> List[ReportCollection]:
+        return [
+            ReportCollection(
+                key="endpoints",
+                label="Endpoints",
+                view="table",
+                node_category="endpoint",
+                columns=[
+                    ColumnSpec("http_method", "Method", "mono"),
+                    ColumnSpec("path", "Path", "mono"),
+                    ColumnSpec("function_name", "Handler", "mono"),
+                    ColumnSpec("tags", "Tags", "list"),
+                    ColumnSpec("dependencies", "Dependencies", "list"),
+                    ColumnSpec("response_model", "Response Model", "mono"),
+                ],
+                rows=[
+                    {
+                        "id": ep.id,
+                        "http_method": ep.http_method,
+                        "path": ep.full_path or ep.path,
+                        "function_name": f"{ep.function_name}()",
+                        "tags": ep.tags,
+                        "dependencies": ep.dependencies,
+                        "response_model": ep.response_model,
+                    }
+                    for ep in arch.endpoints
+                ],
+            ),
+            ReportCollection(
+                key="routers",
+                label="Routers",
+                view="grid",
+                node_category="router",
+                columns=[
+                    ColumnSpec("prefix", "Prefix", "mono"),
+                    ColumnSpec("tags", "Tags", "list"),
+                    ColumnSpec("dependencies", "Dependencies", "list"),
+                ],
+                rows=[
+                    {
+                        "id": r.id,
+                        "name": r.var_name,
+                        "prefix": r.prefix or "/",
+                        "tags": r.tags,
+                        "dependencies": r.dependencies,
+                    }
+                    for r in arch.routers
+                ],
+            ),
+            ReportCollection(
+                key="dependencies",
+                label="Dependencies",
+                view="grid",
+                node_category="dependency",
+                columns=[
+                    ColumnSpec("kind", "Kind", "text"),
+                    ColumnSpec("module", "Module", "mono"),
+                    ColumnSpec("sub_dependencies", "Sub-Dependencies", "list"),
+                ],
+                rows=[
+                    {
+                        "id": d.id,
+                        "name": d.name,
+                        "kind": d.kind,
+                        "module": f"{d.module}:{d.line_number}",
+                        "sub_dependencies": d.sub_dependencies,
+                    }
+                    for d in arch.dependencies
+                ],
+            ),
+            ReportCollection(
+                key="schemas",
+                label="Schemas",
+                view="grid",
+                node_category="schema",
+                columns=[
+                    ColumnSpec("base", "Base", "text"),
+                    ColumnSpec("fields", "Fields", "list"),
+                ],
+                rows=[
+                    {
+                        "id": s.id,
+                        "name": s.name,
+                        "base": (s.base_classes[0] if s.base_classes else "BaseModel"),
+                        "fields": [f"{f.name}: {f.type_annotation}" for f in s.fields],
+                    }
+                    for s in arch.schemas
+                ],
+            ),
+        ]
 
     @staticmethod
     def _find_router_id(module_or_source: str, var_name: str, routers: List[RouterInfo]) -> Optional[str]:

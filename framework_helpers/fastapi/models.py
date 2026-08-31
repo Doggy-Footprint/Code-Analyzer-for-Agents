@@ -5,6 +5,37 @@ Data models representing the extracted architecture of a FastAPI project.
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
+from framework_helpers.common.git_diff_models import (
+    GitCommitInfo,
+    GitDiffHunk,
+    GitDiffInfo,
+    GitDiffLine,
+    GitFileDiff,
+)
+from framework_helpers.common.graph_models import GraphEdge, GraphNode
+from framework_helpers.common.report_schema import ColumnSpec, ReportCollection
+
+__all__ = [
+    "ParameterInfo",
+    "EndpointInfo",
+    "RouterInclusion",
+    "RouterInfo",
+    "AppInfo",
+    "DependencyInfo",
+    "SchemaFieldInfo",
+    "SchemaInfo",
+    "GraphNode",
+    "GraphEdge",
+    "GitCommitInfo",
+    "GitDiffLine",
+    "GitDiffHunk",
+    "GitFileDiff",
+    "GitDiffInfo",
+    "ColumnSpec",
+    "ReportCollection",
+    "ProjectArchitecture",
+]
+
 
 @dataclass
 class ParameterInfo:
@@ -114,92 +145,6 @@ class SchemaInfo:
 
 
 @dataclass
-class GraphNode:
-    id: str
-    label: str
-    group: str  # app, router, endpoint_get, endpoint_post, etc., dependency, schema, middleware
-    category: str  # app, router, endpoint, dependency, schema, middleware
-    title: str = ""
-    shape: str = "box"
-    size: int = 25
-    color: Optional[Dict[str, str]] = None
-    metadata: Dict[str, Any] = field(default_factory=dict)
-
-
-@dataclass
-class GraphEdge:
-    from_id: str
-    to_id: str
-    relation: str  # INCLUDES, ROUTES, DEPENDS_ON, REQUEST_BODY, RESPONSE_MODEL, MIDDLEWARE_OF, SUB_DEPENDENCY
-    label: str = ""
-    dashes: bool = False
-    arrows: str = "to"
-    color: Optional[str] = None
-    title: Optional[str] = None
-
-
-@dataclass
-class GitCommitInfo:
-    hash: str
-    short_hash: str
-    author: str
-    email: str
-    date: str
-    message: str
-
-
-@dataclass
-class GitDiffLine:
-    type: str  # 'context', 'add', 'del', 'header'
-    old_lineno: Optional[int] = None
-    new_lineno: Optional[int] = None
-    content: str = ""
-
-
-@dataclass
-class GitDiffHunk:
-    header: str
-    old_start: int
-    old_lines: int
-    new_start: int
-    new_lines: int
-    lines: List[GitDiffLine] = field(default_factory=list)
-
-
-@dataclass
-class GitFileDiff:
-    file_path: str
-    status: str  # 'modified', 'added', 'deleted', 'untracked', 'renamed'
-    additions: int = 0
-    deletions: int = 0
-    old_path: Optional[str] = None
-    raw_diff: str = ""
-    is_binary: bool = False
-    hunks: List[GitDiffHunk] = field(default_factory=list)
-    impacted_components: List[Dict[str, str]] = field(default_factory=list)
-
-
-@dataclass
-class GitDiffInfo:
-    is_git_repo: bool = False
-    comparison_mode: str = "none"  # 'working_tree_vs_head', 'last_two_commits', 'single_commit', 'none'
-    mode_description: str = ""
-    base_commit: Optional[GitCommitInfo] = None
-    target_commit: Optional[GitCommitInfo] = None
-    target_name: str = ""  # e.g. "Working Tree (Uncommitted Changes)" or "HEAD"
-    has_uncommitted_changes: bool = False
-    total_files: int = 0
-    total_additions: int = 0
-    total_deletions: int = 0
-    files: List[GitFileDiff] = field(default_factory=list)
-    impacted_endpoints: List[Dict[str, Any]] = field(default_factory=list)
-    impacted_routers: List[Dict[str, Any]] = field(default_factory=list)
-    impacted_dependencies: List[Dict[str, Any]] = field(default_factory=list)
-    impacted_schemas: List[Dict[str, Any]] = field(default_factory=list)
-    error_message: Optional[str] = None
-
-
-@dataclass
 class ProjectArchitecture:
     project_name: str
     project_path: str
@@ -212,3 +157,4 @@ class ProjectArchitecture:
     edges: List[GraphEdge] = field(default_factory=list)
     stats: Dict[str, Any] = field(default_factory=dict)
     git_diff: Optional[GitDiffInfo] = None
+    report_collections: List[ReportCollection] = field(default_factory=list)

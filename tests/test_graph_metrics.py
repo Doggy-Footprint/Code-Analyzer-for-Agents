@@ -45,6 +45,41 @@ class TestGraphAnalyzer(unittest.TestCase):
         self.assertEqual(report["node_metrics"], {})
         self.assertEqual(report["total_token_cost"], 0)
 
+    def test_end_line_number_takes_precedence_over_ast_fallback(self):
+        with tempfile.TemporaryDirectory() as directory:
+            source = Path(directory) / "sample.py"
+            source.write_text(
+                "def first():\n    return 1\n\ndef second():\n    return first()\n\ndef third():\n    return second()\n",
+                encoding="utf-8",
+            )
+            explicit_range_node = GraphNode(
+                id="third_line_only",
+                label="third_line_only",
+                group="symbol",
+                category="symbol",
+                metadata={"file_path": str(source), "line_number": 8, "end_line_number": 8},
+            )
+            ast_fallback_node = GraphNode(
+                id="third_whole_function",
+                label="third_whole_function",
+                group="symbol",
+                category="symbol",
+                metadata={"file_path": str(source), "line_number": 8},
+            )
+
+            report = GraphAnalyzer().analyze([explicit_range_node, ast_fallback_node], [], directory)
+            metrics = report["node_metrics"]
+
+            # Line 8 alone ("    return second()", 19 chars) -> ceil(19/4) = 5 tokens.
+            self.assertEqual(metrics["third_line_only"]["token_cost"], 5)
+            # Without end_line_number, line 8 falls inside the enclosing "third" FunctionDef
+            # (lines 7-8, "def third():\n    return second()", 32 chars) -> ceil(32/4) = 8 tokens.
+            self.assertEqual(metrics["third_whole_function"]["token_cost"], 8)
+            self.assertNotEqual(
+                metrics["third_line_only"]["token_cost"],
+                metrics["third_whole_function"]["token_cost"],
+            )
+
 
 if __name__ == "__main__":
     unittest.main()
