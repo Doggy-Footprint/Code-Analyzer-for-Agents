@@ -175,6 +175,137 @@ app.include_router(users_router, prefix="/api/v1")
         self.assertTrue(mermaid.startswith("graph TD"))
         self.assertIn("Sample API", mermaid)
 
+    def _init_git_repo(self):
+        """Initializes a git repository in test_dir."""
+        import subprocess
+        subprocess.run(["git", "init"], cwd=self.project_path, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        subprocess.run(["git", "config", "user.email", "test@example.com"], cwd=self.project_path, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        subprocess.run(["git", "config", "user.name", "Test User"], cwd=self.project_path, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+    def _git_commit(self, msg: str):
+        """Stages all changes and commits in test_dir."""
+        import subprocess
+        subprocess.run(["git", "add", "."], cwd=self.project_path, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        subprocess.run(["git", "commit", "-m", msg], cwd=self.project_path, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+    def test_git_diff_non_git_repo(self):
+        self._create_sample_fastapi_app()
+        analyzer = FastAPIAnalyzer(str(self.project_path))
+        arch = analyzer.analyze()
+
+        self.assertIsNotNone(arch.git_diff)
+        self.assertFalse(arch.git_diff.is_git_repo)
+        self.assertEqual(arch.git_diff.comparison_mode, "none")
+
+    def test_git_diff_working_tree_changes_and_untracked(self):
+        self._create_sample_fastapi_app()
+        self._init_git_repo()
+        self._git_commit("initial commit")
+
+        # 1. Modify an existing file
+        main_file = self.project_path / "app" / "main.py"
+        main_file.write_text(main_file.read_text() + "\n# new comment\n")
+
+        # 2. Add an untracked file
+        untracked_file = self.project_path / "app" / "untracked.py"
+        untracked_file.write_text("x = 10\ny = 20\n")
+
+        analyzer = FastAPIAnalyzer(str(self.project_path))
+        arch = analyzer.analyze()
+
+        self.assertIsNotNone(arch.git_diff)
+        self.assertTrue(arch.git_diff.is_git_repo)
+        self.assertTrue(arch.git_diff.has_uncommitted_changes)
+        self.assertEqual(arch.git_diff.comparison_mode, "working_tree_vs_head")
+        self.assertIsNotNone(arch.git_diff.base_commit)
+        self.assertIsNone(arch.git_diff.target_commit)
+        self.assertEqual(arch.git_diff.target_name, "Working Tree (Uncommitted Changes)")
+
+        file_paths = [f.file_path for f in arch.git_diff.files]
+        self.assertIn("app/main.py", file_paths)
+        self.assertIn("app/untracked.py", file_paths)
+
+        # Check untracked file diff
+        untracked_diff = next(f for f in arch.git_diff.files if f.file_path == "app/untracked.py")
+        self.assertEqual(untracked_diff.status, "untracked")
+        self.assertEqual(untracked_diff.additions, 2)
+        self.assertEqual(untracked_diff.deletions, 0)
+        self.assertGreaterEqual(len(untracked_diff.hunks), 1)
+
+    def test_git_diff_clean_working_tree_last_two_commits(self):
+        self._create_sample_fastapi_app()
+        self._init_git_repo()
+        self._git_commit("commit 1 - base architecture")
+
+        # Create a second commit
+        new_route_file = self.project_path / "app" / "api" / "routes" / "items.py"
+        new_route_file.write_text("""
+from fastapi import APIRouter
+router = APIRouter(prefix="/items")
+@router.get("/")
+def get_items():
+    return [{"id": 1}]
+""")
+        self._git_commit("commit 2 - add items endpoint")
+
+        # Working tree is clean now (no uncommitted changes, no untracked files)
+        analyzer = FastAPIAnalyzer(str(self.project_path))
+        arch = analyzer.analyze()
+
+        self.assertIsNotNone(arch.git_diff)
+        self.assertTrue(arch.git_diff.is_git_repo)
+        self.assertFalse(arch.git_diff.has_uncommitted_changes)
+        self.assertEqual(arch.git_diff.comparison_mode, "last_two_commits")
+        self.assertIsNotNone(arch.git_diff.base_commit)
+        self.assertIsNotNone(arch.git_diff.target_commit)
+        self.assertIn("commit 1", arch.git_diff.base_commit.message)
+        self.assertIn("commit 2", arch.git_diff.target_commit.message)
+
+        file_paths = [f.file_path for f in arch.git_diff.files]
+        self.assertIn("app/api/routes/items.py", file_paths)
+
+    def test_git_diff_impacted_endpoints(self):
+        self._create_sample_fastapi_app()
+        self._init_git_repo()
+        self._git_commit("initial commit")
+
+        # Modify users.py which contains endpoints
+        users_file = self.project_path / "app" / "api" / "routes" / "users.py"
+        content = users_file.read_text()
+        users_file.write_text(content + "\n# added note\n")
+
+        analyzer = FastAPIAnalyzer(str(self.project_path))
+        arch = analyzer.analyze()
+
+        self.assertIsNotNone(arch.git_diff)
+        impacted_paths = [ep["path"] for ep in arch.git_diff.impacted_endpoints]
+        self.assertIn("/api/v1/users/me", impacted_paths)
+
+    def test_html_rendering_with_git_diff(self):
+        self._create_sample_fastapi_app()
+        self._init_git_repo()
+        self._git_commit("initial commit")
+
+        # Add changes
+        (self.project_path / "app" / "main.py").write_text("# modified\n")
+
+        analyzer = FastAPIAnalyzer(str(self.project_path))
+        arch = analyzer.analyze()
+        builder = ArchitectureGraphBuilder()
+        arch = builder.build_graph(arch)
+
+        renderer = HTMLRenderer(title="Git Diff Test")
+        out_html = self.project_path / "report.html"
+        rendered = renderer.render(arch, str(out_html))
+
+        html_text = rendered.read_text(encoding="utf-8")
+        self.assertIn("tab-btn-gitdiff", html_text)
+        self.assertIn("view-gitdiff", html_text)
+        self.assertIn("populateGitDiff", html_text)
+        self.assertIn("git-diff-hero", html_text)
+        self.assertIn("working_tree_vs_head", html_text)
+
 
 if __name__ == "__main__":
     unittest.main()
+

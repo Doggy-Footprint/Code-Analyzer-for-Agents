@@ -114,6 +114,7 @@ def main():
 
     # 4. Optional JSON Export
     if args.json:
+        from dataclasses import asdict
         json_output_path = output_html_path.with_suffix(".json")
         json_data = {
             "project_name": arch.project_name,
@@ -121,10 +122,11 @@ def main():
             "stats": arch.stats,
             "nodes": [n.__dict__ for n in arch.nodes],
             "edges": [e.__dict__ for e in arch.edges],
-            "endpoints": [ep.__dict__ for ep in arch.endpoints],
-            "routers": [r.__dict__ for r in arch.routers],
-            "dependencies": [d.__dict__ for d in arch.dependencies],
-            "schemas": [s.__dict__ for s in arch.schemas],
+            "endpoints": [asdict(ep) for ep in arch.endpoints],
+            "routers": [asdict(r) for r in arch.routers],
+            "dependencies": [asdict(d) for d in arch.dependencies],
+            "schemas": [asdict(s) for s in arch.schemas],
+            "git_diff": asdict(arch.git_diff) if arch.git_diff else None,
         }
         with open(json_output_path, "w", encoding="utf-8") as f:
             json.dump(json_data, f, indent=2, ensure_ascii=False, default=str)
@@ -147,6 +149,11 @@ def main():
     print(f"  • Schemas:      {stats.get('total_schemas', 0)}")
     if stats.get("methods_breakdown"):
         print(f"  • Methods:      {stats['methods_breakdown']}")
+    if arch.git_diff and arch.git_diff.is_git_repo:
+        gd = arch.git_diff
+        print(f"  • Git Diff:     {gd.total_files} file(s) changed (+{gd.total_additions}, -{gd.total_deletions}) [{gd.mode_description}]")
+        if gd.impacted_endpoints:
+            print(f"  • Impacted API: {len(gd.impacted_endpoints)} endpoint(s)")
 
     # 7. Open in browser
     if args.open:

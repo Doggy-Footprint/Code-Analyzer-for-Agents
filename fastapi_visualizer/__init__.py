@@ -4,11 +4,17 @@ FastAPI Architecture & Dependency Visualizer.
 
 from .analyzer import FastAPIAnalyzer
 from .dynamic_analyzer import DynamicFastAPIAnalyzer
+from .git_differ import GitDiffer
 from .graph import ArchitectureGraphBuilder
 from .models import (
     AppInfo,
     DependencyInfo,
     EndpointInfo,
+    GitCommitInfo,
+    GitDiffHunk,
+    GitDiffInfo,
+    GitDiffLine,
+    GitFileDiff,
     GraphEdge,
     GraphNode,
     ProjectArchitecture,
@@ -23,6 +29,7 @@ __all__ = [
     "DynamicFastAPIAnalyzer",
     "ArchitectureGraphBuilder",
     "HTMLRenderer",
+    "GitDiffer",
     "ProjectArchitecture",
     "AppInfo",
     "RouterInfo",
@@ -31,4 +38,10 @@ __all__ = [
     "SchemaInfo",
     "GraphNode",
     "GraphEdge",
+    "GitCommitInfo",
+    "GitDiffInfo",
+    "GitFileDiff",
+    "GitDiffHunk",
+    "GitDiffLine",
 ]
+

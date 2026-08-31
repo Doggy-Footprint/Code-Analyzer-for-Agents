@@ -9,6 +9,7 @@ import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
 
+from .git_differ import GitDiffer
 from .models import (
     AppInfo,
     DependencyInfo,
@@ -81,6 +82,11 @@ class FastAPIAnalyzer:
             dependencies=unique_deps,
             schemas=unique_schemas,
         )
+
+        # Extract git difference information
+        differ = GitDiffer(self.project_path)
+        arch.git_diff = differ.get_diff_info(arch)
+
         return arch
 
     def _discover_and_parse_files(self):

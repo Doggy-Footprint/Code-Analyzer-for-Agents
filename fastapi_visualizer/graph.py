@@ -20,19 +20,74 @@ from .models import (
 
 
 class ArchitectureGraphBuilder:
-    # Color palette
+    # Rich modern color palette with borders and high-contrast text
     COLORS = {
-        "app": {"background": "#4F46E5", "border": "#3730A3", "highlight": "#6366F1"},
-        "router": {"background": "#9333EA", "border": "#7E22CE", "highlight": "#A855F7"},
-        "endpoint_get": {"background": "#059669", "border": "#047857", "highlight": "#10B981"},
-        "endpoint_post": {"background": "#2563EB", "border": "#1D4ED8", "highlight": "#3B82F6"},
-        "endpoint_put": {"background": "#D97706", "border": "#B45309", "highlight": "#F59E0B"},
-        "endpoint_delete": {"background": "#E11D48", "border": "#BE123C", "highlight": "#F43F5E"},
-        "endpoint_patch": {"background": "#0D9488", "border": "#0F766E", "highlight": "#14B8A6"},
-        "endpoint_other": {"background": "#4B5563", "border": "#374151", "highlight": "#6B7280"},
-        "dependency": {"background": "#0284C7", "border": "#0369A1", "highlight": "#38BDF8"},
-        "schema": {"background": "#C026D3", "border": "#A21CAF", "highlight": "#E879F9"},
-        "middleware": {"background": "#475569", "border": "#334155", "highlight": "#64748B"},
+        "app": {
+            "background": "#4338CA",
+            "border": "#6366F1",
+            "highlight": {"background": "#4F46E5", "border": "#A5B4FC"},
+            "hover": {"background": "#4F46E5", "border": "#818CF8"},
+        },
+        "router": {
+            "background": "#7E22CE",
+            "border": "#A855F7",
+            "highlight": {"background": "#9333EA", "border": "#E9D5FF"},
+            "hover": {"background": "#9333EA", "border": "#C084FC"},
+        },
+        "endpoint_get": {
+            "background": "#065F46",
+            "border": "#10B981",
+            "highlight": {"background": "#047857", "border": "#6EE7B7"},
+            "hover": {"background": "#047857", "border": "#34D399"},
+        },
+        "endpoint_post": {
+            "background": "#1E40AF",
+            "border": "#3B82F6",
+            "highlight": {"background": "#1D4ED8", "border": "#93C5FD"},
+            "hover": {"background": "#1D4ED8", "border": "#60A5FA"},
+        },
+        "endpoint_put": {
+            "background": "#92400E",
+            "border": "#F59E0B",
+            "highlight": {"background": "#B45309", "border": "#FDE68A"},
+            "hover": {"background": "#B45309", "border": "#FBBF24"},
+        },
+        "endpoint_delete": {
+            "background": "#9F1239",
+            "border": "#F43F5E",
+            "highlight": {"background": "#BE123C", "border": "#FECDD3"},
+            "hover": {"background": "#BE123C", "border": "#FB7185"},
+        },
+        "endpoint_patch": {
+            "background": "#115E59",
+            "border": "#14B8A6",
+            "highlight": {"background": "#0F766E", "border": "#99F6E4"},
+            "hover": {"background": "#0F766E", "border": "#2DD4BF"},
+        },
+        "endpoint_other": {
+            "background": "#374151",
+            "border": "#9CA3AF",
+            "highlight": {"background": "#4B5563", "border": "#E5E7EB"},
+            "hover": {"background": "#4B5563", "border": "#D1D5DB"},
+        },
+        "dependency": {
+            "background": "#0369A1",
+            "border": "#38BDF8",
+            "highlight": {"background": "#0284C7", "border": "#BAE6FD"},
+            "hover": {"background": "#0284C7", "border": "#7DD3FC"},
+        },
+        "schema": {
+            "background": "#86198F",
+            "border": "#E879F9",
+            "highlight": {"background": "#A21CAF", "border": "#F5D0FE"},
+            "hover": {"background": "#A21CAF", "border": "#F0ABFC"},
+        },
+        "middleware": {
+            "background": "#334155",
+            "border": "#94A3B8",
+            "highlight": {"background": "#475569", "border": "#E2E8F0"},
+            "hover": {"background": "#475569", "border": "#CBD5E1"},
+        },
     }
 
     def __init__(self, include_models: bool = True, include_dependencies: bool = True):
@@ -49,12 +104,12 @@ class ArchitectureGraphBuilder:
         for app in arch.apps:
             node = GraphNode(
                 id=app.id,
-                label=f"🚀 {app.title}\n({app.var_name})",
+                label=f"🚀 {app.title}\napp: {app.var_name}",
                 group="app",
                 category="app",
                 title=f"<b>FastAPI Application: {app.title}</b><br>Version: {app.version}<br>Module: {app.module}<br>File: {app.file_path}:{app.line_number}",
                 shape="box",
-                size=35,
+                size=38,
                 color=self.COLORS["app"],
                 metadata={
                     "type": "app",
@@ -80,7 +135,7 @@ class ArchitectureGraphBuilder:
                         category="middleware",
                         title=f"<b>Middleware: {mw['name']}</b><br>Registered on: {app.title}",
                         shape="ellipse",
-                        size=20,
+                        size=22,
                         color=self.COLORS["middleware"],
                         metadata={"name": mw["name"], "app": app.title}
                     )
@@ -92,12 +147,12 @@ class ArchitectureGraphBuilder:
                         relation="MIDDLEWARE_OF",
                         label="middleware",
                         dashes=True,
-                        color="#64748B"
+                        color="#94A3B8"
                     ))
 
         # 2. Routers
         for router in arch.routers:
-            prefix_label = f"\nPrefix: {router.prefix}" if router.prefix else ""
+            prefix_label = f"\nprefix: {router.prefix}" if router.prefix else "\nprefix: /"
             node = GraphNode(
                 id=router.id,
                 label=f"📁 {router.var_name}{prefix_label}",
@@ -105,7 +160,7 @@ class ArchitectureGraphBuilder:
                 category="router",
                 title=f"<b>Router: {router.var_name}</b><br>Prefix: {router.prefix or '/'}<br>Tags: {', '.join(router.tags)}<br>Module: {router.module}<br>File: {router.file_path}:{router.line_number}",
                 shape="box",
-                size=30,
+                size=32,
                 color=self.COLORS["router"],
                 metadata={
                     "type": "router",
@@ -133,7 +188,7 @@ class ArchitectureGraphBuilder:
                         to_id=target_id,
                         relation="INCLUDES",
                         label=lbl,
-                        color="#4F46E5"
+                        color="#818CF8"
                     ))
 
         # From Routers to Routers
@@ -147,7 +202,7 @@ class ArchitectureGraphBuilder:
                         to_id=target_id,
                         relation="INCLUDES",
                         label=lbl,
-                        color="#9333EA"
+                        color="#C084FC"
                     ))
 
         # 4. Endpoints
@@ -158,12 +213,12 @@ class ArchitectureGraphBuilder:
             
             node = GraphNode(
                 id=ep.id,
-                label=f"{badge} {ep.full_path or ep.path}\n({ep.function_name})",
+                label=f"{badge} {ep.full_path or ep.path}\n{ep.function_name}()",
                 group=group_name,
                 category="endpoint",
                 title=f"<b>[{ep.http_method}] {ep.full_path or ep.path}</b><br>Handler: <code>{ep.function_name}()</code><br>Module: {ep.module}<br>Tags: {', '.join(ep.tags)}<br>Status: {ep.status_code or '200'}<br>Response: {ep.response_model or 'default'}",
                 shape="box",
-                size=22,
+                size=26,
                 color=self.COLORS[group_name],
                 metadata={
                     "type": "endpoint",
@@ -194,7 +249,7 @@ class ArchitectureGraphBuilder:
                     from_id=ep.router_id,
                     to_id=ep.id,
                     relation="ROUTES",
-                    color="#9333EA"
+                    color="#A855F7"
                 ))
             else:
                 # Find router in same module or connect to default app
@@ -204,14 +259,14 @@ class ArchitectureGraphBuilder:
                         from_id=matching_router.id,
                         to_id=ep.id,
                         relation="ROUTES",
-                        color="#9333EA"
+                        color="#A855F7"
                     ))
                 elif arch.apps and arch.apps[0].id in node_ids:
                     edges.append(GraphEdge(
                         from_id=arch.apps[0].id,
                         to_id=ep.id,
                         relation="ROUTES",
-                        color="#4F46E5"
+                        color="#818CF8"
                     ))
 
         # 5. Dependencies (if enabled)
@@ -225,7 +280,7 @@ class ArchitectureGraphBuilder:
                     category="dependency",
                     title=f"<b>Dependency: {dep.name}</b><br>Kind: {dep.kind}<br>Module: {dep.module}<br>File: {dep.file_path}:{dep.line_number}",
                     shape="ellipse",
-                    size=20,
+                    size=22,
                     color=self.COLORS["dependency"],
                     metadata={
                         "type": "dependency",
@@ -253,7 +308,7 @@ class ArchitectureGraphBuilder:
                             relation="DEPENDS_ON",
                             label="depends",
                             dashes=True,
-                            color="#0284C7"
+                            color="#38BDF8"
                         ))
 
             # Edges between Dependencies (Sub-dependencies)
@@ -267,7 +322,7 @@ class ArchitectureGraphBuilder:
                             relation="SUB_DEPENDENCY",
                             label="calls",
                             dashes=True,
-                            color="#0284C7"
+                            color="#38BDF8"
                         ))
 
         # 6. Schemas (if enabled)
@@ -275,12 +330,12 @@ class ArchitectureGraphBuilder:
             for schema in arch.schemas:
                 schema_node = GraphNode(
                     id=schema.id,
-                    label=f"📦 {schema.name}",
+                    label=f"📦 {schema.name}\n({len(schema.fields)} fields)",
                     group="schema",
                     category="schema",
                     title=f"<b>Schema Model: {schema.name}</b><br>Fields: {len(schema.fields)}<br>Module: {schema.module}",
                     shape="box",
-                    size=18,
+                    size=20,
                     color=self.COLORS["schema"],
                     metadata={
                         "type": "schema",
@@ -307,7 +362,7 @@ class ArchitectureGraphBuilder:
                             relation="REQUEST_BODY",
                             label="body",
                             dashes=True,
-                            color="#C026D3"
+                            color="#E879F9"
                         ))
                 for resp_s in ep.response_schemas:
                     target_schema = self._find_schema_by_name(resp_s, arch.schemas)
@@ -318,7 +373,7 @@ class ArchitectureGraphBuilder:
                             relation="RESPONSE_MODEL",
                             label="returns",
                             dashes=True,
-                            color="#C026D3"
+                            color="#E879F9"
                         ))
 
         # 7. Compute Architecture Statistics
@@ -370,21 +425,20 @@ class ArchitectureGraphBuilder:
     @staticmethod
     def _get_method_badge(method: str) -> str:
         icons = {
-            "GET": "🟢 GET",
-            "POST": "🔵 POST",
-            "PUT": "🟡 PUT",
-            "DELETE": "🔴 DELETE",
-            "PATCH": "🟣 PATCH",
-            "OPTIONS": "⚪ OPTIONS",
-            "HEAD": "⚪ HEAD",
+            "GET": "GET",
+            "POST": "POST",
+            "PUT": "PUT",
+            "DELETE": "DEL",
+            "PATCH": "PATCH",
+            "OPTIONS": "OPT",
+            "HEAD": "HEAD",
         }
-        return icons.get(method.upper(), f"⚡ {method.upper()}")
+        return icons.get(method.upper(), method.upper())
 
     def generate_mermaid(self, arch: ProjectArchitecture) -> str:
         """Generates Mermaid diagram definition string from architecture."""
         lines = ["graph TD", "  %% FastAPI Architecture Diagram"]
         
-        # Subgraphs by Module / Router
         for app in arch.apps:
             lines.append(f'  subgraph App_{app.var_name} ["App: {app.title}"]')
             lines.append(f'    {app.id}["🚀 {app.title}"]')

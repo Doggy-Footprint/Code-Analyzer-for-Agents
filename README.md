@@ -23,6 +23,7 @@ A static analysis and interactive visualization dashboard generator for **FastAP
   - **Route Matrix Table Tab**: Searchable, filterable catalog of all endpoints.
   - **Dependency Hierarchy Tab**: Interactive dependency explorer.
   - **Data Models Tab**: Pydantic schema explorer with field signatures.
+  - **Git Diff & Architecture Changes Tab**: Compares changes after the latest commit (including untracked and modified files) or compares the last two git commits if the working tree is clean, with visual unified diffs and architecture impact tracking.
   - **One-Click Exports**: Export high-res PNG diagrams, architecture JSON, and Mermaid markdown.
 - **Optional Dynamic Runtime Introspection**: Supports `--app module:app` to introspect running apps if available in the Python environment.
 
