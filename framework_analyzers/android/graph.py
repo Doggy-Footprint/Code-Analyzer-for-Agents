@@ -10,6 +10,7 @@ from typing import Dict, List, Optional, Set
 
 from analysis import GraphAnalyzer
 from language_analyzers.core.annotate import annotate_nodes, mark_edges
+from language_analyzers.core.enrichment import enrich_repository
 from language_analyzers.core.report_schema import ColumnSpec, ReportCollection
 
 from .models import AndroidProjectArchitecture, GraphEdge, GraphNode
@@ -278,10 +279,11 @@ class AndroidArchitectureGraphBuilder:
                     edges.append(GraphEdge(from_id=af.id, to_id=target.id, relation="HOSTS", color="#9CA3AF"))
 
         annotate_nodes(nodes, arch.project_path, "android", "kotlin")
-        mark_edges(edges)
+        mark_edges(edges, nodes=nodes)
 
         arch.nodes = nodes
         arch.edges = edges
+        enrich_repository(arch)
         arch.stats = {
             "total_composables": len(arch.composables),
             "total_viewmodels": len(arch.viewmodels),

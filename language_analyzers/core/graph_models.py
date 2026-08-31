@@ -35,6 +35,7 @@ class NodeKind:
     FIELD = "field"
     CONSTANT = "constant"
     TYPE_ALIAS = "type_alias"
+    CONFIGURATION = "configuration"
 
 
 class RelationKind:
@@ -53,6 +54,8 @@ class RelationKind:
     READS = "READS"
     WRITES = "WRITES"
     IMPLEMENTED_BY = "IMPLEMENTED_BY"
+    TESTS = "TESTS"
+    CONFIGURES = "CONFIGURES"
 
 
 @dataclass(frozen=True)

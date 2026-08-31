@@ -7,6 +7,7 @@ from typing import Any, Dict, List, Optional, Sequence, Set, Tuple, Union
 from language_analyzers.core import flags as flag_names
 from language_analyzers.core.cost import cost_for_span, cost_for_text
 from language_analyzers.core.git_diff_core import GitDiffCore
+from language_analyzers.core.enrichment import enrich_repository
 from language_analyzers.core.graph_models import (
     Confidence,
     GraphEdge,
@@ -154,6 +155,8 @@ class PythonGraphAnalyzer:
             edges=edges,
             git_diff=GitDiffCore(self.project_path).get_diff_info(),
         )
+        enrich_repository(architecture)
+        nodes, edges = architecture.nodes, architecture.edges
         architecture.stats = {
             "total_modules": sum(node.kind == NodeKind.MODULE for node in nodes),
             "total_symbols": sum(node.kind not in (NodeKind.MODULE, NodeKind.PACKAGE) for node in nodes),
@@ -267,6 +270,14 @@ class PythonGraphAnalyzer:
         if existing is not None:
             existing.weight += 1.0
             return
+        if evidence is None:
+            evidence_node = self._nodes[from_id] if self._nodes[from_id].span else self._nodes[to_id]
+            if evidence_node.span is not None:
+                evidence = SourceSpan(
+                    evidence_node.span.file_path,
+                    evidence_node.span.start_line,
+                    evidence_node.span.start_line,
+                )
         self._edges[key] = GraphEdge(
             from_id=from_id,
             to_id=to_id,
@@ -375,6 +386,7 @@ class PythonGraphAnalyzer:
         module = symbol.module if symbol else node.metadata.get("module", "")
         file_path = symbol.file_path if symbol else node.span.file_path
         unresolved: Counter = Counter()
+        unresolved_evidence: List[Dict[str, Any]] = []
 
         for target_module, line in scanner.dynamic_imports:
             self._add_edge(
@@ -392,6 +404,16 @@ class PythonGraphAnalyzer:
             if target is None:
                 if reference.is_call:
                     unresolved[reference.name] += 1
+                    unresolved_evidence.append({
+                        "name": reference.name,
+                        "resolution": str(Resolution.UNRESOLVED),
+                        "confidence": str(Confidence.DYNAMIC_REQUIRED),
+                        "evidence": {
+                            "file_path": file_path,
+                            "start_line": reference.line,
+                            "end_line": reference.line,
+                        },
+                    })
                 continue
             target_symbol = table.by_id.get(target)
             if reference.is_call:
@@ -419,6 +441,7 @@ class PythonGraphAnalyzer:
                     )
         if unresolved:
             node.metadata["unresolved_calls"] = dict(unresolved.most_common(20))
+            node.metadata["unresolved_references"] = unresolved_evidence[:20]
 
     # ---- resolution ----
 

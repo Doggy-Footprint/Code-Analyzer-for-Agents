@@ -9,6 +9,7 @@ from typing import Any, Dict, List, Optional, Set
 
 from analysis import GraphAnalyzer
 from language_analyzers.core.annotate import annotate_nodes, mark_edges
+from language_analyzers.core.enrichment import enrich_repository
 from language_analyzers.core.graph_models import Confidence, RelationKind, Resolution, SourceSpan
 from language_analyzers.core.report_schema import ColumnSpec, ReportCollection
 from language_analyzers.python.graph import PythonGraphAnalyzer
@@ -385,7 +386,7 @@ class ArchitectureGraphBuilder:
         deps_counter = Counter([d for ep in arch.endpoints for d in ep.dependencies])
 
         annotate_nodes(nodes, arch.project_path, self.PROVENANCE, "python")
-        mark_edges(edges)
+        mark_edges(edges, nodes=nodes)
         if self.include_language_graph:
             language_nodes, language_edges = self._language_graph(arch)
             known = {node.id for node in nodes}
@@ -395,6 +396,7 @@ class ArchitectureGraphBuilder:
 
         arch.nodes = nodes
         arch.edges = edges
+        enrich_repository(arch)
         arch.stats = {
             "total_apps": len(arch.apps),
             "total_routers": len(arch.routers),
@@ -443,6 +445,7 @@ class ArchitectureGraphBuilder:
                 color="#94A3B8",
                 confidence=Confidence.FRAMEWORK_INFERRED,
                 resolution=Resolution.EXACT,
+                evidence=SourceSpan(file_path, line, line),
             ))
         return edges
 

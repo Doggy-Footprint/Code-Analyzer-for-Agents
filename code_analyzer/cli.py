@@ -18,11 +18,12 @@ from framework_analyzers.fastapi.analyzer import FastAPIAnalyzer
 from framework_analyzers.fastapi.dynamic_analyzer import DynamicFastAPIAnalyzer
 from framework_analyzers.fastapi.graph import ArchitectureGraphBuilder
 from language_analyzers.python.graph import PythonGraphAnalyzer
+from language_analyzers.kotlin import KotlinAnalyzer
 from language_analyzers.typescript import TypeScriptAnalyzer
 from renderers.html import HTMLRenderer
 
 FRAMEWORK_LABELS = {"fastapi": "FastAPI", "android": "Android"}
-LANGUAGE_LABELS = {"python": "Python", "typescript": "TypeScript/JavaScript"}
+LANGUAGE_LABELS = {"kotlin": "Kotlin", "python": "Python", "typescript": "TypeScript/JavaScript"}
 
 
 def parse_args():
@@ -128,6 +129,11 @@ def main():
         )
     elif args.language == "typescript":
         arch = TypeScriptAnalyzer(project_path).analyze()
+        arch.stats["analysis"] = GraphAnalyzer().analyze(
+            arch.nodes, arch.edges, project_path=arch.project_path
+        )
+    elif args.language == "kotlin":
+        arch = KotlinAnalyzer(project_path).analyze()
         arch.stats["analysis"] = GraphAnalyzer().analyze(
             arch.nodes, arch.edges, project_path=arch.project_path
         )

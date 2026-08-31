@@ -22,6 +22,8 @@
 | 구현됨 | FastAPI route, dependency injection, schema 및 Android Compose, DI, Room, Retrofit 의미 분석 |
 | 구현됨 | PageRank, HITS, degree/betweenness centrality, 소스 토큰 비용, weighted centrality cost, 2/3-hop 비용 |
 | 구현됨 | 엣지 신뢰도·해소 상태, Git working tree 또는 commit 간 architecture diff, JSON·Mermaid·HTML 출력 |
+| 구현됨 | Kotlin 언어 그래프, 테스트·설정 연결, 생성·vendor·migration 비용 정책 |
+| 구현됨 | 결정적 sampled betweenness와 단일 BFS 2/3-hop 비용 계산 |
 | 프로토타입 | topology 기반 양방향 2/3-hop 탐색. 작업 의미나 후보 관련성은 아직 반영하지 않음 |
 | 검증할 가설 | 작업 기반 탐색, 구조적 마찰 진단, 문서·테스트·설정 연결, Git co-change, 실제 agent trace 보정 |
 
@@ -119,7 +121,7 @@ FastAPI와 Android는 프레임워크가 숨기는 연결을 언어 그래프 �
 
 완료 조건: 지원 언어와 프레임워크의 샘플 저장소에서 그래프를 생성하고 범용 지표와 리포트를 동일한 파이프라인으로 출력한다.
 
-### M1. 그래프 완성도와 비용 모델 — 다음 구현
+### M1. 그래프 완성도와 비용 모델 — 완료
 
 구현 범위:
 

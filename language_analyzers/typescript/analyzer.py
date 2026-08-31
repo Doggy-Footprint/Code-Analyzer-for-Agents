@@ -6,6 +6,7 @@ from typing import Any, Dict, List, Optional, Sequence, Set, Tuple, Union
 from language_analyzers.core import flags as flag_names
 from language_analyzers.core.cost import cost_for_span
 from language_analyzers.core.git_diff_core import GitDiffCore
+from language_analyzers.core.enrichment import enrich_repository
 from language_analyzers.core.graph_models import (
     Confidence,
     GraphEdge,
@@ -119,7 +120,7 @@ class TypeScriptAnalyzer:
 
         nodes = list(self._nodes.values())
         edges = list(self._edges.values())
-        return TypeScriptProjectArchitecture(
+        architecture = TypeScriptProjectArchitecture(
             project_name=self.project_path.name,
             project_path=str(self.project_path),
             nodes=nodes,
@@ -135,6 +136,10 @@ class TypeScriptAnalyzer:
             report_collections=[self._symbol_collection(nodes)],
             git_diff=GitDiffCore(self.project_path).get_diff_info(),
         )
+        enrich_repository(architecture)
+        architecture.stats["nodes_by_kind"] = dict(Counter(node.kind for node in architecture.nodes))
+        architecture.stats["edges_by_relation"] = dict(Counter(edge.relation for edge in architecture.edges))
+        return architecture
 
     # ---- discovery & parsing ----
 
@@ -464,6 +469,14 @@ class TypeScriptAnalyzer:
         if existing is not None:
             existing.weight += 1.0
             return
+        if evidence is None:
+            evidence_node = self._nodes[from_id] if self._nodes[from_id].span else self._nodes[to_id]
+            if evidence_node.span is not None:
+                evidence = SourceSpan(
+                    evidence_node.span.file_path,
+                    evidence_node.span.start_line,
+                    evidence_node.span.start_line,
+                )
         self._edges[key] = GraphEdge(
             from_id=from_id,
             to_id=to_id,
@@ -573,6 +586,7 @@ class TypeScriptAnalyzer:
                     locals_.add(ts.node_text(module.source, name_node))
 
         unresolved: Counter = Counter()
+        unresolved_evidence: List[Dict[str, Any]] = []
         for node in nodes:
             if node.type not in ("call_expression", "new_expression"):
                 continue
@@ -592,6 +606,12 @@ class TypeScriptAnalyzer:
             )
             if target is None:
                 unresolved[name] += 1
+                unresolved_evidence.append({
+                    "name": name,
+                    "resolution": str(Resolution.UNRESOLVED),
+                    "confidence": str(Confidence.DYNAMIC_REQUIRED),
+                    "evidence": {"file_path": module.file_key, "start_line": ts.start_line(node), "end_line": ts.start_line(node)},
+                })
                 continue
             relation = (
                 RelationKind.INSTANTIATES
@@ -604,6 +624,36 @@ class TypeScriptAnalyzer:
             )
         if unresolved:
             self._nodes[source_id].metadata["unresolved_calls"] = dict(unresolved.most_common(20))
+            self._nodes[source_id].metadata["unresolved_references"] = unresolved_evidence[:20]
+
+        write_nodes: Set[Tuple[int, int]] = set()
+        for node in nodes:
+            if node.type in ("assignment_expression", "augmented_assignment_expression"):
+                left = node.child_by_field_name("left")
+                if left is not None:
+                    write_nodes.update((item.start_byte, item.end_byte) for item in [left] + list(ts.descendants(left)))
+            elif node.type == "update_expression":
+                argument = node.child_by_field_name("argument") or ts.child_of_type(node, "identifier", "member_expression")
+                if argument is not None:
+                    write_nodes.update((item.start_byte, item.end_byte) for item in [argument] + list(ts.descendants(argument)))
+
+        for node in nodes:
+            if node.type not in ("identifier", "property_identifier"):
+                continue
+            parent = node.parent
+            if parent is not None and parent.type in ("variable_declarator", "formal_parameter", "required_parameter", "optional_parameter") and parent.child_by_field_name("name") == node:
+                continue
+            name = ts.node_text(module.source, node)
+            if name in locals_ or name in ("this", "undefined"):
+                continue
+            target, resolution, confidence, candidates = self._resolve_name(module, name)
+            if target is None:
+                continue
+            relation = RelationKind.WRITES if (node.start_byte, node.end_byte) in write_nodes else RelationKind.READS
+            self._add_edge(
+                source_id, target, relation, confidence, resolution,
+                SourceSpan(module.file_key, ts.start_line(node), ts.start_line(node)), candidates,
+            )
 
     # ---- resolution ----
 

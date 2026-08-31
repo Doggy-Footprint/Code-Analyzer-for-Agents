@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Any, Dict, Iterable, Optional
+from typing import Any, Dict, Iterable, Optional, Sequence
 
 from .cost import cost_for_span
 from .graph_models import Confidence, GraphEdge, GraphNode, Resolution, SourceSpan
@@ -53,7 +53,19 @@ def mark_edges(
     edges: Iterable[GraphEdge],
     confidence: str = Confidence.FRAMEWORK_INFERRED,
     resolution: str = Resolution.UNIQUE_NAME,
+    nodes: Optional[Sequence[GraphNode]] = None,
 ) -> None:
+    by_id = {node.id: node for node in nodes or []}
     for edge in edges:
         edge.confidence = confidence
         edge.resolution = resolution
+        if edge.evidence is None:
+            source = by_id.get(edge.from_id) or by_id.get(edge.to_id)
+            if source is not None and source.span is not None:
+                edge.evidence = SourceSpan(
+                    source.span.file_path,
+                    source.span.start_line,
+                    source.span.start_line,
+                )
+            else:
+                edge.evidence = SourceSpan("<framework-inference>", 1, 1)
