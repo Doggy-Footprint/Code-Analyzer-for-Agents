@@ -14,6 +14,7 @@ from analysis.benchmark import (
     TraceAction,
     TraceMetrics,
     evaluate_benchmark,
+    load_agent_traces,
     load_benchmark_definition,
     summarize_benchmark,
 )
@@ -138,6 +139,41 @@ class TraceTests(unittest.TestCase):
     @staticmethod
     def explorer():
         return TaskExplorer([node("seed", "seed", 1, "seed.py"), node("target", "target", 2, "target.py"), node("impact", "impact", 3, "impact.py")], [])
+
+    def test_load_agent_traces_round_trips_and_validates(self):
+        payload = {"traces": [
+            {"repository": "org/repo", "revision": "r1", "task_id": "task", "actions": [
+                {"kind": "search", "target": "needle"},
+                {"kind": "open", "target": "a.py", "tokens": 3},
+            ]},
+        ]}
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "traces.json"
+            path.write_text(json.dumps(payload), encoding="utf-8")
+            traces = load_agent_traces(path)
+        self.assertEqual(traces, (AgentTrace("org/repo", "r1", "task", (
+            TraceAction("search", "needle"), TraceAction("open", "a.py", 3),
+        )),))
+
+    def test_load_agent_traces_rejects_malformed_input(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "traces.json"
+            for payload in ("{bad", json.dumps([]), json.dumps({"traces": "bad"}), json.dumps({"traces": [], "extra": 1})):
+                path.write_text(payload, encoding="utf-8")
+                with self.subTest(payload=payload), self.assertRaises(ValueError):
+                    load_agent_traces(path)
+            with self.assertRaises(ValueError):
+                load_agent_traces(path.parent / "missing.json")
+
+    def test_agent_trace_from_dict_rejects_bad_shapes(self):
+        for value in (
+            {"repository": "r", "revision": "v", "task_id": "t"},
+            {"repository": "r", "revision": "v", "task_id": "t", "actions": "not-a-list"},
+            {"repository": "r", "revision": "v", "task_id": "t", "actions": [{"kind": "bad", "target": "x"}]},
+            {"repository": "r", "revision": "v", "task_id": "t", "actions": [], "extra": 1},
+        ):
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                AgentTrace.from_dict(value)
 
 
 class EvaluationTests(unittest.TestCase):

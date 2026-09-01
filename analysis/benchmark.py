@@ -88,6 +88,15 @@ class TraceAction:
         ):
             raise ValueError("trace action tokens must be a non-negative finite real number")
 
+    @classmethod
+    def from_dict(cls, value: Mapping[str, Any]) -> "TraceAction":
+        if not isinstance(value, Mapping) or not set(value) <= {"kind", "target", "tokens"} or "kind" not in value or "target" not in value:
+            raise ValueError("each trace action must be an object with kind and target")
+        try:
+            return cls(value["kind"], value["target"], value.get("tokens"))
+        except (TypeError, ValueError) as exc:
+            raise ValueError(f"invalid trace action: {exc}") from exc
+
 
 @dataclass(frozen=True)
 class AgentTrace:
@@ -104,9 +113,35 @@ class AgentTrace:
             actions = tuple(self.actions)
         except TypeError as exc:
             raise ValueError("trace actions must be an iterable of TraceAction values") from exc
-        object.__setattr__(self, "actions", actions)
-        if any(not isinstance(action, TraceAction) for action in self.actions):
-            raise ValueError("trace actions must contain TraceAction values")
+        object.__setattr__(self, "actions", tuple(
+            action if isinstance(action, TraceAction) else TraceAction.from_dict(action)
+            for action in actions
+        ))
+
+    @classmethod
+    def from_dict(cls, value: Mapping[str, Any]) -> "AgentTrace":
+        if not isinstance(value, Mapping) or set(value) != {"repository", "revision", "task_id", "actions"}:
+            raise ValueError("each trace must contain repository, revision, task_id, and actions")
+        actions = value["actions"]
+        if not isinstance(actions, list):
+            raise ValueError("trace actions must be a list")
+        try:
+            return cls(value["repository"], value["revision"], value["task_id"], tuple(actions))
+        except (TypeError, ValueError) as exc:
+            if isinstance(exc, ValueError) and str(exc).startswith(("repository", "revision", "task id", "trace")):
+                raise
+            raise ValueError(f"invalid trace: {exc}") from exc
+
+
+def load_agent_traces(path: str | Path) -> tuple[AgentTrace, ...]:
+    try:
+        with Path(path).open(encoding="utf-8") as file:
+            value = json.load(file)
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ValueError(f"could not load agent traces: {exc}") from exc
+    if not isinstance(value, Mapping) or set(value) != {"traces"} or not isinstance(value["traces"], list):
+        raise ValueError("agent trace file must contain only a traces list")
+    return tuple(AgentTrace.from_dict(entry) for entry in value["traces"])
 
 
 @dataclass(frozen=True)
