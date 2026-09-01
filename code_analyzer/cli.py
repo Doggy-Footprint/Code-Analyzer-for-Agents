@@ -10,11 +10,20 @@ import webbrowser
 from pathlib import Path
 
 from analysis import (
+    FrictionDiagnoser,
     GraphAnalyzer,
     SearchPolicy,
     TaskExplorer,
+    cost_diff_to_dict,
+    diagnostics_collection,
+    diagnostics_to_dict,
+    diff_repository_cost,
+    diff_task_reports,
+    load_analysis_export,
     load_task_definitions,
+    load_task_export,
     reports_to_dict,
+    unmatched_task_pairs,
 )
 from language_analyzers.core.serialization import architecture_to_dict
 
@@ -125,9 +134,39 @@ def parse_args():
         default="task-exploration.json",
         help="Output path for task exploration reports.",
     )
+    parser.add_argument(
+        "--diagnostics",
+        action="store_true",
+        help="Detect structural friction (central large symbols, bridges, re-export ambiguity, "
+             "dependency cycles, missing test links) and export the findings.",
+    )
+    parser.add_argument(
+        "--diagnostics-output",
+        default="diagnostics.json",
+        help="Output path for structural friction diagnostics.",
+    )
+    parser.add_argument(
+        "--baseline",
+        default=None,
+        help="Previously exported architecture JSON to compare this run against.",
+    )
+    parser.add_argument(
+        "--baseline-tasks",
+        default=None,
+        help="Previously exported task exploration JSON to compare this run's --tasks results against.",
+    )
+    parser.add_argument(
+        "--cost-diff-output",
+        default="cost-diff.json",
+        help="Output path for the exploration cost diff.",
+    )
     args = parser.parse_args()
     if (args.language or args.framework != "fastapi") and (args.entrypoint or args.app):
         parser.error("--entrypoint and --app are only supported with --framework fastapi")
+    if args.baseline_tasks and not args.tasks:
+        parser.error("--baseline-tasks requires --tasks")
+    if args.baseline_tasks and not args.baseline:
+        parser.error("--baseline-tasks requires --baseline")
     return args
 
 
@@ -186,6 +225,22 @@ def main():
         )
         arch = builder.build_graph(arch)
 
+    if args.diagnostics or args.baseline:
+        # Framework adapters build their graph without running the generic metrics pass, but
+        # diagnostics and cost diffs are defined on those metrics.
+        if not arch.stats.get("analysis"):
+            arch.stats["analysis"] = GraphAnalyzer().analyze(
+                arch.nodes, arch.edges, project_path=arch.project_path
+            )
+
+    diagnostics_report = None
+    if args.diagnostics:
+        diagnostics_report = FrictionDiagnoser().diagnose(
+            arch.nodes, arch.edges, arch.stats["analysis"]["node_metrics"]
+        )
+        arch.stats["diagnostics"] = diagnostics_to_dict(diagnostics_report)
+        arch.report_collections.append(diagnostics_collection(diagnostics_report, arch.nodes))
+
     renderer = HTMLRenderer(title=args.title, framework_label=analyzer_label)
     output_html_path = renderer.render(arch, args.output)
     print(f"[✓] Generated interactive HTML dashboard: {output_html_path}")
@@ -205,21 +260,54 @@ def main():
         print(mermaid_code)
         print("------------------------------------\n")
 
+    if args.diagnostics:
+        diagnostics_output_path = Path(args.diagnostics_output)
+        diagnostics_output_path.parent.mkdir(parents=True, exist_ok=True)
+        diagnostics_output_path.write_text(
+            json.dumps(arch.stats["diagnostics"], indent=2, ensure_ascii=False),
+            encoding="utf-8",
+        )
+        print(f"[✓] Exported structural friction diagnostics: {diagnostics_output_path}")
+
+    task_payload = None
     if args.tasks:
         try:
             tasks = load_task_definitions(args.tasks)
             policies = [SearchPolicy(value) for value in args.task_policy] if args.task_policy else list(SearchPolicy)
             explorer = TaskExplorer(arch.nodes, arch.edges, project_path=arch.project_path)
             reports = [explorer.run(task, policy) for task in tasks for policy in policies]
+            task_payload = reports_to_dict(reports)
             task_output_path = Path(args.task_output)
             task_output_path.parent.mkdir(parents=True, exist_ok=True)
             task_output_path.write_text(
-                json.dumps(reports_to_dict(reports), indent=2, ensure_ascii=False),
+                json.dumps(task_payload, indent=2, ensure_ascii=False),
                 encoding="utf-8",
             )
         except ValueError as exc:
             raise SystemExit(f"[!] Invalid task set: {exc}") from exc
         print(f"[✓] Exported task exploration reports: {task_output_path}")
+
+    cost_diff_payload = None
+    if args.baseline:
+        try:
+            baseline_export = load_analysis_export(args.baseline)
+            repository_diff = diff_repository_cost(baseline_export, architecture_to_dict(arch))
+            task_diffs = ()
+            unmatched = None
+            if args.baseline_tasks and task_payload is not None:
+                baseline_tasks = load_task_export(args.baseline_tasks)
+                task_diffs = diff_task_reports(baseline_tasks, task_payload)
+                unmatched = unmatched_task_pairs(baseline_tasks, task_payload)
+            cost_diff_payload = cost_diff_to_dict(repository_diff, task_diffs, unmatched)
+        except ValueError as exc:
+            raise SystemExit(f"[!] Invalid baseline: {exc}") from exc
+        cost_diff_output_path = Path(args.cost_diff_output)
+        cost_diff_output_path.parent.mkdir(parents=True, exist_ok=True)
+        cost_diff_output_path.write_text(
+            json.dumps(cost_diff_payload, indent=2, ensure_ascii=False),
+            encoding="utf-8",
+        )
+        print(f"[✓] Exported exploration cost diff: {cost_diff_output_path}")
 
     stats = arch.stats
     print(f"\n📊 Summary Statistics:")
@@ -229,6 +317,14 @@ def main():
         print(f"  • {collection.label:<14}{len(collection.rows)}")
     if stats.get("methods_breakdown"):
         print(f"  • Methods:      {stats['methods_breakdown']}")
+    if diagnostics_report is not None:
+        for kind, count in sorted(diagnostics_report.counts().items()):
+            print(f"  • {kind:<24}{count}")
+    if cost_diff_payload is not None:
+        totals = cost_diff_payload["repository"]["totals"]
+        counts = cost_diff_payload["repository"]["node_counts"]
+        print(f"  • Cost diff:    effective {totals['total_effective_token_cost']:+.1f} tokens, "
+              f"+{counts['added']}/-{counts['removed']} nodes")
     top_cost = stats.get("analysis", {}).get("top_weighted_cost", [])
     if top_cost:
         print(f"  • Highest agent context cost: {top_cost[0]['label']} ({top_cost[0]['value']:.4f})")

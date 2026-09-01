@@ -49,9 +49,12 @@ AI 에이전트는 코드를 수정하기 전에 반복적으로 검색하고 �
 - 소스 범위의 추정 토큰 비용과 PageRank 가중 비용 계산
 - 각 노드에서 2-hop·3-hop 탐색 시 필요한 누적 토큰 비용 계산
 - Git working tree 또는 최근 commit 간 architecture diff
+- 작업(seed → 정답 집합 → 종료 조건) 기반 탐색 시뮬레이션과 경로별 비용 리포트
+- 구조적 마찰 진단 5종(중심 대형 심볼, 브리지 병목, re-export 모호성, 순환 의존, 테스트 연결 누락)과 근거 경로
+- 두 분석 상태 사이의 노드 비용·진단·작업 비용 diff
 - JSON, Mermaid, 대화형 HTML dashboard 출력
 
-FastAPI와 Android는 최종 목적이 아니라 프레임워크가 숨기는 연결을 분석 코어에 보강하는 **reference adapter**입니다. Python과 TypeScript는 프레임워크 지식 없이 동작하는 범용 symbol graph 계층을 갖고 있고, FastAPI adapter는 그 위에 얹혀 있습니다. Kotlin symbol graph와 다른 프레임워크 adapter는 다음 단계입니다.
+FastAPI와 Android는 최종 목적이 아니라 프레임워크가 숨기는 연결을 분석 코어에 보강하는 **reference adapter**입니다. Python과 TypeScript는 프레임워크 지식 없이 동작하는 범용 symbol graph 계층을 갖고 있고, FastAPI adapter는 그 위에 얹혀 있습니다. Kotlin도 같은 symbol graph 계층을 갖고 있으며, 다른 프레임워크 adapter는 다음 단계입니다.
 
 ## 분석 방법론
 
@@ -239,16 +242,15 @@ python3 -m unittest discover -s tests -v
 - 2/3-hop 탐색은 topology 기반 근사로, 실제 에이전트의 semantic search와 tool 선택을 재현하지 않습니다.
 - exact betweenness 계산은 매우 큰 graph에서 비용이 커질 수 있습니다.
 - HTML dashboard의 외부 CDN 자산은 offline 환경에서 별도 bundling이 필요합니다.
+- 구조적 마찰 진단은 저장소 내 분포의 분위수에 기반하므로 항상 상위 몇 개를 지목합니다. 진단 자체가 결함 판정이 아니며, 각 finding에 오탐 가능성을 함께 싣는 이유입니다.
+- 비용 diff는 두 상태의 노드를 id, `symbol_path`, `(kind, label, 파일 경로)` 순으로 짝지으므로, 심볼을 옮기면서 동시에 이름을 바꾸면 삭제 + 추가로 보입니다.
 
 ## 다음 단계
 
-1. Kotlin file/module/class/function symbol graph 추가 (Python·TypeScript는 완료)
-2. test-to-production, document-to-symbol, configuration-to-consumer edge 추가
-3. 작업 설명·오류 메시지에서 seed node를 찾는 retrieval 계층 추가
-4. relevance와 token budget을 결합한 확률적 exploration policy 구현
-5. 실제 agent의 파일 열기·검색·backtracking trace로 지표 보정
-6. Git co-change와 정적 dependency 불일치 탐지
-7. Django, Flask 등 다른 Python framework adapter, AndroidManifest/Navigation 분석 추가
-8. 변경 전후 agent-friendliness diff와 개선 제안 제공
+1. document-to-symbol edge와 문서·코드 불일치 신호 추가 (test-to-production, configuration-to-consumer는 완료)
+2. 실제 agent의 파일 열기·검색·backtracking trace로 지표와 진단 오탐률 보정
+3. Git co-change와 정적 dependency 불일치 탐지
+4. Django, Flask 등 다른 Python framework adapter, AndroidManifest/Navigation 분석 추가
+5. 개선 제안의 예상 절감 토큰을 실제 trace로 보정
 
 더 자세한 제품 가설과 열린 질문은 [IDEA.md](IDEA.md)에 정리되어 있습니다.

@@ -1,3 +1,25 @@
+from .cost_diff import (
+    DiagnosticsDelta,
+    NodeCostDelta,
+    RepositoryCostDiff,
+    TaskCostDiff,
+    cost_diff_to_dict,
+    diff_repository_cost,
+    diff_task_reports,
+    load_analysis_export,
+    load_task_export,
+    unmatched_task_pairs,
+)
+from .friction_diagnostics import (
+    DiagnosticKind,
+    DiagnosticsConfig,
+    DiagnosticsReport,
+    Finding,
+    FrictionDiagnoser,
+    ImprovementCandidate,
+    diagnostics_collection,
+    diagnostics_to_dict,
+)
 from .graph_metrics import GraphAnalyzer, GraphAnalysisConfig
 from .task_exploration import (
     BranchingBurden,
@@ -25,4 +47,9 @@ __all__ = [
     "SeedQuery", "SeedRetrieval", "TaskDefinition", "TaskExplorer",
     "TaskExplorationReport", "TaskType", "Visit", "load_task_definitions",
     "reports_to_dict",
+    "DiagnosticKind", "DiagnosticsConfig", "DiagnosticsReport", "Finding", "FrictionDiagnoser",
+    "ImprovementCandidate", "diagnostics_collection", "diagnostics_to_dict",
+    "DiagnosticsDelta", "NodeCostDelta", "RepositoryCostDiff", "TaskCostDiff",
+    "cost_diff_to_dict", "diff_repository_cost", "diff_task_reports",
+    "load_analysis_export", "load_task_export", "unmatched_task_pairs",
 ]

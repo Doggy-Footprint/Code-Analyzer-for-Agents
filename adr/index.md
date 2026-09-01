@@ -23,3 +23,17 @@ File: 5963ffefa795c46a-python-language-core.md
 Summary: Builds a real Python symbol graph under the framework adapters, links framework components to it with IMPLEMENTED_BY, and fixes the parser choice per language (stdlib ast for Python, tree-sitter for TypeScript).
 Related Files: language_analyzers/python/symbols.py, language_analyzers/python/graph.py, language_analyzers/typescript/ast.py, language_analyzers/typescript/analyzer.py, framework_analyzers/fastapi/graph.py, code_analyzer/cli.py
 Related Symbols: PythonGraphAnalyzer, SymbolTable, build_symbol_table, resolve_relative_module, TypeScriptAnalyzer, ArchitectureGraphBuilder
+
+---
+
+File: 2fa75a6058d4f5eb-cost-diff-node-identity.md
+Summary: Matches nodes across two analysis states by id, then symbol_path, then (kind, label, file path), only when unique on both sides.
+Related Files: analysis/cost_diff.py, code_analyzer/cli.py, language_analyzers/core/serialization.py
+Related Symbols: diff_repository_cost, _match_nodes, _unique_group_match, NodeCostDelta, RepositoryCostDiff
+
+---
+
+File: f5d6125852c61319-percentile-with-absolute-floor.md
+Summary: Reports structural friction only when a metric clears both the repository's nearest-rank percentile cut and an absolute floor, recording the resolved cuts.
+Related Files: analysis/friction_diagnostics.py, code_analyzer/cli.py
+Related Symbols: FrictionDiagnoser, DiagnosticsConfig, DiagnosticsReport, _quantile
