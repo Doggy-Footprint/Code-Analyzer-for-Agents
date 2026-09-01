@@ -1,0 +1,30 @@
+{
+  "benchmarks": [
+    {
+      "repository": "https://github.com/nsidnev/fastapi-realworld-example-app",
+      "revision": "029eb7781c60d5f563ee8990a0cbfb79b244538c",
+      "task": {
+        "id": "registration-flow",
+        "type": "feature_add",
+        "seeds": [{"kind": "symbol", "value": "register"}],
+        "target_node_ids": ["py:app.api.routes.authentication#register"],
+        "impact_node_ids": ["py:app.db.repositories.users#UsersRepository.create_user"],
+        "test_node_ids": ["py:tests.test_api.test_routes.test_registration#test_user_success_registration"],
+        "budget": null
+      }
+    },
+    {
+      "repository": "https://github.com/fastapi/full-stack-fastapi-template",
+      "revision": "3000041090a94a2cbe1811ae5cbf97b6a8eb2094",
+      "task": {
+        "id": "public-user-registration",
+        "type": "api_change",
+        "seeds": [{"kind": "symbol", "value": "register_user"}],
+        "target_node_ids": ["py:app.api.routes.users#register_user"],
+        "impact_node_ids": ["py:app.crud#create_user"],
+        "test_node_ids": ["py:tests.api.routes.test_users#test_register_user"],
+        "budget": null
+      }
+    }
+  ]
+}
