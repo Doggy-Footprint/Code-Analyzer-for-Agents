@@ -15,7 +15,7 @@ from analysis import (
     load_task_definitions,
     reports_to_dict,
 )
-from code_analyzer.cli import main, parse_args
+from code_analyzer.cli import load_simulation_config, main, parse_args
 from language_analyzers.core.graph_models import (
     Confidence,
     GraphEdge,
@@ -181,6 +181,18 @@ class RetrievalTests(unittest.TestCase):
 
 
 class ExplorationTests(unittest.TestCase):
+    def test_evaluation_relation_adds_its_cost_once_without_an_edge_penalty(self):
+        binding = node("binding", "Owner.field", 2, "app.kt")
+        target = node("target", "target", 1, "app.kt")
+        task = TaskDefinition("field", TaskType.BUG_FIX, (SeedQuery(SeedKind.SYMBOL, "Owner.field"),),
+                              target_node_ids={"target"})
+        explorer = TaskExplorer(
+            [binding, target], [GraphEdge("binding", "target", "CALLS")],
+            evaluation_relations=[{"binding_id": "binding", "cost": 4.0}],
+        )
+        report = explorer.run(task, SearchPolicy.BFS)
+        self.assertEqual([visit.cumulative_effective_cost for visit in report.visited], [6.0, 7.0])
+
     def setUp(self):
         self.nodes = [
             node("s", "seed", 2, "app/start.py"),
@@ -441,6 +453,18 @@ class ExplorationTests(unittest.TestCase):
 
 
 class CliContractTests(unittest.TestCase):
+    def test_simulation_config_is_strict_and_preserves_the_default(self):
+        self.assertEqual(load_simulation_config(None), {"unresolved_inject_field_cost": 4.0})
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "simulation.json"
+            path.write_text('{"unresolved_inject_field_cost": 1.5}', encoding="utf-8")
+            self.assertEqual(load_simulation_config(path), {"unresolved_inject_field_cost": 1.5})
+            for payload in ('{}', '{"unknown": 1}', '{"unresolved_inject_field_cost": -1}',
+                            '{"unresolved_inject_field_cost": "4"}', 'not json'):
+                path.write_text(payload, encoding="utf-8")
+                with self.subTest(payload=payload), self.assertRaises(ValueError):
+                    load_simulation_config(path)
+
     def test_task_options_parse_and_policy_repeats(self):
         argv = ["code-analyzer", ".", "--tasks", "tasks.json", "--task-policy", "bfs", "--task-policy", "weighted_shortest", "--task-output", "out.json"]
         with patch.object(sys, "argv", argv):

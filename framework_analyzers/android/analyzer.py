@@ -347,6 +347,8 @@ class AndroidAnalyzer:
                 line_number=ka.start_line(child),
                 end_line_number=ka.end_line(child),
                 injected_type=prop_type,
+                owner_class_name=name,
+                field_name=prop_name,
             ))
 
     def _retrofit_endpoints(self, decl, source: bytes) -> List[RetrofitEndpointInfo]:

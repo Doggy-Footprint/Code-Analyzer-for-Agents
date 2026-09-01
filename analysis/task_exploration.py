@@ -242,10 +242,17 @@ class TaskExplorationReport:
 
 
 class TaskExplorer:
-    def __init__(self, nodes: Sequence[Any], edges: Sequence[Any], project_path: Optional[str] = None):
+    def __init__(self, nodes: Sequence[Any], edges: Sequence[Any], project_path: Optional[str] = None,
+                 evaluation_relations: Sequence[Any] = ()):
         self.nodes = {str(self._value(node, "id")): node for node in nodes}
         self.edges = list(edges)
         self.project_path = Path(project_path).resolve() if project_path else None
+        self.evaluation_costs: Dict[str, float] = {}
+        for relation in evaluation_relations:
+            binding_id = str(self._value(relation, "binding_id", "") or "")
+            cost = self._value(relation, "cost", 0.0)
+            if binding_id and isinstance(cost, (int, float)) and not isinstance(cost, bool) and math.isfinite(cost) and cost >= 0:
+                self.evaluation_costs[binding_id] = float(cost)
         self._source_cache: Dict[Path, str] = {}
         self.adjacency: Dict[str, list[tuple[str, int]]] = {node_id: [] for node_id in self.nodes}
         for index, edge in enumerate(self.edges):
@@ -541,7 +548,7 @@ class TaskExplorer:
         analysis = metadata.get("analysis", {}) if isinstance(metadata, Mapping) else {}
         explicit = analysis.get("effective_token_cost") if isinstance(analysis, Mapping) else None
         if isinstance(explicit, (int, float)) and explicit >= 0:
-            return float(explicit)
+            return float(explicit) + self.evaluation_costs.get(str(self._value(node, "id", "")), 0.0)
         cost = self._value(node, "cost")
         tokens = self._value(cost, "token_estimate") if cost is not None else None
         if not isinstance(tokens, (int, float)):
@@ -556,7 +563,7 @@ class TaskExplorer:
             multiplier = 0.0
         elif "generated" in flags or "migration" in flags or "/migrations/" in f"/{path}" or "/alembic/versions/" in f"/{path}":
             multiplier = 0.1
-        return float(tokens) * multiplier
+        return float(tokens) * multiplier + self.evaluation_costs.get(str(self._value(node, "id", "")), 0.0)
 
     def _edge_penalty(self, edge):
         confidence = str(self._value(edge, "confidence", "static_certain"))

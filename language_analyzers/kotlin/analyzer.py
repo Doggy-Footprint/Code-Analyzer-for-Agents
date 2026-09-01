@@ -49,6 +49,26 @@ class KotlinAnalyzer:
         self.project_path = Path(project_path).resolve()
 
     def analyze(self) -> KotlinProjectArchitecture:
+        nodes, edges = self.build()
+        architecture = KotlinProjectArchitecture(
+            project_name=self.project_path.name,
+            project_path=str(self.project_path),
+            nodes=nodes,
+            edges=edges,
+            git_diff=GitDiffCore(self.project_path).get_diff_info(),
+        )
+        enrich_repository(architecture)
+        architecture.stats = {
+            "total_files": len(self._files),
+            "total_symbols": len(self._symbols),
+            "nodes_by_kind": dict(Counter(node.kind for node in architecture.nodes)),
+            "edges_by_relation": dict(Counter(edge.relation for edge in architecture.edges)),
+            "edges_by_confidence": dict(Counter(str(edge.confidence) for edge in architecture.edges)),
+        }
+        architecture.report_collections = [self._symbol_collection(architecture.nodes)]
+        return architecture
+
+    def build(self) -> tuple[List[GraphNode], List[GraphEdge]]:
         parser = ka.get_kotlin_parser()
         self._files: Dict[str, Tuple[bytes, str, Any]] = {}
         self._symbols: Dict[str, _KotlinSymbol] = {}
@@ -75,23 +95,7 @@ class KotlinAnalyzer:
         for symbol in self._symbols.values():
             self._add_symbol_edges(symbol)
 
-        architecture = KotlinProjectArchitecture(
-            project_name=self.project_path.name,
-            project_path=str(self.project_path),
-            nodes=list(self._nodes.values()),
-            edges=list(self._edges.values()),
-            git_diff=GitDiffCore(self.project_path).get_diff_info(),
-        )
-        enrich_repository(architecture)
-        architecture.stats = {
-            "total_files": len(self._files),
-            "total_symbols": len(self._symbols),
-            "nodes_by_kind": dict(Counter(node.kind for node in architecture.nodes)),
-            "edges_by_relation": dict(Counter(edge.relation for edge in architecture.edges)),
-            "edges_by_confidence": dict(Counter(str(edge.confidence) for edge in architecture.edges)),
-        }
-        architecture.report_collections = [self._symbol_collection(architecture.nodes)]
-        return architecture
+        return list(self._nodes.values()), list(self._edges.values())
 
     def _discover_files(self) -> List[Path]:
         ignored = {".git", ".gradle", ".idea", "build"}
@@ -195,7 +199,8 @@ class KotlinAnalyzer:
             kind=symbol.kind, language="kotlin", span=span, cost=cost_for_span(text, span),
             signature=ka.node_text(source, symbol.node).split("{")[0].split("=")[0].strip(),
             symbol_path=f"{symbol.file_key}:{symbol.qualname}", flags=flags,
-            provenance="kotlin-core", metadata={"name": symbol.name, "file_path": symbol.file_key},
+            provenance="kotlin-core", metadata={"name": symbol.name, "file_path": symbol.file_key,
+                                                  "qualname": symbol.qualname},
         )
 
     def _add_import_edges(self, key: str) -> None:

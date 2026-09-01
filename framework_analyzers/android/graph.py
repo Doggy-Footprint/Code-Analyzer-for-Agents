@@ -6,14 +6,17 @@ framework-neutral analysis layer.
 """
 
 from collections import Counter
+from pathlib import Path
 from typing import Dict, List, Optional, Set
 
 from analysis import GraphAnalyzer
 from language_analyzers.core.annotate import annotate_nodes, mark_edges
 from language_analyzers.core.enrichment import enrich_repository
 from language_analyzers.core.report_schema import ColumnSpec, ReportCollection
+from language_analyzers.core.graph_models import Confidence, RelationKind, Resolution, SourceSpan
+from language_analyzers.kotlin import KotlinAnalyzer
 
-from .models import AndroidProjectArchitecture, GraphEdge, GraphNode
+from .models import AndroidProjectArchitecture, EvaluationRelation, GraphEdge, GraphNode
 
 
 class AndroidArchitectureGraphBuilder:
@@ -80,9 +83,12 @@ class AndroidArchitectureGraphBuilder:
         },
     }
 
-    def __init__(self, include_models: bool = True, include_dependencies: bool = True):
+    def __init__(self, include_models: bool = True, include_dependencies: bool = True,
+                 include_language_graph: bool = True, unresolved_inject_field_cost: float = 4.0):
         self.include_models = include_models
         self.include_dependencies = include_dependencies
+        self.include_language_graph = include_language_graph
+        self.unresolved_inject_field_cost = unresolved_inject_field_cost
 
     def build_graph(self, arch: AndroidProjectArchitecture) -> AndroidProjectArchitecture:
         nodes: List[GraphNode] = []
@@ -164,9 +170,12 @@ class AndroidArchitectureGraphBuilder:
                     id=b.id, label=f"⚙️ {b.name}", group="di_binding", category="di_binding",
                     title=f"<b>DI Binding: {b.name}</b><br>Kind: {b.kind}<br>File: {b.file_path}:{b.line_number}",
                     shape="ellipse", size=20, color=self.COLORS["di_binding"],
+                    symbol_path=f"{b.owner_class_name or ''}.{b.field_name or b.name}",
                     metadata={"name": b.name, "kind": b.kind, "module": b.module, "file_path": b.file_path,
                               "line_number": b.line_number, "end_line_number": b.end_line_number,
-                              "provided_type": b.provided_type, "injected_type": b.injected_type},
+                              "provided_type": b.provided_type, "injected_type": b.injected_type,
+                              "owner_class_name": b.owner_class_name, "field_name": b.field_name,
+                              "symbol_search": f"{b.owner_class_name or ''}.{b.field_name or b.name}"},
                 ))
 
             for m in arch.di_modules:
@@ -280,6 +289,16 @@ class AndroidArchitectureGraphBuilder:
 
         annotate_nodes(nodes, arch.project_path, "android", "kotlin")
         mark_edges(edges, nodes=nodes)
+        if self.include_language_graph:
+            try:
+                language_nodes, language_edges = KotlinAnalyzer(arch.project_path).build()
+            except ImportError:
+                language_nodes, language_edges = [], []
+            known_ids = {node.id for node in nodes}
+            nodes.extend(node for node in language_nodes if node.id not in known_ids)
+            edges.extend(language_edges)
+            if language_nodes:
+                edges.extend(self._implementation_edges(arch, nodes))
 
         arch.nodes = nodes
         arch.edges = edges
@@ -299,6 +318,55 @@ class AndroidArchitectureGraphBuilder:
         arch.report_collections = self._build_report_collections(arch)
 
         return arch
+
+    def _implementation_edges(self, arch: AndroidProjectArchitecture, nodes: List[GraphNode]) -> List[GraphEdge]:
+        symbol_ids = {
+            (Path(str(node.metadata.get("file_path", ""))).as_posix(), str(node.metadata.get("qualname", ""))): node.id
+            for node in nodes if node.provenance == "kotlin-core" and node.metadata.get("qualname")
+        }
+        node_ids = {node.id for node in nodes}
+        edges: List[GraphEdge] = []
+
+        def add(source_id: str, file_path: str, qualname: str) -> bool:
+            target_id = symbol_ids.get((Path(file_path).as_posix(), qualname))
+            if not target_id or source_id not in node_ids:
+                return False
+            edges.append(GraphEdge(
+                from_id=source_id, to_id=target_id, relation=RelationKind.IMPLEMENTED_BY,
+                confidence=Confidence.FRAMEWORK_INFERRED, resolution=Resolution.UNIQUE_NAME,
+                evidence=SourceSpan(Path(file_path).as_posix(), 1, 1),
+            ))
+            return True
+
+        for item in [*arch.composables, *arch.viewmodels, *arch.room_entities, *arch.room_daos,
+                     *arch.room_databases, *arch.di_modules, *arch.dagger_components,
+                     *arch.retrofit_apis, *arch.activities_fragments]:
+            add(item.id, item.file_path, item.name)
+        for dao in arch.room_daos:
+            for method in dao.methods:
+                add(method.id, dao.file_path, f"{dao.name}.{method.name}")
+        for api in arch.retrofit_apis:
+            for endpoint in api.endpoints:
+                add(endpoint.id, api.file_path, f"{api.name}.{endpoint.name}")
+        modules = {module.id: module for module in arch.di_modules}
+        for binding in arch.di_bindings:
+            if binding.kind in {"provides", "binds"}:
+                owner = modules.get(binding.owner_module_id)
+                if owner:
+                    add(binding.id, binding.file_path, f"{owner.name}.{binding.name}")
+            elif binding.kind == "inject_constructor":
+                add(binding.id, binding.file_path, binding.injected_type or binding.name)
+            elif binding.kind == "inject_field":
+                owner = binding.owner_class_name or ""
+                field = binding.field_name or binding.name
+                if not add(binding.id, binding.file_path, f"{owner}.{field}"):
+                    arch.evaluation_relations.append(EvaluationRelation(
+                        binding_id=binding.id,
+                        target_name=f"{owner}.{field}",
+                        evidence=SourceSpan(Path(binding.file_path).as_posix(), binding.line_number, binding.end_line_number),
+                        cost=self.unresolved_inject_field_cost,
+                    ))
+        return edges
 
     @staticmethod
     def _build_report_collections(arch: AndroidProjectArchitecture) -> List[ReportCollection]:
@@ -345,6 +413,14 @@ class AndroidArchitectureGraphBuilder:
                 ],
                 rows=[{"id": a.id, "name": a.name,
                        "endpoints": [f"{ep.http_method} {ep.path}" for ep in a.endpoints]} for a in arch.retrofit_apis],
+            ),
+            ReportCollection(
+                key="exploration_warnings", label="Exploration warnings", view="table",
+                columns=[ColumnSpec("severity", "Severity", "text"), ColumnSpec("target", "Target", "mono"),
+                         ColumnSpec("reason", "Reason", "text"), ColumnSpec("cost", "Cost", "text")],
+                rows=[{"id": relation.binding_id, "severity": "low", "target": relation.target_name,
+                       "reason": "Additional exploration may be required to identify the symbol; matching symbol names is recommended.",
+                       "cost": relation.cost} for relation in arch.evaluation_relations],
             ),
         ]
 

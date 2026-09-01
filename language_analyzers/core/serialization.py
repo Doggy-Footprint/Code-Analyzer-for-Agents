@@ -87,6 +87,8 @@ def architecture_to_dict(architecture: Any) -> Dict[str, Any]:
         "stats": getattr(architecture, "stats", {}) or {},
         "nodes": [node_to_dict(node) for node in architecture.nodes],
         "edges": [edge_to_dict(edge) for edge in architecture.edges],
+        "evaluation_relations": [asdict(relation) if is_dataclass(relation) else relation
+                                 for relation in getattr(architecture, "evaluation_relations", []) or []],
         "collections": {
             collection.key: collection_to_dict(collection)
             for collection in getattr(architecture, "report_collections", []) or []

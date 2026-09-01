@@ -19,6 +19,7 @@ except ImportError:
 if _HAS_TREE_SITTER:
     from framework_analyzers.android.analyzer import AndroidAnalyzer
     from framework_analyzers.android.graph import AndroidArchitectureGraphBuilder
+    from language_analyzers.kotlin import KotlinAnalyzer
     from renderers.html import HTMLRenderer
 
 
@@ -369,11 +370,10 @@ class MainActivity : ComponentActivity() {
             self.assertIn(edge.to_id, node_ids)
 
         relation_names = {e.relation for e in arch.edges}
-        self.assertEqual(
-            relation_names,
-            {"CALLS", "USES_VIEWMODEL", "BINDS", "PROVIDES", "INSTALLS_IN", "INJECTS",
-             "CALLS_API", "ROUTES", "QUERIES", "CONTAINS", "DEFINES_ENTITY", "HOSTS"},
-        )
+        self.assertTrue({"CALLS", "USES_VIEWMODEL", "BINDS", "PROVIDES", "INSTALLS_IN", "INJECTS",
+                         "CALLS_API", "ROUTES", "QUERIES", "CONTAINS", "DEFINES_ENTITY", "HOSTS",
+                         "IMPLEMENTED_BY"}.issubset(relation_names))
+        self.assertTrue(any(node.provenance == "kotlin-core" for node in arch.nodes))
 
         def find_edge(relation, from_fragment, to_fragment):
             return next(
@@ -410,7 +410,8 @@ class MainActivity : ComponentActivity() {
         self.assertTrue(all("analysis" in node.metadata for node in arch.nodes))
 
         collection_keys = {c.key for c in arch.report_collections}
-        self.assertEqual(collection_keys, {"composables", "viewmodels", "di_bindings", "room_entities", "retrofit_apis"})
+        self.assertEqual(collection_keys, {"composables", "viewmodels", "di_bindings", "room_entities", "retrofit_apis",
+                                           "exploration_warnings"})
         composables_collection = next(c for c in arch.report_collections if c.key == "composables")
         self.assertEqual(len(composables_collection.rows), 3)
 
@@ -458,6 +459,24 @@ class MainActivity : ComponentActivity() {
         mermaid = builder.generate_mermaid(arch)
         self.assertTrue(mermaid.startswith("graph TD"))
         self.assertIn("-->", mermaid)
+
+    def test_language_graph_is_merged_without_mutating_kotlin_edges(self):
+        self._create_sample_android_app()
+        core_nodes, core_edges = KotlinAnalyzer(self.project_path).build()
+        arch = AndroidArchitectureGraphBuilder().build_graph(AndroidAnalyzer(self.project_path).analyze())
+        merged_nodes = {node.id for node in arch.nodes}
+        merged_edges = {(edge.from_id, edge.to_id, edge.relation): edge for edge in arch.edges}
+        self.assertTrue({node.id for node in core_nodes}.issubset(merged_nodes))
+        for edge in core_edges:
+            actual = merged_edges[(edge.from_id, edge.to_id, edge.relation)]
+            self.assertEqual(actual.confidence, edge.confidence)
+            self.assertEqual(actual.resolution, edge.resolution)
+            self.assertEqual(actual.candidates, edge.candidates)
+            self.assertEqual(actual.evidence, edge.evidence)
+        no_language = AndroidArchitectureGraphBuilder(include_language_graph=False).build_graph(
+            AndroidAnalyzer(self.project_path).analyze()
+        )
+        self.assertFalse(any(node.provenance == "kotlin-core" for node in no_language.nodes))
 
     def _init_git_repo(self):
         subprocess.run(["git", "init"], cwd=self.project_path, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)

@@ -4,6 +4,7 @@ Command-line interface for the FastAPI Visualizer.
 
 import argparse
 import json
+import math
 import os
 import sys
 import webbrowser
@@ -101,8 +102,12 @@ def parse_args():
     parser.add_argument(
         "--no-language-graph",
         action="store_true",
-        help="[fastapi only] Exclude the underlying language symbol graph (modules, classes, functions, "
+        help="Exclude the underlying language symbol graph (modules, classes, functions, "
              "imports and calls) and show framework components only.",
+    )
+    parser.add_argument(
+        "--simulation-config",
+        help="JSON file configuring exploration simulation costs.",
     )
     parser.add_argument(
         "--open",
@@ -170,8 +175,35 @@ def parse_args():
     return args
 
 
+def load_simulation_config(path: str | None) -> dict[str, float]:
+    default = {"unresolved_inject_field_cost": 4.0}
+    if path is None:
+        return default
+    try:
+        value = json.loads(Path(path).read_text(encoding="utf-8"))
+    except OSError as exc:
+        raise ValueError(f"cannot load simulation config: {exc}") from exc
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"invalid simulation config JSON: {exc}") from exc
+    if not isinstance(value, dict):
+        raise ValueError("simulation config must be an object")
+    if set(value) != set(default):
+        missing = set(default) - set(value)
+        unknown = set(value) - set(default)
+        detail = f"missing keys: {', '.join(sorted(missing))}" if missing else f"unknown keys: {', '.join(sorted(unknown))}"
+        raise ValueError(f"invalid simulation config ({detail})")
+    cost = value["unresolved_inject_field_cost"]
+    if isinstance(cost, bool) or not isinstance(cost, (int, float)) or not math.isfinite(cost) or cost < 0:
+        raise ValueError("unresolved_inject_field_cost must be a non-negative finite number")
+    return {"unresolved_inject_field_cost": float(cost)}
+
+
 def main():
     args = parse_args()
+    try:
+        simulation_config = load_simulation_config(args.simulation_config)
+    except ValueError as exc:
+        raise SystemExit(f"[!] Invalid simulation config: {exc}") from exc
     project_path = Path(args.project_path).resolve()
 
     if not project_path.exists():
@@ -203,6 +235,8 @@ def main():
         builder = AndroidArchitectureGraphBuilder(
             include_models=not args.no_models,
             include_dependencies=not args.no_deps,
+            include_language_graph=not args.no_language_graph,
+            unresolved_inject_field_cost=simulation_config["unresolved_inject_field_cost"],
         )
         arch = builder.build_graph(arch)
     else:
@@ -274,7 +308,8 @@ def main():
         try:
             tasks = load_task_definitions(args.tasks)
             policies = [SearchPolicy(value) for value in args.task_policy] if args.task_policy else list(SearchPolicy)
-            explorer = TaskExplorer(arch.nodes, arch.edges, project_path=arch.project_path)
+            explorer = TaskExplorer(arch.nodes, arch.edges, project_path=arch.project_path,
+                                    evaluation_relations=getattr(arch, "evaluation_relations", ()))
             reports = [explorer.run(task, policy) for task in tasks for policy in policies]
             task_payload = reports_to_dict(reports)
             task_output_path = Path(args.task_output)
