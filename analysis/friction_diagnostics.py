@@ -7,7 +7,7 @@ from language_analyzers.core.flags import is_test_path
 from language_analyzers.core.graph_models import Confidence, NodeKind, RelationKind, Resolution
 from language_analyzers.core.report_schema import ColumnSpec, ReportCollection
 
-from .task_exploration import EdgeTraversal, ExplorationPath, TaskType
+from .tasks import TaskType
 
 
 class DiagnosticKind(str, Enum):
@@ -158,11 +158,28 @@ class ImprovementCandidate:
 
 
 @dataclass(frozen=True)
+class EvidenceTraversal:
+    edge_index: int
+    from_node_id: str
+    to_node_id: str
+    relation: str
+    confidence: str
+    resolution: str
+
+
+@dataclass(frozen=True)
+class EvidencePath:
+    node_ids: Tuple[str, ...]
+    edge_indices: Tuple[int, ...]
+    edges: Tuple[EvidenceTraversal, ...] = ()
+
+
+@dataclass(frozen=True)
 class Finding:
     kind: DiagnosticKind
     node_ids: Tuple[str, ...]
     metrics: Mapping[str, float]
-    evidence_paths: Tuple[ExplorationPath, ...]
+    evidence_paths: Tuple[EvidencePath, ...]
     applicable_task_types: Tuple[TaskType, ...]
     confidence: str
     false_positive_risks: Tuple[str, ...]
@@ -202,7 +219,7 @@ class DiagnosticsReport:
         }
 
 
-def _path_to_dict(path: ExplorationPath) -> Dict[str, Any]:
+def _path_to_dict(path: EvidencePath) -> Dict[str, Any]:
     return {
         "node_ids": list(path.node_ids),
         "edge_indices": list(path.edge_indices),
@@ -283,7 +300,7 @@ def _quantile(values: Sequence[float], percentile: float) -> float:
     return float(ordered[index])
 
 
-def _weakest_confidence(paths: Iterable[ExplorationPath]) -> str:
+def _weakest_confidence(paths: Iterable[EvidencePath]) -> str:
     weakest = Confidence.STATIC_CERTAIN.value
     rank = 0
     for path in paths:
@@ -432,7 +449,7 @@ class FrictionDiagnoser:
                 entry["ambiguous_edges"].append(index)
                 entry["candidate_count"] = max(entry["candidate_count"], len(candidates))
 
-        selected: List[Tuple[int, Tuple[str, ...], Dict[str, float], Tuple[ExplorationPath, ...]]] = []
+        selected: List[Tuple[int, Tuple[str, ...], Dict[str, float], Tuple[EvidencePath, ...]]] = []
         for node_id, entry in sites.items():
             edge_indices = sorted(set(entry["reexport_edges"] + entry["ambiguous_edges"]))
             weight = len(edge_indices)
@@ -548,9 +565,9 @@ class _GraphState:
         value = (self.node_metrics.get(node_id) or {}).get(name, 0.0)
         return float(value) if isinstance(value, (int, float)) and not isinstance(value, bool) else 0.0
 
-    def traversal(self, edge_index: int, source: str, target: str) -> EdgeTraversal:
+    def traversal(self, edge_index: int, source: str, target: str) -> EvidenceTraversal:
         edge = self.edges[edge_index]
-        return EdgeTraversal(
+        return EvidenceTraversal(
             edge_index=edge_index,
             from_node_id=source,
             to_node_id=target,
@@ -559,14 +576,14 @@ class _GraphState:
             resolution=str(_value(edge, "resolution", Resolution.EXACT.value)),
         )
 
-    def _path(self, node_ids: Sequence[str], edge_indices: Sequence[int]) -> ExplorationPath:
+    def _path(self, node_ids: Sequence[str], edge_indices: Sequence[int]) -> EvidencePath:
         traversals = tuple(
             self.traversal(edge_index, node_ids[offset], node_ids[offset + 1])
             for offset, edge_index in enumerate(edge_indices)
         )
-        return ExplorationPath(tuple(node_ids), tuple(edge_indices), traversals)
+        return EvidencePath(tuple(node_ids), tuple(edge_indices), traversals)
 
-    def incoming_paths(self, node_id: str, limit: int) -> Tuple[ExplorationPath, ...]:
+    def incoming_paths(self, node_id: str, limit: int) -> Tuple[EvidencePath, ...]:
         candidates = [
             (source, index) for source, index in self.incoming[node_id]
             if str(_value(self.edges[index], "relation", "") or "") != RelationKind.CONTAINS
@@ -576,7 +593,7 @@ class _GraphState:
             for source, index in candidates[:limit]
         )
 
-    def edge_paths(self, edge_indices: Sequence[int]) -> Tuple[ExplorationPath, ...]:
+    def edge_paths(self, edge_indices: Sequence[int]) -> Tuple[EvidencePath, ...]:
         paths = []
         for index in edge_indices:
             source = self.endpoint(self.edges[index], "from")
@@ -599,8 +616,8 @@ class _GraphState:
             if len(members) >= 2
         ]
 
-    def reference_paths(self, node_ids: Sequence[str], limit: int) -> Tuple[ExplorationPath, ...]:
-        paths: List[ExplorationPath] = []
+    def reference_paths(self, node_ids: Sequence[str], limit: int) -> Tuple[EvidencePath, ...]:
+        paths: List[EvidencePath] = []
         for node_id in node_ids:
             for path in self.incoming_paths(node_id, limit - len(paths)):
                 paths.append(path)
@@ -614,7 +631,7 @@ class _GraphState:
             if str(_value(self.edges[index], "relation", "") or "") in _EXPORT_RELATIONS
         )
 
-    def crossing_pairs(self, node_id: str, limit: int) -> Tuple[ExplorationPath, ...]:
+    def crossing_pairs(self, node_id: str, limit: int) -> Tuple[EvidencePath, ...]:
         paths = []
         for source, in_index in self.incoming[node_id]:
             if source not in self.population_set:
@@ -686,7 +703,7 @@ class _GraphState:
                     components.append(sorted(component))
         return components
 
-    def cycle_path(self, component: Sequence[str]) -> Tuple[ExplorationPath, ...]:
+    def cycle_path(self, component: Sequence[str]) -> Tuple[EvidencePath, ...]:
         members = set(component)
         start = min(component)
         parents: Dict[str, Tuple[str, int]] = {}

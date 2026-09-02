@@ -1,7 +1,7 @@
 File: f955da9142e1937a-retrievability-cost-and-generated-code-policy.md
 Summary: Preserves generated code in language cores while charging retrieval gaps for unresolvable framework relations without asserting fabricated code edges.
-Related Files: language_analyzers/core/flags.py, language_analyzers/python/source.py, language_analyzers/kotlin/analyzer.py, language_analyzers/typescript/analyzer.py, framework_analyzers/android/analyzer.py, framework_analyzers/android/models.py, analysis/task_exploration.py
-Related Symbols: is_generated_path, PythonSourceAnalyzer, KotlinAnalyzer, TypeScriptAnalyzer, AndroidAnalyzer, DiBindingInfo, TaskExplorer
+Related Files: language_analyzers/core/flags.py, language_analyzers/python/source.py, language_analyzers/kotlin/analyzer.py, language_analyzers/typescript/analyzer.py, framework_analyzers/android/analyzer.py, framework_analyzers/android/models.py, framework_analyzers/android/graph.py, language_analyzers/core/serialization.py
+Related Symbols: is_generated_path, PythonSourceAnalyzer, KotlinAnalyzer, TypeScriptAnalyzer, AndroidAnalyzer, DiBindingInfo, EvaluationRelation, AndroidArchitectureGraphBuilder, architecture_to_dict
 
 ---
 

@@ -2,13 +2,9 @@ from .cost_diff import (
     DiagnosticsDelta,
     NodeCostDelta,
     RepositoryCostDiff,
-    TaskCostDiff,
     cost_diff_to_dict,
     diff_repository_cost,
-    diff_task_reports,
     load_analysis_export,
-    load_task_export,
-    unmatched_task_pairs,
 )
 from .friction_diagnostics import (
     DiagnosticKind,
@@ -21,35 +17,20 @@ from .friction_diagnostics import (
     diagnostics_to_dict,
 )
 from .graph_metrics import GraphAnalyzer, GraphAnalysisConfig
-from .task_exploration import (
-    BranchingBurden,
-    ContextFragmentation,
-    EdgeTraversal,
-    EvidenceGap,
-    ExplorationPath,
-    GoalDiscovery,
-    SearchPolicy,
+from .tasks import (
     SeedKind,
     SeedQuery,
-    SeedRetrieval,
     TaskDefinition,
-    TaskExplorer,
-    TaskExplorationReport,
+    TaskSeedResolver,
     TaskType,
-    Visit,
     load_task_definitions,
-    reports_to_dict,
 )
 
 __all__ = [
-    "GraphAnalyzer", "GraphAnalysisConfig", "BranchingBurden", "ContextFragmentation",
-    "EdgeTraversal", "EvidenceGap", "ExplorationPath", "GoalDiscovery", "SearchPolicy", "SeedKind",
-    "SeedQuery", "SeedRetrieval", "TaskDefinition", "TaskExplorer",
-    "TaskExplorationReport", "TaskType", "Visit", "load_task_definitions",
-    "reports_to_dict",
+    "GraphAnalyzer", "GraphAnalysisConfig", "SeedKind", "SeedQuery", "TaskDefinition",
+    "TaskSeedResolver", "TaskType", "load_task_definitions",
     "DiagnosticKind", "DiagnosticsConfig", "DiagnosticsReport", "Finding", "FrictionDiagnoser",
     "ImprovementCandidate", "diagnostics_collection", "diagnostics_to_dict",
-    "DiagnosticsDelta", "NodeCostDelta", "RepositoryCostDiff", "TaskCostDiff",
-    "cost_diff_to_dict", "diff_repository_cost", "diff_task_reports",
-    "load_analysis_export", "load_task_export", "unmatched_task_pairs",
+    "DiagnosticsDelta", "NodeCostDelta", "RepositoryCostDiff", "cost_diff_to_dict",
+    "diff_repository_cost", "load_analysis_export",
 ]

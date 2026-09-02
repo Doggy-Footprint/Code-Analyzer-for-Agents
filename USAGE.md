@@ -84,27 +84,22 @@ pip install -r requirements.txt
 | `--no-models` | Flag | `False` | Exclude schema-shaped nodes from graph (Pydantic/SQLModel for fastapi, Room entities for android) |
 | `--no-deps` | Flag | `False` | Exclude dependency-injection-shaped nodes from graph (FastAPI dependencies for fastapi, Hilt/Dagger modules & bindings for android) |
 | `--no-language-graph` | Flag | `False` | [fastapi only] Exclude the underlying Python symbol graph and show framework components only |
+| `--graph-cost-config` | String | `None` | JSON file configuring graph costs |
 | `--open` | Flag | `False` | Automatically open generated report in browser |
 | `--json` | Flag | `False` | Also export architecture data JSON file |
 | `--mermaid` | Flag | `False` | Print Mermaid markdown diagram |
-| `--tasks` | String | `None` | JSON task set to explore against the analyzed graph |
-| `--task-policy` | `bfs` \| `weighted_shortest` \| `budget_limited` | all | Task search policy; repeat the flag to run several |
-| `--task-output` | String | `task-exploration.json` | Path for task exploration reports |
 | `--diagnostics` | Flag | `False` | Detect structural friction and export the findings |
 | `--diagnostics-output` | String | `diagnostics.json` | Path for the diagnostics report |
 | `--baseline` | String | `None` | Previously exported architecture JSON to compare this run against |
-| `--baseline-tasks` | String | `None` | Previously exported task JSON to compare against; requires `--tasks` and `--baseline` |
-| `--cost-diff-output` | String | `cost-diff.json` | Path for the exploration cost diff |
+| `--cost-diff-output` | String | `cost-diff.json` | Path for the repository cost diff |
 
-## 6. Task-Based Exploration
+The graph cost file must contain exactly one non-negative finite number:
 
-```bash
-python3 -m code_analyzer --language python /path/to/project --tasks tasks.json --task-output tasks-out.json
+```json
+{"unresolved_inject_field_cost": 4.0}
 ```
 
-A task set is a list (or `{"tasks": [...]}`) of objects with `id`, `type` (`bug_fix`, `feature_add`, `api_change`, `config_change`), `seeds` (`{"kind": "url|symbol|error|config|changed_file", "value": "..."}`) and optional `target_node_ids`, `impact_node_ids`, `test_node_ids` and `budget`. Each task runs under every requested policy and reports the visited order, per-goal discovery cost, branching burden, context fragmentation, evidence gap and termination reason.
-
-## 7. Structural Friction Diagnostics
+## 6. Structural Friction Diagnostics
 
 ```bash
 python3 -m code_analyzer --language python /path/to/project --diagnostics --diagnostics-output diagnostics.json
@@ -112,20 +107,19 @@ python3 -m code_analyzer --language python /path/to/project --diagnostics --diag
 
 Detects `central_large_symbol`, `bridge_bottleneck`, `reexport_ambiguity`, `cyclic_dependency` and `missing_test_link`, and writes them to a `Diagnostics` dashboard tab and a JSON file. Each finding carries its graph evidence paths, applicable task types, edge confidence, false-positive risks and improvement candidates. Thresholds combine a per-repository percentile with an absolute floor and are reported under `thresholds`; see [adr/f5d6125852c61319-percentile-with-absolute-floor.md](adr/f5d6125852c61319-percentile-with-absolute-floor.md).
 
-## 8. Comparing Two Repository States
+## 7. Comparing Two Repository States
 
 ```bash
 # 1. Export the baseline state
 python3 -m code_analyzer --language python /path/to/project -o before.html --json \
-  --diagnostics --tasks tasks.json --task-output before-tasks.json
+  --diagnostics
 
 # 2. Apply the improvement, then compare
 python3 -m code_analyzer --language python /path/to/project -o after.html --json \
-  --diagnostics --tasks tasks.json --task-output after-tasks.json \
-  --baseline before.json --baseline-tasks before-tasks.json --cost-diff-output cost-diff.json
+  --diagnostics --baseline before.json --cost-diff-output cost-diff.json
 ```
 
-Reports token-cost totals, added/removed/matched node counts, the largest per-node metric movers, diagnostics introduced/resolved/persisted, and per `(task, policy)` deltas. For how nodes are matched across the two states see [adr/2fa75a6058d4f5eb-cost-diff-node-identity.md](adr/2fa75a6058d4f5eb-cost-diff-node-identity.md).
+Reports token-cost totals, added/removed/matched node counts, the largest per-node metric movers, and diagnostics introduced/resolved/persisted. For how nodes are matched across the two states see [adr/2fa75a6058d4f5eb-cost-diff-node-identity.md](adr/2fa75a6058d4f5eb-cost-diff-node-identity.md).
 
 ---
 

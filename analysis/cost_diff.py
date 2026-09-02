@@ -1,7 +1,7 @@
 import json
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
+from typing import Any, Dict, List, Mapping, Optional, Tuple
 
 from language_analyzers.core.serialization import SCHEMA_VERSION
 
@@ -18,17 +18,6 @@ NODE_METRIC_KEYS = (
 )
 
 TOTAL_KEYS = ("total_token_cost", "total_effective_token_cost")
-
-TASK_METRIC_PATHS = (
-    ("target_discovery_cost", ("target_discovery_cost",)),
-    ("impact_discovery_cost", ("impact_discovery_cost",)),
-    ("branching_burden.exposed_candidate_count", ("branching_burden", "exposed_candidate_count")),
-    ("branching_burden.irrelevant_ratio", ("branching_burden", "irrelevant_ratio")),
-    ("context_fragmentation.unique_file_count", ("context_fragmentation", "unique_file_count")),
-    ("context_fragmentation.total_graph_distance", ("context_fragmentation", "total_graph_distance")),
-    ("evidence_gap.ratio", ("evidence_gap", "ratio")),
-)
-
 
 @dataclass(frozen=True)
 class NodeCostDelta:
@@ -78,38 +67,12 @@ class RepositoryCostDiff:
         }
 
 
-@dataclass(frozen=True)
-class TaskCostDiff:
-    task_id: str
-    policy: str
-    deltas: Mapping[str, Optional[float]]
-    termination_change: Optional[Tuple[str, str]]
-
-    def to_dict(self) -> Dict[str, Any]:
-        return {
-            "task_id": self.task_id,
-            "policy": self.policy,
-            "deltas": dict(self.deltas),
-            "termination_change": list(self.termination_change) if self.termination_change else None,
-        }
-
-
 def load_analysis_export(path: str | Path) -> Mapping[str, Any]:
     try:
         payload = json.loads(Path(path).read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
         raise ValueError(f"cannot load analysis export: {exc}") from exc
     return _require_export(payload)
-
-
-def load_task_export(path: str | Path) -> Mapping[str, Any]:
-    try:
-        payload = json.loads(Path(path).read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as exc:
-        raise ValueError(f"cannot load task export: {exc}") from exc
-    if not isinstance(payload, Mapping) or not isinstance(payload.get("reports"), list):
-        raise ValueError("task export must be an object containing a reports list")
-    return payload
 
 
 def _require_export(payload: Any) -> Mapping[str, Any]:
@@ -278,58 +241,5 @@ def diff_repository_cost(
     )
 
 
-def _task_key(report: Mapping[str, Any]) -> Tuple[str, str]:
-    return str(report.get("task_id") or ""), str(report.get("policy") or "")
-
-
-def _task_value(report: Mapping[str, Any], path: Sequence[str]) -> Optional[float]:
-    value: Any = report
-    for key in path:
-        if not isinstance(value, Mapping):
-            return None
-        value = value.get(key)
-    if value is None:
-        return None
-    return _numeric(value) if isinstance(value, (int, float)) and not isinstance(value, bool) else None
-
-
-def diff_task_reports(baseline: Mapping[str, Any], current: Mapping[str, Any]) -> Tuple[TaskCostDiff, ...]:
-    baseline_reports = {_task_key(item): item for item in (baseline.get("reports") or [])}
-    current_reports = {_task_key(item): item for item in (current.get("reports") or [])}
-    results = []
-    for key in sorted(set(baseline_reports) & set(current_reports)):
-        before, after = baseline_reports[key], current_reports[key]
-        deltas: Dict[str, Optional[float]] = {}
-        for name, path in TASK_METRIC_PATHS:
-            left, right = _task_value(before, path), _task_value(after, path)
-            deltas[name] = None if left is None or right is None else right - left
-        before_reason = str(before.get("termination_reason") or "")
-        after_reason = str(after.get("termination_reason") or "")
-        results.append(TaskCostDiff(
-            task_id=key[0],
-            policy=key[1],
-            deltas=deltas,
-            termination_change=(before_reason, after_reason) if before_reason != after_reason else None,
-        ))
-    return tuple(results)
-
-
-def unmatched_task_pairs(baseline: Mapping[str, Any], current: Mapping[str, Any]) -> Dict[str, List[str]]:
-    baseline_keys = {_task_key(item) for item in (baseline.get("reports") or [])}
-    current_keys = {_task_key(item) for item in (current.get("reports") or [])}
-    return {
-        "baseline_only": [f"{task}:{policy}" for task, policy in sorted(baseline_keys - current_keys)],
-        "current_only": [f"{task}:{policy}" for task, policy in sorted(current_keys - baseline_keys)],
-    }
-
-
-def cost_diff_to_dict(
-    repository: RepositoryCostDiff,
-    tasks: Sequence[TaskCostDiff] = (),
-    unmatched: Optional[Mapping[str, List[str]]] = None,
-) -> Dict[str, Any]:
-    return {
-        "repository": repository.to_dict(),
-        "tasks": [item.to_dict() for item in tasks],
-        "unmatched_task_pairs": dict(unmatched) if unmatched is not None else {"baseline_only": [], "current_only": []},
-    }
+def cost_diff_to_dict(repository: RepositoryCostDiff) -> Dict[str, Any]:
+    return {"repository": repository.to_dict()}

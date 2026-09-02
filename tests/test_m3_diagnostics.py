@@ -623,10 +623,5 @@ class CliContractTests(unittest.TestCase):
         self.assertIn("node_metrics", exported["stats"]["analysis"])
         self.assertTrue(output.exists())
 
-    def test_baseline_tasks_requires_tasks_and_baseline(self):
-        with self.assertRaises(SystemExit):
-            self._run("--baseline-tasks", str(self.root / "missing.json"))
-
-
 if __name__ == "__main__":
     unittest.main()

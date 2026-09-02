@@ -5,7 +5,6 @@ Command-line interface for the FastAPI Visualizer.
 import argparse
 import json
 import math
-import os
 import sys
 import webbrowser
 from pathlib import Path
@@ -13,18 +12,11 @@ from pathlib import Path
 from analysis import (
     FrictionDiagnoser,
     GraphAnalyzer,
-    SearchPolicy,
-    TaskExplorer,
     cost_diff_to_dict,
     diagnostics_collection,
     diagnostics_to_dict,
     diff_repository_cost,
-    diff_task_reports,
     load_analysis_export,
-    load_task_definitions,
-    load_task_export,
-    reports_to_dict,
-    unmatched_task_pairs,
 )
 from language_analyzers.core.serialization import architecture_to_dict
 
@@ -106,8 +98,8 @@ def parse_args():
              "imports and calls) and show framework components only.",
     )
     parser.add_argument(
-        "--simulation-config",
-        help="JSON file configuring exploration simulation costs.",
+        "--graph-cost-config",
+        help="JSON file configuring graph costs.",
     )
     parser.add_argument(
         "--open",
@@ -123,21 +115,6 @@ def parse_args():
         "--mermaid",
         action="store_true",
         help="Print Mermaid diagram markdown to stdout.",
-    )
-    parser.add_argument(
-        "--tasks",
-        help="JSON task set to execute against the analyzed graph.",
-    )
-    parser.add_argument(
-        "--task-policy",
-        action="append",
-        choices=[policy.value for policy in SearchPolicy],
-        help="Task search policy. Repeat to run multiple policies; all policies run by default.",
-    )
-    parser.add_argument(
-        "--task-output",
-        default="task-exploration.json",
-        help="Output path for task exploration reports.",
     )
     parser.add_argument(
         "--diagnostics",
@@ -156,42 +133,33 @@ def parse_args():
         help="Previously exported architecture JSON to compare this run against.",
     )
     parser.add_argument(
-        "--baseline-tasks",
-        default=None,
-        help="Previously exported task exploration JSON to compare this run's --tasks results against.",
-    )
-    parser.add_argument(
         "--cost-diff-output",
         default="cost-diff.json",
-        help="Output path for the exploration cost diff.",
+        help="Output path for the repository cost diff.",
     )
     args = parser.parse_args()
     if (args.language or args.framework != "fastapi") and (args.entrypoint or args.app):
         parser.error("--entrypoint and --app are only supported with --framework fastapi")
-    if args.baseline_tasks and not args.tasks:
-        parser.error("--baseline-tasks requires --tasks")
-    if args.baseline_tasks and not args.baseline:
-        parser.error("--baseline-tasks requires --baseline")
     return args
 
 
-def load_simulation_config(path: str | None) -> dict[str, float]:
+def load_graph_cost_config(path: str | None) -> dict[str, float]:
     default = {"unresolved_inject_field_cost": 4.0}
     if path is None:
         return default
     try:
         value = json.loads(Path(path).read_text(encoding="utf-8"))
     except OSError as exc:
-        raise ValueError(f"cannot load simulation config: {exc}") from exc
+        raise ValueError(f"cannot load graph cost config: {exc}") from exc
     except json.JSONDecodeError as exc:
-        raise ValueError(f"invalid simulation config JSON: {exc}") from exc
+        raise ValueError(f"invalid graph cost config JSON: {exc}") from exc
     if not isinstance(value, dict):
-        raise ValueError("simulation config must be an object")
+        raise ValueError("graph cost config must be an object")
     if set(value) != set(default):
         missing = set(default) - set(value)
         unknown = set(value) - set(default)
         detail = f"missing keys: {', '.join(sorted(missing))}" if missing else f"unknown keys: {', '.join(sorted(unknown))}"
-        raise ValueError(f"invalid simulation config ({detail})")
+        raise ValueError(f"invalid graph cost config ({detail})")
     cost = value["unresolved_inject_field_cost"]
     if isinstance(cost, bool) or not isinstance(cost, (int, float)) or not math.isfinite(cost) or cost < 0:
         raise ValueError("unresolved_inject_field_cost must be a non-negative finite number")
@@ -201,9 +169,9 @@ def load_simulation_config(path: str | None) -> dict[str, float]:
 def main():
     args = parse_args()
     try:
-        simulation_config = load_simulation_config(args.simulation_config)
+        graph_cost_config = load_graph_cost_config(args.graph_cost_config)
     except ValueError as exc:
-        raise SystemExit(f"[!] Invalid simulation config: {exc}") from exc
+        raise SystemExit(f"[!] Invalid graph cost config: {exc}") from exc
     project_path = Path(args.project_path).resolve()
 
     if not project_path.exists():
@@ -236,7 +204,7 @@ def main():
             include_models=not args.no_models,
             include_dependencies=not args.no_deps,
             include_language_graph=not args.no_language_graph,
-            unresolved_inject_field_cost=simulation_config["unresolved_inject_field_cost"],
+            unresolved_inject_field_cost=graph_cost_config["unresolved_inject_field_cost"],
         )
         arch = builder.build_graph(arch)
     else:
@@ -303,37 +271,12 @@ def main():
         )
         print(f"[✓] Exported structural friction diagnostics: {diagnostics_output_path}")
 
-    task_payload = None
-    if args.tasks:
-        try:
-            tasks = load_task_definitions(args.tasks)
-            policies = [SearchPolicy(value) for value in args.task_policy] if args.task_policy else list(SearchPolicy)
-            explorer = TaskExplorer(arch.nodes, arch.edges, project_path=arch.project_path,
-                                    evaluation_relations=getattr(arch, "evaluation_relations", ()))
-            reports = [explorer.run(task, policy) for task in tasks for policy in policies]
-            task_payload = reports_to_dict(reports)
-            task_output_path = Path(args.task_output)
-            task_output_path.parent.mkdir(parents=True, exist_ok=True)
-            task_output_path.write_text(
-                json.dumps(task_payload, indent=2, ensure_ascii=False),
-                encoding="utf-8",
-            )
-        except ValueError as exc:
-            raise SystemExit(f"[!] Invalid task set: {exc}") from exc
-        print(f"[✓] Exported task exploration reports: {task_output_path}")
-
     cost_diff_payload = None
     if args.baseline:
         try:
             baseline_export = load_analysis_export(args.baseline)
             repository_diff = diff_repository_cost(baseline_export, architecture_to_dict(arch))
-            task_diffs = ()
-            unmatched = None
-            if args.baseline_tasks and task_payload is not None:
-                baseline_tasks = load_task_export(args.baseline_tasks)
-                task_diffs = diff_task_reports(baseline_tasks, task_payload)
-                unmatched = unmatched_task_pairs(baseline_tasks, task_payload)
-            cost_diff_payload = cost_diff_to_dict(repository_diff, task_diffs, unmatched)
+            cost_diff_payload = cost_diff_to_dict(repository_diff)
         except ValueError as exc:
             raise SystemExit(f"[!] Invalid baseline: {exc}") from exc
         cost_diff_output_path = Path(args.cost_diff_output)
@@ -342,7 +285,7 @@ def main():
             json.dumps(cost_diff_payload, indent=2, ensure_ascii=False),
             encoding="utf-8",
         )
-        print(f"[✓] Exported exploration cost diff: {cost_diff_output_path}")
+        print(f"[✓] Exported repository cost diff: {cost_diff_output_path}")
 
     stats = arch.stats
     print(f"\n📊 Summary Statistics:")
