@@ -1,6 +1,6 @@
 # Project Definition
 
-Static code analyzer for repositories developed with AI agents. The purpose of the analysis emulates AI agents' code exploring and figures out a graph of files/modules/classes/functions/etc and its connectivities (ripples, side effect, dependency, metioned in comments, etc). Our end goal is to provide a diagnosis for AI agent friendly repository.
+Static code analyzer for repositories developed with AI agents. It models files, modules, classes, functions, and their relationships to pursue three outcomes: predict the relative difficulty ranking of repository tasks; identify the minimum/expected/maximum exploration cost and structural bottlenecks for each task; and explain the repository through its graph, providing graph-derived metrics and evidence-backed improvement opportunities. The analyzer must make every ranking, metric, bottleneck, and improvement traceable to graph evidence.
 
 # Documentation Guide
 
