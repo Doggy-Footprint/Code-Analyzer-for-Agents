@@ -1,3 +1,10 @@
+File: 5670fc77af218b64-shell-consistent-exploration-order.md
+Summary: Defines a valid single-target exploration order as non-decreasing weighted-distance shells, giving closed-form min (shortest path), max (cost ball), and expected (full weight below target's distance, half weight on ties) costs.
+Related Files: analysis/exploration_cost.py, analysis/graph_metrics.py, analysis/tasks.py, code_analyzer/cli.py
+Related Symbols: ExplorationCostAnalyzer, TargetDiscoveryCost, TaskExplorationCostReport, TaskSeedResolver
+
+---
+
 File: f955da9142e1937a-retrievability-cost-and-generated-code-policy.md
 Summary: Preserves generated code in language cores while charging retrieval gaps for unresolvable framework relations without asserting fabricated code edges.
 Related Files: language_analyzers/core/flags.py, language_analyzers/python/source.py, language_analyzers/kotlin/analyzer.py, language_analyzers/typescript/analyzer.py, framework_analyzers/android/analyzer.py, framework_analyzers/android/models.py, framework_analyzers/android/graph.py, language_analyzers/core/serialization.py

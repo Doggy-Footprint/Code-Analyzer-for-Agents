@@ -9,8 +9,6 @@ Language semantics belong in reusable language cores rather than framework adapt
 
 Uncertain, ambiguous, and unresolved relations are retained with confidence and candidate information rather than discarded.
 
-Python uses the standard-library `ast`; TypeScript uses tree-sitter.
-
 ## Alternatives Considered
 
 - **Extend the FastAPI analyzer**: rejected because general language semantics would be duplicated by every framework adapter.

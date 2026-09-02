@@ -165,6 +165,9 @@ class TaskSeedResolver:
         self._source_cache: Dict[Path, str] = {}
 
     def retrieve(self, seed: SeedQuery) -> list[str]:
+        return [node_id for _score, node_id in self.retrieve_scored(seed)]
+
+    def retrieve_scored(self, seed: SeedQuery) -> list[tuple[int, str]]:
         if not isinstance(seed, SeedQuery):
             seed = SeedQuery.from_dict(seed)
         query = seed.value.strip()
@@ -212,7 +215,7 @@ class TaskSeedResolver:
                     score = 2
             if score is not None:
                 matches.append((score, node_id))
-        return [node_id for _, node_id in sorted(matches)]
+        return sorted(matches)
 
     def _search_values(self, node: Any, include_source: bool = False) -> list[str]:
         metadata = self._value(node, "metadata", {}) or {}

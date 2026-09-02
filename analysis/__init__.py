@@ -6,6 +6,13 @@ from .cost_diff import (
     diff_repository_cost,
     load_analysis_export,
 )
+from .exploration_cost import (
+    ExplorationCostAnalyzer,
+    TargetDiscoveryCost,
+    TaskExplorationCostReport,
+    exploration_cost_collection,
+    exploration_cost_to_dict,
+)
 from .friction_diagnostics import (
     DiagnosticKind,
     DiagnosticsConfig,
@@ -33,4 +40,6 @@ __all__ = [
     "ImprovementCandidate", "diagnostics_collection", "diagnostics_to_dict",
     "DiagnosticsDelta", "NodeCostDelta", "RepositoryCostDiff", "cost_diff_to_dict",
     "diff_repository_cost", "load_analysis_export",
+    "ExplorationCostAnalyzer", "TargetDiscoveryCost", "TaskExplorationCostReport",
+    "exploration_cost_collection", "exploration_cost_to_dict",
 ]

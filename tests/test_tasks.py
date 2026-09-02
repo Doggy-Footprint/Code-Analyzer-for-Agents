@@ -219,6 +219,35 @@ class TaskSeedResolverTests(unittest.TestCase):
         self.assertEqual(resolver.retrieve(SeedQuery(SeedKind.CHANGED_FILE, "/repo/src/app.py")), ["changed"])
         self.assertEqual(resolver.retrieve(SeedQuery(SeedKind.CHANGED_FILE, "app.py")), [])
 
+    def test_retrieve_is_a_thin_wrapper_around_retrieve_scored(self):
+        nodes = [
+            node("route", "GET users", "app/routes.py", metadata={"full_path": "/users"}),
+            node("symbol", "create_user", "app/users.py", symbol_path="app.users.create_user"),
+            node("error", "load_user", "app/service.py", start_line=2, end_line=2),
+            node("config", "settings", "app/settings.py", metadata={"config_key": "DATABASE_URL"}),
+            node("changed", "helper", "src/helper.py"),
+            node("z", "run", "z.py"),
+            node("a", "run", "a.py"),
+            node("exact", "handler", "exact.py", metadata={"full_path": "/users"}),
+            node("fallback", "GET /users", "fallback.py"),
+        ]
+        source_reader = lambda path: "safe = True\nraise ValueError('user missing')\n"
+        resolver = TaskSeedResolver(nodes, "/repo", source_reader)
+        seeds = [
+            SeedQuery(SeedKind.URL, "/users"),
+            SeedQuery(SeedKind.SYMBOL, "create_user"),
+            SeedQuery(SeedKind.SYMBOL, "run"),
+            SeedQuery(SeedKind.ERROR, "user missing"),
+            SeedQuery(SeedKind.CONFIG, "DATABASE_URL"),
+            SeedQuery(SeedKind.CHANGED_FILE, "./src/helper.py"),
+            SeedQuery(SeedKind.SYMBOL, "missing"),
+        ]
+        for seed in seeds:
+            with self.subTest(seed=seed):
+                scored = resolver.retrieve_scored(seed)
+                self.assertEqual(resolver.retrieve(seed), [node_id for _score, node_id in scored])
+                self.assertEqual(scored, sorted(scored))
+
 
 class CliContractTests(unittest.TestCase):
     def test_graph_cost_config_default_and_valid_value(self):
