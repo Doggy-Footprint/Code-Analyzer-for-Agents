@@ -32,6 +32,21 @@ from .tasks import (
     TaskType,
     load_task_definitions,
 )
+from .task_difficulty import (
+    TaskDifficultyAnalyzer,
+    TaskDifficultyRank,
+    TaskDifficultyReport,
+    TaskDifficultySignals,
+    task_difficulty_collection,
+    task_difficulty_to_dict,
+)
+from .task_difficulty_eval import (
+    PairwiseComparison,
+    PairwiseEvaluation,
+    PairwiseLabel,
+    load_pairwise_labels,
+    pairwise_accuracy,
+)
 
 __all__ = [
     "GraphAnalyzer", "GraphAnalysisConfig", "SeedKind", "SeedQuery", "TaskDefinition",
@@ -42,4 +57,8 @@ __all__ = [
     "diff_repository_cost", "load_analysis_export",
     "ExplorationCostAnalyzer", "TargetDiscoveryCost", "TaskExplorationCostReport",
     "exploration_cost_collection", "exploration_cost_to_dict",
+    "TaskDifficultyAnalyzer", "TaskDifficultyRank", "TaskDifficultyReport", "TaskDifficultySignals",
+    "task_difficulty_collection", "task_difficulty_to_dict",
+    "PairwiseComparison", "PairwiseEvaluation", "PairwiseLabel", "load_pairwise_labels",
+    "pairwise_accuracy",
 ]

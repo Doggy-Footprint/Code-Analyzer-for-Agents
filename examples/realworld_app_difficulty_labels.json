@@ -1,0 +1,25 @@
+{
+  "_note": "Manual pairwise difficulty labels for examples/realworld_app_tasks.json (M2 first slice). Judged from each task's real-world scope and blast radius (not copied from the model's cost output). Ambiguous pairs are omitted rather than guessed.",
+  "labels": [
+    {"harder_task_id": "rotate-jwt-secret-key", "easier_task_id": "login-wrong-error-message"},
+    {"harder_task_id": "rotate-jwt-secret-key", "easier_task_id": "delete-comment-wrong-author-check"},
+    {"harder_task_id": "rotate-jwt-secret-key", "easier_task_id": "favorite-toggle-double-counts"},
+    {"harder_task_id": "rotate-jwt-secret-key", "easier_task_id": "add-article-reading-time"},
+    {"harder_task_id": "rotate-jwt-secret-key", "easier_task_id": "personalized-feed-pagination"},
+    {"harder_task_id": "rotate-jwt-secret-key", "easier_task_id": "follow-user-notify-webhook"},
+    {"harder_task_id": "follow-user-notify-webhook", "easier_task_id": "login-wrong-error-message"},
+    {"harder_task_id": "follow-user-notify-webhook", "easier_task_id": "delete-comment-wrong-author-check"},
+    {"harder_task_id": "follow-user-notify-webhook", "easier_task_id": "favorite-toggle-double-counts"},
+    {"harder_task_id": "follow-user-notify-webhook", "easier_task_id": "update-article-partial-fields"},
+    {"harder_task_id": "update-article-partial-fields", "easier_task_id": "login-wrong-error-message"},
+    {"harder_task_id": "update-article-partial-fields", "easier_task_id": "delete-comment-wrong-author-check"},
+    {"harder_task_id": "update-article-partial-fields", "easier_task_id": "personalized-feed-pagination"},
+    {"harder_task_id": "personalized-feed-pagination", "easier_task_id": "login-wrong-error-message"},
+    {"harder_task_id": "personalized-feed-pagination", "easier_task_id": "delete-comment-wrong-author-check"},
+    {"harder_task_id": "add-article-reading-time", "easier_task_id": "login-wrong-error-message"},
+    {"harder_task_id": "add-article-reading-time", "easier_task_id": "delete-comment-wrong-author-check"},
+    {"harder_task_id": "favorite-toggle-double-counts", "easier_task_id": "login-wrong-error-message"},
+    {"harder_task_id": "favorite-toggle-double-counts", "easier_task_id": "delete-comment-wrong-author-check"},
+    {"harder_task_id": "delete-comment-wrong-author-check", "easier_task_id": "login-wrong-error-message"}
+  ]
+}

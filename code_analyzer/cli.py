@@ -17,10 +17,13 @@ from analysis import (
     diagnostics_collection,
     diagnostics_to_dict,
     diff_repository_cost,
+    TaskDifficultyAnalyzer,
     exploration_cost_collection,
     exploration_cost_to_dict,
     load_analysis_export,
     load_task_definitions,
+    task_difficulty_collection,
+    task_difficulty_to_dict,
 )
 from language_analyzers.core.serialization import architecture_to_dict
 
@@ -156,11 +159,24 @@ def parse_args():
         default="exploration-cost.json",
         help="Output path for the target discovery cost report.",
     )
+    parser.add_argument(
+        "--task-difficulty",
+        action="store_true",
+        help="Rank --task-set tasks by relative difficulty using a Borda aggregate of the "
+             "--exploration-cost signals (min/expected/max cost, cost spread, branching, evidence gap).",
+    )
+    parser.add_argument(
+        "--task-difficulty-output",
+        default="task-difficulty.json",
+        help="Output path for the task difficulty ranking report.",
+    )
     args = parser.parse_args()
     if (args.language or args.framework != "fastapi") and (args.entrypoint or args.app):
         parser.error("--entrypoint and --app are only supported with --framework fastapi")
     if args.exploration_cost and not args.task_set:
         parser.error("--exploration-cost requires --task-set")
+    if args.task_difficulty and not args.exploration_cost:
+        parser.error("--task-difficulty requires --exploration-cost")
     return args
 
 
@@ -280,6 +296,12 @@ def main():
         arch.stats["exploration_cost"] = exploration_cost_to_dict(exploration_cost_report)
         arch.report_collections.append(exploration_cost_collection(exploration_cost_report, arch.nodes))
 
+    task_difficulty_report = None
+    if args.task_difficulty:
+        task_difficulty_report = TaskDifficultyAnalyzer().compute(exploration_cost_report)
+        arch.stats["task_difficulty"] = task_difficulty_to_dict(task_difficulty_report)
+        arch.report_collections.append(task_difficulty_collection(task_difficulty_report))
+
     renderer = HTMLRenderer(title=args.title, framework_label=analyzer_label)
     output_html_path = renderer.render(arch, args.output)
     print(f"[✓] Generated interactive HTML dashboard: {output_html_path}")
@@ -317,6 +339,15 @@ def main():
         )
         print(f"[✓] Exported target discovery cost report: {exploration_cost_output_path}")
 
+    if args.task_difficulty:
+        task_difficulty_output_path = Path(args.task_difficulty_output)
+        task_difficulty_output_path.parent.mkdir(parents=True, exist_ok=True)
+        task_difficulty_output_path.write_text(
+            json.dumps(arch.stats["task_difficulty"], indent=2, ensure_ascii=False),
+            encoding="utf-8",
+        )
+        print(f"[✓] Exported task difficulty ranking: {task_difficulty_output_path}")
+
     cost_diff_payload = None
     if args.baseline:
         try:
@@ -349,6 +380,9 @@ def main():
         for result in exploration_cost_report.results:
             status_counts[result.status] = status_counts.get(result.status, 0) + 1
         print(f"  • Exploration cost:  {', '.join(f'{status}={count}' for status, count in sorted(status_counts.items()))}")
+    if task_difficulty_report is not None:
+        ranked = ", ".join(f"#{item.rank} {item.task_id}" for item in task_difficulty_report.ranks)
+        print(f"  • Task difficulty:  {ranked or '(no rankable tasks)'}")
     if cost_diff_payload is not None:
         totals = cost_diff_payload["repository"]["totals"]
         counts = cost_diff_payload["repository"]["node_counts"]
