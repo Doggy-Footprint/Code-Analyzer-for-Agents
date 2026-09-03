@@ -5,7 +5,6 @@ Requires tree-sitter + tree-sitter-language-pack; skips cleanly when unavailable
 """
 
 import shutil
-import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -477,42 +476,6 @@ class MainActivity : ComponentActivity() {
             AndroidAnalyzer(self.project_path).analyze()
         )
         self.assertFalse(any(node.provenance == "kotlin-core" for node in no_language.nodes))
-
-    def _init_git_repo(self):
-        subprocess.run(["git", "init"], cwd=self.project_path, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        subprocess.run(["git", "config", "user.email", "test@example.com"], cwd=self.project_path, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        subprocess.run(["git", "config", "user.name", "Test User"], cwd=self.project_path, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-
-    def _git_commit(self, msg: str):
-        subprocess.run(["git", "add", "."], cwd=self.project_path, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        subprocess.run(["git", "commit", "-m", msg], cwd=self.project_path, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-
-    def test_git_diff_non_git_repo(self):
-        self._create_sample_android_app()
-        analyzer = AndroidAnalyzer(str(self.project_path))
-        arch = analyzer.analyze()
-
-        self.assertIsNotNone(arch.git_diff)
-        self.assertFalse(arch.git_diff.is_git_repo)
-        self.assertEqual(arch.git_diff.comparison_mode, "none")
-        self.assertEqual(arch.git_diff.impacted_by_collection.get("composables", []), [])
-
-    def test_git_diff_impacted_composables(self):
-        self._create_sample_android_app()
-        self._init_git_repo()
-        self._git_commit("initial commit")
-
-        topic_screen = self.project_path / "feature_topic" / "src" / "main" / "kotlin" / "com" / "example" / "feature" / "topic" / "TopicScreen.kt"
-        topic_screen.write_text(topic_screen.read_text() + "\n// added note\n")
-
-        analyzer = AndroidAnalyzer(str(self.project_path))
-        arch = analyzer.analyze()
-
-        self.assertIsNotNone(arch.git_diff)
-        self.assertTrue(arch.git_diff.is_git_repo)
-        impacted_names = {c["name"] for c in arch.git_diff.impacted_by_collection.get("composables", [])}
-        self.assertEqual(impacted_names, {"TopicRoute", "TopicScreen", "TopicDetail"})
-        self.assertEqual(arch.git_diff.impacted_by_collection.get("viewmodels", []), [])
 
 
 NOWINANDROID_SAMPLE = Path(__file__).resolve().parents[1] / "examples" / "nowinandroid_sample"

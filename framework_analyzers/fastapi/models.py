@@ -5,13 +5,6 @@ Data models representing the extracted architecture of a FastAPI project.
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
-from language_analyzers.core.git_diff_models import (
-    GitCommitInfo,
-    GitDiffHunk,
-    GitDiffInfo,
-    GitDiffLine,
-    GitFileDiff,
-)
 from language_analyzers.core.graph_models import GraphEdge, GraphNode
 from language_analyzers.core.report_schema import ColumnSpec, ReportCollection
 
@@ -26,11 +19,6 @@ __all__ = [
     "SchemaInfo",
     "GraphNode",
     "GraphEdge",
-    "GitCommitInfo",
-    "GitDiffLine",
-    "GitDiffHunk",
-    "GitFileDiff",
-    "GitDiffInfo",
     "ColumnSpec",
     "ReportCollection",
     "ProjectArchitecture",
@@ -161,5 +149,4 @@ class ProjectArchitecture:
     nodes: List[GraphNode] = field(default_factory=list)
     edges: List[GraphEdge] = field(default_factory=list)
     stats: Dict[str, Any] = field(default_factory=dict)
-    git_diff: Optional[GitDiffInfo] = None
     report_collections: List[ReportCollection] = field(default_factory=list)

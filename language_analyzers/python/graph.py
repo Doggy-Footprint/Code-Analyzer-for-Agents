@@ -6,7 +6,6 @@ from typing import Any, Dict, List, Optional, Sequence, Set, Tuple, Union
 
 from language_analyzers.core import flags as flag_names
 from language_analyzers.core.cost import cost_for_span, cost_for_text
-from language_analyzers.core.git_diff_core import GitDiffCore
 from language_analyzers.core.enrichment import enrich_repository
 from language_analyzers.core.graph_models import (
     Confidence,
@@ -43,7 +42,6 @@ class PythonProjectArchitecture:
     edges: List[GraphEdge] = field(default_factory=list)
     stats: Dict[str, Any] = field(default_factory=dict)
     report_collections: List[ReportCollection] = field(default_factory=list)
-    git_diff: Any = None
 
 
 @dataclass
@@ -153,7 +151,6 @@ class PythonGraphAnalyzer:
             project_path=str(self.project_path),
             nodes=nodes,
             edges=edges,
-            git_diff=GitDiffCore(self.project_path).get_diff_info(),
         )
         enrich_repository(architecture)
         nodes, edges = architecture.nodes, architecture.edges

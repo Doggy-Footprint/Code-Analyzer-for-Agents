@@ -64,9 +64,6 @@ class AndroidAnalyzer:
 
         self._link(arch)
 
-        from .git_differ import GitDiffer
-        arch.git_diff = GitDiffer(self.project_path).get_diff_info(arch)
-
         return arch
 
     def _discover_files(self) -> List[Path]:

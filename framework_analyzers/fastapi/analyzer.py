@@ -10,7 +10,6 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 
 from language_analyzers.python import PythonSourceAnalyzer
 
-from .git_differ import GitDiffer
 from .models import (
     AppInfo,
     DependencyInfo,
@@ -76,9 +75,6 @@ class FastAPIAnalyzer:
             dependencies=unique_deps,
             schemas=unique_schemas,
         )
-
-        differ = GitDiffer(self.project_path)
-        arch.git_diff = differ.get_diff_info(arch)
 
         return arch
 

@@ -10,7 +10,6 @@ from analysis import (
     DiagnosticsConfig,
     FrictionDiagnoser,
     GraphAnalyzer,
-    TaskType,
     diagnostics_collection,
 )
 from code_analyzer.cli import main
@@ -142,7 +141,6 @@ class CentralLargeSymbolTests(unittest.TestCase):
         self.assertEqual(finding.node_ids, ("hub",))
         self.assertEqual(finding.metrics["effective_token_cost"], 1000.0)
         self.assertEqual(finding.metrics["fan_in"], 5.0)
-        self.assertEqual(finding.applicable_task_types, tuple(TaskType))
         self.assertEqual(finding.confidence, Confidence.STATIC_CERTAIN.value)
         self.assertEqual([item.action for item in finding.improvements], ["split_symbol"])
         self.assertEqual(
@@ -216,10 +214,6 @@ class BridgeBottleneckTests(unittest.TestCase):
         self.assertEqual(finding.metrics["neighbor_directory_count"], 2.0)
         self.assertEqual(finding.evidence_paths[0].node_ids, ("a", "m", "b"))
         self.assertEqual(len(finding.evidence_paths[0].edges), 2)
-        self.assertEqual(
-            finding.applicable_task_types,
-            (TaskType.BUG_FIX, TaskType.FEATURE_ADD, TaskType.API_CHANGE),
-        )
 
     def test_single_directory_chain_is_not_a_bridge(self):
         nodes = [node(name, 10, "alpha/module.py") for name in ("a", "m", "b")]
@@ -368,7 +362,7 @@ class ReportShapeTests(unittest.TestCase):
         finding = restored["findings"][0]
         self.assertEqual(
             sorted(finding),
-            ["applicable_task_types", "confidence", "evidence_paths", "false_positive_risks",
+            ["confidence", "evidence_paths", "false_positive_risks",
              "improvements", "kind", "metrics", "node_ids"],
         )
         self.assertTrue(finding["false_positive_risks"])

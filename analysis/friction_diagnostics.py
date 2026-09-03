@@ -7,8 +7,6 @@ from language_analyzers.core.flags import is_test_path
 from language_analyzers.core.graph_models import Confidence, NodeKind, RelationKind, Resolution
 from language_analyzers.core.report_schema import ColumnSpec, ReportCollection
 
-from .tasks import TaskType
-
 
 class DiagnosticKind(str, Enum):
     CENTRAL_LARGE_SYMBOL = "central_large_symbol"
@@ -42,16 +40,6 @@ _AMBIGUOUS_RESOLUTIONS = frozenset({Resolution.AMBIGUOUS.value, Resolution.UNRES
 _EXPORT_RELATIONS = frozenset({
     RelationKind.RE_EXPORTS, RelationKind.EXPORTS, RelationKind.IMPORTS_SYMBOL, RelationKind.IMPORTS,
 })
-
-_TASK_TYPES_ALL = (TaskType.BUG_FIX, TaskType.FEATURE_ADD, TaskType.API_CHANGE, TaskType.CONFIG_CHANGE)
-
-_APPLICABLE_TASK_TYPES = {
-    DiagnosticKind.CENTRAL_LARGE_SYMBOL: _TASK_TYPES_ALL,
-    DiagnosticKind.BRIDGE_BOTTLENECK: (TaskType.BUG_FIX, TaskType.FEATURE_ADD, TaskType.API_CHANGE),
-    DiagnosticKind.REEXPORT_AMBIGUITY: (TaskType.FEATURE_ADD, TaskType.API_CHANGE, TaskType.CONFIG_CHANGE),
-    DiagnosticKind.CYCLIC_DEPENDENCY: (TaskType.BUG_FIX, TaskType.FEATURE_ADD, TaskType.API_CHANGE),
-    DiagnosticKind.MISSING_TEST_LINK: (TaskType.BUG_FIX, TaskType.API_CHANGE, TaskType.CONFIG_CHANGE),
-}
 
 _FALSE_POSITIVE_RISKS = {
     DiagnosticKind.CENTRAL_LARGE_SYMBOL: (
@@ -180,7 +168,6 @@ class Finding:
     node_ids: Tuple[str, ...]
     metrics: Mapping[str, float]
     evidence_paths: Tuple[EvidencePath, ...]
-    applicable_task_types: Tuple[TaskType, ...]
     confidence: str
     false_positive_risks: Tuple[str, ...]
     improvements: Tuple[ImprovementCandidate, ...]
@@ -191,7 +178,6 @@ class Finding:
             "node_ids": list(self.node_ids),
             "metrics": dict(self.metrics),
             "evidence_paths": [_path_to_dict(path) for path in self.evidence_paths],
-            "applicable_task_types": [item.value for item in self.applicable_task_types],
             "confidence": self.confidence,
             "false_positive_risks": list(self.false_positive_risks),
             "improvements": [item.to_dict() for item in self.improvements],
@@ -357,7 +343,6 @@ class FrictionDiagnoser:
             node_ids=tuple(node_ids),
             metrics=dict(metrics),
             evidence_paths=paths,
-            applicable_task_types=_APPLICABLE_TASK_TYPES[kind],
             confidence=_weakest_confidence(paths),
             false_positive_risks=_FALSE_POSITIVE_RISKS[kind],
             improvements=tuple(
@@ -759,7 +744,6 @@ def diagnostics_collection(report: DiagnosticsReport, nodes: Sequence[Any]) -> R
             "kind": finding.kind.value,
             "subject": subject,
             "metrics": ", ".join(f"{key}={value:g}" for key, value in sorted(finding.metrics.items())),
-            "task_types": [item.value for item in finding.applicable_task_types],
             "confidence": finding.confidence,
             "improvement": ", ".join(item.action for item in finding.improvements),
             "false_positive_risks": list(finding.false_positive_risks),
@@ -773,7 +757,6 @@ def diagnostics_collection(report: DiagnosticsReport, nodes: Sequence[Any]) -> R
             ColumnSpec("kind", "Diagnostic"),
             ColumnSpec("subject", "Subject", "mono"),
             ColumnSpec("metrics", "Metrics", "mono"),
-            ColumnSpec("task_types", "Task Types", "list"),
             ColumnSpec("confidence", "Confidence"),
             ColumnSpec("improvement", "Improvement"),
             ColumnSpec("false_positive_risks", "False Positive Risk", "list"),

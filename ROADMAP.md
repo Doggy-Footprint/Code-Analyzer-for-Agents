@@ -208,7 +208,7 @@ graph-wide 분석에서 문제가 될 소지가 높은 target을 선정하고, s
 
 각 마일스톤은 자기 결과의 출력 스키마와 역추적 근거 필드를 함께 정의하고 완료 조건에 포함한다. 출력 계약을 따로 모으는 마일스톤은 두지 않는다.
 
-기존 구현의 완료 표시는 새 분석 계약에 대한 완료를 뜻하지 않는다. 현재 코드는 언어·프레임워크 graph, graph metric, 기존 exploration cost와 task difficulty 기능을 포함하지만, 새 query 행동 모델과 비용 의미에 맞춰 유지·교체·제거 여부를 다시 검증한다.
+기존 구현의 완료 표시는 새 분석 계약에 대한 완료를 뜻하지 않는다. 현재 코드는 언어·프레임워크 graph, graph metric과 구조적 마찰 진단을 포함한다. 이전 계약의 exploration cost, task difficulty, 저장소 cost diff와 git diff 영향 분석은 새 query 행동 모델·비용 의미와 맞지 않아 제거했다.
 
 ### M0. 문서와 계약 재정렬 — 진행 중
 

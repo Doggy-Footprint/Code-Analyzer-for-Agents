@@ -10,20 +10,10 @@ import webbrowser
 from pathlib import Path
 
 from analysis import (
-    ExplorationCostAnalyzer,
     FrictionDiagnoser,
     GraphAnalyzer,
-    cost_diff_to_dict,
     diagnostics_collection,
     diagnostics_to_dict,
-    diff_repository_cost,
-    TaskDifficultyAnalyzer,
-    exploration_cost_collection,
-    exploration_cost_to_dict,
-    load_analysis_export,
-    load_task_definitions,
-    task_difficulty_collection,
-    task_difficulty_to_dict,
 )
 from language_analyzers.core.serialization import architecture_to_dict
 
@@ -134,49 +124,9 @@ def parse_args():
         default="diagnostics.json",
         help="Output path for structural friction diagnostics.",
     )
-    parser.add_argument(
-        "--baseline",
-        default=None,
-        help="Previously exported architecture JSON to compare this run against.",
-    )
-    parser.add_argument(
-        "--cost-diff-output",
-        default="cost-diff.json",
-        help="Output path for the repository cost diff.",
-    )
-    parser.add_argument(
-        "--task-set",
-        default=None,
-        help="JSON file of task definitions (seeds plus optional target/impact/test node ids).",
-    )
-    parser.add_argument(
-        "--exploration-cost",
-        action="store_true",
-        help="Compute minimum/expected/maximum target discovery cost for each single-target task in --task-set.",
-    )
-    parser.add_argument(
-        "--exploration-cost-output",
-        default="exploration-cost.json",
-        help="Output path for the target discovery cost report.",
-    )
-    parser.add_argument(
-        "--task-difficulty",
-        action="store_true",
-        help="Rank --task-set tasks by relative difficulty using a Borda aggregate of the "
-             "--exploration-cost signals (min/expected/max cost, cost spread, branching, evidence gap).",
-    )
-    parser.add_argument(
-        "--task-difficulty-output",
-        default="task-difficulty.json",
-        help="Output path for the task difficulty ranking report.",
-    )
     args = parser.parse_args()
     if (args.language or args.framework != "fastapi") and (args.entrypoint or args.app):
         parser.error("--entrypoint and --app are only supported with --framework fastapi")
-    if args.exploration_cost and not args.task_set:
-        parser.error("--exploration-cost requires --task-set")
-    if args.task_difficulty and not args.exploration_cost:
-        parser.error("--task-difficulty requires --exploration-cost")
     return args
 
 
@@ -209,12 +159,6 @@ def main():
         graph_cost_config = load_graph_cost_config(args.graph_cost_config)
     except ValueError as exc:
         raise SystemExit(f"[!] Invalid graph cost config: {exc}") from exc
-    task_definitions = None
-    if args.task_set:
-        try:
-            task_definitions = load_task_definitions(args.task_set)
-        except ValueError as exc:
-            raise SystemExit(f"[!] Invalid task set: {exc}") from exc
     project_path = Path(args.project_path).resolve()
 
     if not project_path.exists():
@@ -270,9 +214,9 @@ def main():
         )
         arch = builder.build_graph(arch)
 
-    if args.diagnostics or args.baseline or args.exploration_cost:
+    if args.diagnostics:
         # Framework adapters build their graph without running the generic metrics pass, but
-        # diagnostics and cost diffs are defined on those metrics.
+        # diagnostics are defined on those metrics.
         if not arch.stats.get("analysis"):
             arch.stats["analysis"] = GraphAnalyzer().analyze(
                 arch.nodes, arch.edges, project_path=arch.project_path
@@ -285,22 +229,6 @@ def main():
         )
         arch.stats["diagnostics"] = diagnostics_to_dict(diagnostics_report)
         arch.report_collections.append(diagnostics_collection(diagnostics_report, arch.nodes))
-
-    exploration_cost_report = None
-    if args.exploration_cost:
-        exploration_cost_report = ExplorationCostAnalyzer().compute(
-            task_definitions, arch.nodes, arch.edges, arch.stats["analysis"]["node_metrics"],
-            project_path=arch.project_path,
-            source_reader=lambda path: Path(path).read_text(encoding="utf-8"),
-        )
-        arch.stats["exploration_cost"] = exploration_cost_to_dict(exploration_cost_report)
-        arch.report_collections.append(exploration_cost_collection(exploration_cost_report, arch.nodes))
-
-    task_difficulty_report = None
-    if args.task_difficulty:
-        task_difficulty_report = TaskDifficultyAnalyzer().compute(exploration_cost_report)
-        arch.stats["task_difficulty"] = task_difficulty_to_dict(task_difficulty_report)
-        arch.report_collections.append(task_difficulty_collection(task_difficulty_report))
 
     renderer = HTMLRenderer(title=args.title, framework_label=analyzer_label)
     output_html_path = renderer.render(arch, args.output)
@@ -330,40 +258,6 @@ def main():
         )
         print(f"[✓] Exported structural friction diagnostics: {diagnostics_output_path}")
 
-    if args.exploration_cost:
-        exploration_cost_output_path = Path(args.exploration_cost_output)
-        exploration_cost_output_path.parent.mkdir(parents=True, exist_ok=True)
-        exploration_cost_output_path.write_text(
-            json.dumps(arch.stats["exploration_cost"], indent=2, ensure_ascii=False),
-            encoding="utf-8",
-        )
-        print(f"[✓] Exported target discovery cost report: {exploration_cost_output_path}")
-
-    if args.task_difficulty:
-        task_difficulty_output_path = Path(args.task_difficulty_output)
-        task_difficulty_output_path.parent.mkdir(parents=True, exist_ok=True)
-        task_difficulty_output_path.write_text(
-            json.dumps(arch.stats["task_difficulty"], indent=2, ensure_ascii=False),
-            encoding="utf-8",
-        )
-        print(f"[✓] Exported task difficulty ranking: {task_difficulty_output_path}")
-
-    cost_diff_payload = None
-    if args.baseline:
-        try:
-            baseline_export = load_analysis_export(args.baseline)
-            repository_diff = diff_repository_cost(baseline_export, architecture_to_dict(arch))
-            cost_diff_payload = cost_diff_to_dict(repository_diff)
-        except ValueError as exc:
-            raise SystemExit(f"[!] Invalid baseline: {exc}") from exc
-        cost_diff_output_path = Path(args.cost_diff_output)
-        cost_diff_output_path.parent.mkdir(parents=True, exist_ok=True)
-        cost_diff_output_path.write_text(
-            json.dumps(cost_diff_payload, indent=2, ensure_ascii=False),
-            encoding="utf-8",
-        )
-        print(f"[✓] Exported repository cost diff: {cost_diff_output_path}")
-
     stats = arch.stats
     print(f"\n📊 Summary Statistics:")
     if "total_apps" in stats:
@@ -375,28 +269,9 @@ def main():
     if diagnostics_report is not None:
         for kind, count in sorted(diagnostics_report.counts().items()):
             print(f"  • {kind:<24}{count}")
-    if exploration_cost_report is not None:
-        status_counts: dict[str, int] = {}
-        for result in exploration_cost_report.results:
-            status_counts[result.status] = status_counts.get(result.status, 0) + 1
-        print(f"  • Exploration cost:  {', '.join(f'{status}={count}' for status, count in sorted(status_counts.items()))}")
-    if task_difficulty_report is not None:
-        ranked = ", ".join(f"#{item.rank} {item.task_id}" for item in task_difficulty_report.ranks)
-        print(f"  • Task difficulty:  {ranked or '(no rankable tasks)'}")
-    if cost_diff_payload is not None:
-        totals = cost_diff_payload["repository"]["totals"]
-        counts = cost_diff_payload["repository"]["node_counts"]
-        print(f"  • Cost diff:    effective {totals['total_effective_token_cost']:+.1f} tokens, "
-              f"+{counts['added']}/-{counts['removed']} nodes")
     top_cost = stats.get("analysis", {}).get("top_weighted_cost", [])
     if top_cost:
         print(f"  • Highest agent context cost: {top_cost[0]['label']} ({top_cost[0]['value']:.4f})")
-    if arch.git_diff and arch.git_diff.is_git_repo:
-        gd = arch.git_diff
-        print(f"  • Git Diff:     {gd.total_files} file(s) changed (+{gd.total_additions}, -{gd.total_deletions}) [{gd.mode_description}]")
-        for key, items in (gd.impacted_by_collection or {}).items():
-            if items:
-                print(f"  • Impacted {key}: {len(items)}")
 
     if args.open:
         print(f"[*] Opening {output_html_path} in default browser...")

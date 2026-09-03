@@ -1,7 +1,7 @@
 from dataclasses import asdict, is_dataclass
 from typing import Any, Dict, List, Optional
 
-SCHEMA_VERSION = "2"
+SCHEMA_VERSION = "3"
 
 
 def _structure(value: Any) -> Optional[Dict[str, Any]]:
@@ -79,7 +79,6 @@ def collection_to_dict(collection: Any) -> Dict[str, Any]:
 
 
 def architecture_to_dict(architecture: Any) -> Dict[str, Any]:
-    git_diff = getattr(architecture, "git_diff", None)
     return {
         "schema_version": SCHEMA_VERSION,
         "project_name": architecture.project_name,
@@ -93,5 +92,4 @@ def architecture_to_dict(architecture: Any) -> Dict[str, Any]:
             collection.key: collection_to_dict(collection)
             for collection in getattr(architecture, "report_collections", []) or []
         },
-        "git_diff": asdict(git_diff) if git_diff is not None else None,
     }

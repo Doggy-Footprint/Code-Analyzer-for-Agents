@@ -61,7 +61,6 @@ def sample_architecture():
         nodes=[node, other],
         edges=[edge],
         report_collections=[collection],
-        git_diff=None,
     )
 
 

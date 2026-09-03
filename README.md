@@ -19,7 +19,7 @@ target 발견과 zone 검증은 탐색 turn, search·read tool call, query 결�
 
 ## 현재 상태
 
-언어·framework analyzer, graph metric, renderer와 이전 exploration 분석 구현이 존재한다. 프로젝트 계약이 변경되었으므로 기존 기능의 완료 상태를 그대로 승계하지 않고 새 graph·query·zone 모델에 맞춰 유지·교체·제거 여부를 재검증한다.
+언어·framework analyzer, graph metric, 구조적 마찰 진단과 renderer가 존재한다. 이전 계약의 exploration cost, task difficulty, 저장소 cost diff와 git diff 영향 분석은 새 query·비용 모델과 의미가 달라 제거했다. M2 이후의 탐색 비용과 zone of effect 구현은 아직 없다.
 
 현재 CLI를 새 분석 계약의 안정된 인터페이스로 간주하지 않는다.
 

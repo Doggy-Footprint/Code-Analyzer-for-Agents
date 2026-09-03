@@ -5,7 +5,6 @@ Data models representing the extracted architecture of an Android/Kotlin project
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
-from language_analyzers.core.git_diff_models import GitDiffInfo
 from language_analyzers.core.graph_models import GraphEdge, GraphNode
 from language_analyzers.core.report_schema import ColumnSpec, ReportCollection
 
@@ -28,7 +27,6 @@ __all__ = [
     "GraphEdge",
     "ColumnSpec",
     "ReportCollection",
-    "GitDiffInfo",
     "AndroidProjectArchitecture",
 ]
 
@@ -209,5 +207,4 @@ class AndroidProjectArchitecture:
     edges: List[GraphEdge] = field(default_factory=list)
     evaluation_relations: List[EvaluationRelation] = field(default_factory=list)
     stats: Dict[str, Any] = field(default_factory=dict)
-    git_diff: Optional[GitDiffInfo] = None
     report_collections: List[ReportCollection] = field(default_factory=list)

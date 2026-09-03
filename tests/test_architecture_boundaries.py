@@ -115,7 +115,6 @@ class TestArchitectureBoundaries(unittest.TestCase):
             nodes=[node],
             edges=[],
             report_collections=[],
-            git_diff=None,
         )
         with tempfile.TemporaryDirectory() as directory:
             report = Path(directory) / "report.html"

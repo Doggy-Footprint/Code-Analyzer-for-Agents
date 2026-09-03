@@ -337,7 +337,7 @@ class TestM1NeutralContracts(unittest.TestCase):
         ]
         architecture = SimpleNamespace(
             project_name="sample", project_path="/sample", nodes=nodes, edges=edges,
-            stats={}, report_collections=[], git_diff=None,
+            stats={}, report_collections=[],
         )
 
         serialized = architecture_to_dict(architecture)

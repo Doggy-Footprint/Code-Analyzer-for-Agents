@@ -5,7 +5,6 @@ from typing import Any, Dict, List, Optional, Sequence, Set, Tuple, Union
 
 from language_analyzers.core import flags as flag_names
 from language_analyzers.core.cost import cost_for_span
-from language_analyzers.core.git_diff_core import GitDiffCore
 from language_analyzers.core.enrichment import enrich_repository
 from language_analyzers.core.graph_models import (
     Confidence,
@@ -45,7 +44,6 @@ class TypeScriptProjectArchitecture:
     edges: List[GraphEdge] = field(default_factory=list)
     stats: Dict[str, object] = field(default_factory=dict)
     report_collections: List[ReportCollection] = field(default_factory=list)
-    git_diff: object = None
 
 
 @dataclass
@@ -134,7 +132,6 @@ class TypeScriptAnalyzer:
                 "edges_by_confidence": dict(Counter(str(edge.confidence) for edge in edges)),
             },
             report_collections=[self._symbol_collection(nodes)],
-            git_diff=GitDiffCore(self.project_path).get_diff_info(),
         )
         enrich_repository(architecture)
         architecture.stats["nodes_by_kind"] = dict(Counter(node.kind for node in architecture.nodes))
