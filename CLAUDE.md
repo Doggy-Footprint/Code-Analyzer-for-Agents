@@ -1,6 +1,6 @@
 # Project Definition
 
-Static code analyzer for repositories developed with AI agents. It models files, modules, classes, functions, and their relationships to pursue three outcomes: predict the relative difficulty ranking of repository tasks; identify the minimum/expected/maximum exploration cost and structural bottlenecks for each task; and explain the repository through its graph, providing graph-derived metrics and evidence-backed improvement opportunities. The analyzer must make every ranking, metric, bottleneck, and improvement traceable to graph evidence.
+Static repository analyzer for efficient development with AI agents. It models what an AI agent can read and explore as a graph: nodes are readable and explorable repository entities, and edges are connection between nodes in code exploration including dependency, mention, or framework-inferred exploration steps. The analyzer reports minimum/expected/maximum discovery cost and the zone of effect to verify before modifying a target. Without a task, it analyzes graph-wide PageRank, centrality, potential zones of effect, and abnormal subgraphs. Bottlenecks, abnormal subgraphs, metrics, and improvement reports are outcomes.
 
 # Documentation Guide
 
