@@ -63,20 +63,32 @@ code_hash: <hash of participating files' non-comment content>
 
 ## Architecture Decision Record Rule
 
-To write ADR, prompt user with your decision. (Do not write by your decision)
+To write ADR, prompt user with checklists & contents below. Do not write by your decision.
+ADRs record past architectural decisions; they are not immutable principles.
 
 ### Checklist for updating ADR
 
-1. The decision is expensive to reverse
-2. A concrete alternative was seriously considered and rejected.
-3. The reasoning cannot be recovered by reading the code.
+Create an ADR only if all of the following are true:
 
-### Proposal
+- [ ] The decision is expensive or risky to reverse.
+- [ ] A concrete alternative was seriously considered and rejected.
+- [ ] The reason for the decision cannot be reliably recovered from the code alone.
 
+### Contents
+
+- Title / Status
 - Context
 - Decision
-- Alternatives: with reason to reject
-- Consequences: expected consequences of this decision
+- Alternatives: acutally considered but rejected (capped to 1-2)
+- Consequences: positive / negative (capped to 1-2 each)
+
+#### DO NOT Include
+
+- Any tutorials, concepts.
+- Any rhetoric expressions.
+- Any non-deterministic sentences.
+- Any non-falsifiable sentences.
+- Any Session-dependent sentences.
 
 # Task Guide
 
