@@ -65,7 +65,7 @@ turn, search/read tool call, query output token, readable node token과 재방�
 
 ## Cost scenario ordering
 
-weighted minimum은 최적 경로, expected는 unrestricted random query 선택, maximum은 BFS 안에서 가장 불리한 순서다. 서로 같은 탐색 정책의 최소·평균·최대가 아니므로 BFS maximum이 Monte Carlo expected의 상한이라는 보장은 없다. 세 값을 같은 확률 과정에 맞춰 정렬할지, 서로 다른 기준 시나리오로 유지할지 추후 검토한다.
+세 비용이 결과 그룹 소진 규칙을 공유하고 순서 선택만 달리한다는 점은 `ROADMAP.md`에서 확정했다. 남은 질문은 재방문 확률을 0보다 크게 둘 때다. 그 경우 기대 비용이 BFS 최대 비용을 넘을 수 있으므로, 재방문을 최대 비용에도 반영할지 순서 보장을 포기할지 결정해야 한다.
 
 ## Revisit calibration
 

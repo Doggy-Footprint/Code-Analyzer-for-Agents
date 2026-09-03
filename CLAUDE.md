@@ -1,6 +1,9 @@
 # Project Definition
 
-Static repository analyzer that approximates a repository from an AI coding agent's point of view. Readable repository entities and explicit search actions form a graph built from exact queries, static code relations, document or comment mentions, and deterministic framework knowledge. The analyzer measures minimum, Monte Carlo expected, and BFS-maximum target-discovery cost across separate turn, tool-call, and token axes. It also reports the potential zone of effect that should be verified before modifying a target and ranks that zone by verification accessibility without treating accessibility as impact importance. Task-less analysis reports graph metrics, hard-to-reach effects, abnormal subgraphs, structural bottlenecks, and evidence-backed improvement candidates. Semantically inferred connections with no reproducible repository hint are out of scope. `ROADMAP.md` is the normative project contract; unresolved decisions belong in `IDEA.md`.
+Measures how discoverable a repository is to an AI coding agent, and how safely that agent can change it.
+Scope is limited to what an agent can reproducibly observe in the repository, so results stay deterministic and traceable instead of judging code quality or task difficulty.
+The point is to expose what is hard to find, easy to miss, and expensive to explore, and to show what restructuring would actually relieve.
+Outputs are the cost of finding a change target, the range that must be verified before changing it ranked by how likely an agent is to reach it, and the structural bottlenecks behind both, each traceable to its evidence.
 
 # Documentation Guide
 
