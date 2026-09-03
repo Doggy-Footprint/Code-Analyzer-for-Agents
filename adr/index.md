@@ -1,5 +1,5 @@
 File: 5670fc77af218b64-shell-consistent-exploration-order.md
-Summary: Defines a valid single-target exploration order as non-decreasing weighted-distance shells, giving closed-form min (shortest path), max (cost ball), and expected (full weight below target's distance, half weight on ties) costs.
+Summary: Defines shell-consistent traversal, exact full-recall multi-target costs, and confidence-based optimistic/baseline/pessimistic exploration scenarios.
 Related Files: analysis/exploration_cost.py, analysis/graph_metrics.py, analysis/tasks.py, code_analyzer/cli.py
 Related Symbols: ExplorationCostAnalyzer, TargetDiscoveryCost, TaskExplorationCostReport, TaskSeedResolver
 

@@ -1,6 +1,6 @@
 # Shell-Consistent Exploration Order for Min/Expected/Max Cost
 
-**Status:** Proposed
+**Status:** Accepted
 **Date:** 2026-09-02
 **Decider:** Repository owner
 
@@ -10,12 +10,16 @@ M1 requires a minimum, expected, and maximum exploration cost for discovering a 
 
 ## Decision
 
-Define a valid exploration order as **shell-consistent**: nodes are opened in non-decreasing node-weighted graph distance from the start frontier (the same distance a node-weighted Dijkstra run produces), and only the relative order of nodes tied at the same distance is treated as random.
+Define a valid exploration order as **shell-consistent**: nodes are opened in non-decreasing node-weighted graph distance from the start frontier (the same distance a node-weighted Dijkstra run produces), and only the relative order of nodes tied at the same distance is treated as random. The exploration graph is undirected over every graph relation.
 
 This gives closed-form, deterministic costs from a single Dijkstra run:
 - **Min** = the weighted shortest-path cost to the target (`dist[target]`).
 - **Max** = the total cost of every node whose distance is `<= dist[target]` (the "cost ball"), since none of them can be ruled out as irrelevant before being opened.
 - **Expected** = every node strictly closer than the target counted at full weight (it is opened before the target under any shell-consistent order, not merely likely to be), plus the target's own cost, plus half the cost of every node tied with the target at the same distance (by pairwise symmetry, each tied node has exactly a 1/2 chance of being opened before the target under a uniformly random order within the tie).
+
+Multi-target tasks require full recall. Their minimum is the exact minimum-cost node-weighted Steiner tree joining one start node and every target; shared nodes are charged once. Their expected and maximum costs use the shell containing the furthest required target. In that final shell, each non-target node is charged by the probability that it appears before the last required target.
+
+Confidence ranges are edge-inclusion scenarios, because the model charges node reads rather than edge traversal: optimistic includes every confidence level, baseline excludes `dynamic_required`, and pessimistic retains only `static_certain` edges.
 
 ## Alternatives Considered
 
@@ -26,4 +30,4 @@ This gives closed-form, deterministic costs from a single Dijkstra run:
 
 - `ball_node_ids` (the set of nodes within the target's weighted distance) becomes a reusable concept: it is both the max-cost node set and, once M3 defines structural bottlenecks, is expected to be reused there as the "non-target candidates exposed" set referenced in ROADMAP.md's 부가 산출물 table. Changing this distance model later would change that downstream meaning too.
 - Any node with a strictly-vendored/generated cost multiplier of 0 on a tied or closer path is invisible to expected/max cost even though it is still traversed — consistent with how `effective_token_cost` already treats those nodes elsewhere.
-- This decision applies only to single-target tasks (M1's first slice). Extending it to multi-target full-recall tasks is not yet defined and is out of scope here.
+- Multi-target exact minimization is exponential in the number of required targets; it is appropriate for the labeled M1 task sets, not an unbounded bulk query API.

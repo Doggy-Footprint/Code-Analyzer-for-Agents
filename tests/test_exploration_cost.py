@@ -263,9 +263,8 @@ class TargetInSeedFrontierTests(unittest.TestCase):
 
 
 class MultiTargetTests(unittest.TestCase):
-    """Row #9 (zero targets) and row #10 (2+ targets, other tasks still processed)."""
 
-    def test_zero_targets_is_unsupported(self):
+    def test_zero_targets_has_an_explicit_status(self):
         nodes = [_node("seed", 1)]
         metrics = _metrics(nodes, [])
         task = TaskDefinition(
@@ -274,7 +273,7 @@ class MultiTargetTests(unittest.TestCase):
         )
         result = _compute_one(task, nodes, [], metrics)
 
-        self.assertEqual(result.status, "unsupported_multi_target")
+        self.assertEqual(result.status, "empty_target_set")
         self.assertIsNone(result.target_node_id)
         self.assertIsNone(result.unresolved_seed_count)
         self.assertIsNone(result.min_cost)
@@ -284,22 +283,83 @@ class MultiTargetTests(unittest.TestCase):
         self.assertEqual(result.min_path_node_ids, ())
         self.assertEqual(result.ball_node_ids, ())
 
-    def test_multiple_targets_is_unsupported_but_sibling_tasks_still_run(self):
-        nodes = [_node("seed", 1), _node("target", 1)]
-        edges = [_edge("seed", "target")]
+    def test_multiple_targets_charge_shared_nodes_once_and_sibling_tasks_still_run(self):
+        nodes = [_node("seed", 1), _node("a", 2), _node("b", 3), _node("target", 1)]
+        edges = [_edge("seed", "a"), _edge("a", "target"), _edge("seed", "b")]
         metrics = _metrics(nodes, edges)
         multi_task = TaskDefinition(
             id="multi", type=TaskType.BUG_FIX,
-            seeds=(SeedQuery(SeedKind.SYMBOL, "seed"),),
-            target_node_ids=frozenset({"target", "seed"}),
+            seeds=(SeedQuery(SeedKind.SYMBOL, "seed"),), target_node_ids=frozenset({"a", "target"}),
         )
         ok_task = _task("single", "seed", {"target"})
 
         report = ExplorationCostAnalyzer().compute([multi_task, ok_task], nodes, edges, metrics)
 
-        self.assertEqual(report.results[0].status, "unsupported_multi_target")
+        self.assertEqual(report.results[0].status, "ok")
+        self.assertEqual(report.results[0].min_cost, 4)
+        self.assertEqual(report.results[0].expected_cost, 5.5)
+        self.assertEqual(report.results[0].max_cost, 7)
+        self.assertEqual(report.results[0].target_node_ids, ("a", "target"))
+        self.assertEqual(dict(report.results[0].target_min_path_node_ids), {
+            "a": ("seed", "a"), "target": ("seed", "a", "target"),
+        })
+        for _name, minimum, expected, maximum in report.results[0].confidence_costs:
+            self.assertLessEqual(minimum, expected)
+            self.assertLessEqual(expected, maximum)
         self.assertEqual(report.results[1].status, "ok")
-        self.assertEqual(report.results[1].min_cost, 2)
+        self.assertEqual(report.results[1].min_cost, 4)
+
+    def test_two_targets_in_the_final_shell_use_full_recall_and_its_exact_coefficient(self):
+        nodes = [_node("seed", 1), _node("left", 2), _node("right", 2), _node("decoy", 2)]
+        edges = [_edge("seed", "left"), _edge("seed", "right"), _edge("seed", "decoy")]
+        metrics = _metrics(nodes, edges)
+        result = _compute_one(_task("two-final-targets", "seed", {"left", "right"}), nodes, edges, metrics)
+
+        self.assertEqual((result.min_cost, result.max_cost), (5, 7))
+        self.assertEqual(result.expected_cost, 1 + 2 + 2 + (2 * 2 / 3))
+        self.assertLess(result.min_cost, 3 + 3)
+
+    def test_any_unreachable_target_makes_full_recall_unreachable(self):
+        nodes = [_node("seed", 1), _node("reachable", 1), _node("island", 1)]
+        metrics = _metrics(nodes, [_edge("seed", "reachable")])
+        result = _compute_one(_task("partial", "seed", {"reachable", "island"}), nodes, [_edge("seed", "reachable")], metrics)
+
+        self.assertEqual(result.status, "target_unreachable")
+        self.assertEqual(result.unreachable_target_node_ids, ("island",))
+        self.assertEqual(dict(result.target_min_path_node_ids), {"reachable": ("seed", "reachable")})
+
+    def test_exact_minimum_can_prefer_a_shared_route_over_each_target_shortest_path(self):
+        nodes = [
+            _node("seed", 1), _node("a", 2), _node("b", 2), _node("hub", 3),
+            _node("left", 1), _node("right", 1),
+        ]
+        edges = [
+            _edge("seed", "a"), _edge("a", "left"), _edge("seed", "b"), _edge("b", "right"),
+            _edge("seed", "hub"), _edge("hub", "left"), _edge("hub", "right"),
+        ]
+        metrics = _metrics(nodes, edges)
+        result = _compute_one(_task("shared-steiner", "seed", {"left", "right"}), nodes, edges, metrics)
+
+        self.assertEqual(result.min_cost, 6)
+        self.assertEqual(dict(result.target_min_path_node_ids), {
+            "left": ("seed", "a", "left"), "right": ("seed", "b", "right"),
+        })
+
+    def test_multi_source_minimum_uses_one_start_node_for_the_complete_tree(self):
+        nodes = [_node("seed-a", 1), _node("seed-b", 1), _node("hub", 4), _node("left", 1), _node("right", 1)]
+        edges = [
+            _edge("seed-a", "left"), _edge("seed-a", "hub"), _edge("hub", "right"),
+            _edge("seed-b", "right"), _edge("seed-b", "hub"), _edge("hub", "left"),
+        ]
+        metrics = _metrics(nodes, edges)
+        task = TaskDefinition(
+            id="one-source", type=TaskType.BUG_FIX,
+            seeds=(SeedQuery(SeedKind.SYMBOL, "seed-a"), SeedQuery(SeedKind.SYMBOL, "seed-b")),
+            target_node_ids=frozenset({"left", "right"}),
+        )
+        result = _compute_one(task, nodes, edges, metrics)
+
+        self.assertEqual(result.min_cost, 7)
 
 
 class AdjacencyConstructionTests(unittest.TestCase):
@@ -325,6 +385,17 @@ class AdjacencyConstructionTests(unittest.TestCase):
 
         self.assertEqual(result.status, "ok")
         self.assertEqual(result.min_cost, 3)
+
+    def test_edges_are_traversable_in_reverse_for_every_relation_kind(self):
+        relation_kinds = [value for name, value in vars(RelationKind).items() if name.isupper()]
+        for relation in relation_kinds:
+            nodes = [_node("seed", 1), _node("target", 2)]
+            edges = [_edge("target", "seed", relation)]
+            metrics = _metrics(nodes, edges)
+            result = _compute_one(_task(f"reverse-{relation}", "seed", {"target"}), nodes, edges, metrics)
+
+            self.assertEqual(result.status, "ok")
+            self.assertEqual(result.min_cost, 3)
         self.assertEqual(result.min_path_node_ids, ("seed", "target"))
         self.assertEqual(result.ball_node_ids, ("seed", "target"))
 
@@ -441,12 +512,83 @@ class ReportShapeTests(unittest.TestCase):
         restored = json.loads(json.dumps(payload, ensure_ascii=False))
         self.assertEqual(
             sorted(restored["results"][0]),
-            [
+            sorted([
                 "ball_node_ids", "expected_cost", "max_cost", "min_cost", "min_path_node_ids",
                 "start_frontier_node_ids", "status", "target_node_id", "task_id", "task_type",
-                "unresolved_seed_count",
-            ],
+                "unresolved_seed_count", "target_node_ids", "unreachable_target_node_ids",
+                "target_min_path_node_ids", "confidence_costs",
+            ]),
         )
+        self.assertEqual(restored["results"][0]["target_node_ids"], ["target"])
+        self.assertEqual(restored["results"][0]["target_min_path_node_ids"], {"target": ["seed", "target"]})
+        self.assertEqual(restored["results"][0]["unreachable_target_node_ids"], [])
+        self.assertEqual(restored["results"][0]["confidence_costs"]["baseline"], {
+            "min_cost": 2.0, "expected_cost": 2.0, "max_cost": 2.0,
+        })
+
+    def test_to_dict_preserves_multi_target_and_unreachable_evidence(self):
+        nodes = [_node("seed", 1), _node("reachable", 1), _node("island", 1)]
+        edges = [_edge("seed", "reachable")]
+        metrics = _metrics(nodes, edges)
+        result = _compute_one(_task("serialized-partial", "seed", {"reachable", "island"}), nodes, edges, metrics)
+
+        payload = result.to_dict()
+        self.assertEqual(payload["target_node_ids"], ["island", "reachable"])
+        self.assertEqual(payload["unreachable_target_node_ids"], ["island"])
+        self.assertEqual(payload["target_min_path_node_ids"], {"reachable": ["seed", "reachable"]})
+        self.assertEqual(payload["confidence_costs"]["optimistic"], {
+            "min_cost": None, "expected_cost": None, "max_cost": None,
+        })
+        self.assertEqual(payload["confidence_costs"]["pessimistic"], {
+            "min_cost": None, "expected_cost": None, "max_cost": None,
+        })
+
+
+class ConfidenceScenarioTests(unittest.TestCase):
+    def test_confidence_scenarios_bound_costs_and_keep_baseline_as_default(self):
+        nodes = [_node("seed", 1), _node("mid", 1), _node("target", 1)]
+        edges = [
+            _edge("seed", "target", RelationKind.CALLS),
+            _edge("seed", "mid", RelationKind.CALLS),
+            _edge("mid", "target", RelationKind.CALLS),
+        ]
+        edges[0].confidence = "dynamic_required"
+        metrics = _metrics(nodes, edges)
+        result = _compute_one(_task("confidence", "seed", {"target"}), nodes, edges, metrics)
+
+        self.assertEqual((result.min_cost, result.expected_cost, result.max_cost), (3, 3, 3))
+        scenarios = dict((name, (minimum, expected, maximum)) for name, minimum, expected, maximum in result.confidence_costs)
+        self.assertEqual(scenarios["optimistic"], (2, 2.5, 3))
+        self.assertEqual(scenarios["baseline"], (3, 3, 3))
+        self.assertEqual(scenarios["pessimistic"], (3, 3, 3))
+        for minimum, expected, maximum in scenarios.values():
+            self.assertLessEqual(minimum, expected)
+            self.assertLessEqual(expected, maximum)
+
+    def test_static_inferred_edges_are_available_to_baseline_but_not_pessimistic(self):
+        nodes = [_node("seed", 1), _node("target", 1)]
+        edges = [_edge("seed", "target")]
+        edges[0].confidence = "static_inferred"
+        metrics = _metrics(nodes, edges)
+        result = _compute_one(_task("inferred", "seed", {"target"}), nodes, edges, metrics)
+
+        scenarios = dict((name, (minimum, expected, maximum)) for name, minimum, expected, maximum in result.confidence_costs)
+        self.assertEqual(scenarios["optimistic"], (2, 2, 2))
+        self.assertEqual(scenarios["baseline"], (2, 2, 2))
+        self.assertEqual(scenarios["pessimistic"], (None, None, None))
+
+    def test_top_level_result_uses_unreachable_baseline_not_reachable_optimistic_costs(self):
+        nodes = [_node("seed", 1), _node("target", 1)]
+        edges = [_edge("seed", "target")]
+        edges[0].confidence = "dynamic_required"
+        metrics = _metrics(nodes, edges)
+        result = _compute_one(_task("dynamic-only", "seed", {"target"}), nodes, edges, metrics)
+
+        scenarios = dict((name, (minimum, expected, maximum)) for name, minimum, expected, maximum in result.confidence_costs)
+        self.assertEqual(result.status, "target_unreachable")
+        self.assertEqual((result.min_cost, result.expected_cost, result.max_cost), (None, None, None))
+        self.assertEqual(scenarios["optimistic"], (2, 2, 2))
+        self.assertEqual(scenarios["baseline"], (None, None, None))
 
     def test_collection_rows_expose_all_columns_with_status_specific_blanks(self):
         nodes = [_node("seed", 1, label="seed"), _node("target", 1)]
