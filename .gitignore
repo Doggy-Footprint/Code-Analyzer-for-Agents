@@ -17,3 +17,5 @@ tmp/
 
 **/.gradle/
 .DS_Store
+
+user_notes/
