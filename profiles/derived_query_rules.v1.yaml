@@ -1,0 +1,32 @@
+id: derived_query_rules.v1
+version: 1
+limits:
+  max_arrival_nodes: 50
+  min_term_length: 3
+  max_file_bytes: 1048576
+include_agent_docs: true
+respect_gitignore: true
+transforms:
+  - id: split-case
+  - id: token-adjacent-pairs
+  - id: normalize-case
+  - id: plural-singular
+  - id: strip-affix
+    prefixes:
+      - get
+      - set
+      - is
+      - has
+      - on
+      - handle
+      - build
+      - create
+    suffixes:
+      - Impl
+      - Service
+      - Controller
+      - Handler
+      - Manager
+      - Factory
+      - ViewModel
+      - Repository

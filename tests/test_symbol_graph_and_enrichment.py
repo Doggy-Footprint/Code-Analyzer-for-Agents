@@ -27,7 +27,7 @@ def _node(node_id, cost, flags=None):
     )
 
 
-class TestM1CostAndScalePolicy(unittest.TestCase):
+class TestCostAndScalePolicy(unittest.TestCase):
     def test_raw_and_effective_costs_preserve_nodes(self):
         nodes = [
             _node("ordinary", 10),
@@ -160,7 +160,7 @@ class TestM1CostAndScalePolicy(unittest.TestCase):
         self.assertEqual(report["neighborhood_strategy"], "single_bfs_to_3_hops")
 
 
-class TestM1RepositoryEnrichment(unittest.TestCase):
+class TestRepositoryEnrichment(unittest.TestCase):
     def test_test_relations_use_references_and_exclude_test_targets(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -300,7 +300,7 @@ class TestM1RepositoryEnrichment(unittest.TestCase):
             self.assertNotIn("Widget", targets)
 
 
-class TestM1NeutralContracts(unittest.TestCase):
+class TestNeutralContracts(unittest.TestCase):
     def test_python_unresolved_location_and_all_edge_evidence(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -426,7 +426,7 @@ class TestM1NeutralContracts(unittest.TestCase):
 
 
 @unittest.skipUnless(_HAS_TREE_SITTER, "tree-sitter-language-pack not installed")
-class TestM1LanguageRelations(unittest.TestCase):
+class TestLanguageRelations(unittest.TestCase):
     def test_typescript_reads_and_writes(self):
         from language_analyzers.typescript import TypeScriptAnalyzer
 

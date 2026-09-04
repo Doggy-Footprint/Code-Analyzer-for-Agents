@@ -1,8 +1,10 @@
+import ast
 import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+import framework_analyzers.android.graph as android_graph
 from framework_analyzers.android.graph import AndroidArchitectureGraphBuilder
 from framework_analyzers.android.models import AndroidProjectArchitecture, DiBindingInfo
 from language_analyzers.core.graph_models import GraphNode, NodeKind, RelationKind
@@ -92,6 +94,66 @@ class AndroidGraphContractTests(unittest.TestCase):
             injected_type="InjectedType",
             owner_class_name=owner,
             field_name=field,
+        )
+
+
+class AndroidFrameworkRuleDeclarationTests(unittest.TestCase):
+    def test_built_framework_edges_carry_their_declared_rule(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "MainActivity.kt"
+            source.write_text("class MainActivity\n", encoding="utf-8")
+            architecture = AndroidProjectArchitecture(
+                project_name="sample",
+                project_path=str(root),
+                di_bindings=[AndroidGraphContractTests._binding("resolved", source, "Owner", "existing")],
+            )
+            language_nodes = [
+                GraphNode(
+                    id="kotlin-owner", label="Owner", group=NodeKind.CLASS, category=NodeKind.CLASS,
+                    provenance="kotlin-core",
+                    metadata={"file_path": str(source), "qualname": "Owner"},
+                ),
+                GraphNode(
+                    id="kotlin-field", label="existing", group=NodeKind.FIELD, category=NodeKind.FIELD,
+                    provenance="kotlin-core",
+                    metadata={"file_path": str(source), "qualname": "Owner.existing"},
+                ),
+            ]
+
+            with patch("framework_analyzers.android.graph.KotlinAnalyzer") as analyzer:
+                analyzer.return_value.build.return_value = (language_nodes, [])
+                result = AndroidArchitectureGraphBuilder().build_graph(architecture)
+
+        implementation = next(
+            edge for edge in result.edges if edge.relation == RelationKind.IMPLEMENTED_BY
+        )
+        self.assertEqual(
+            implementation.metadata["framework_rule"],
+            {"id": "android.implemented_by", "specificity": "unique"},
+        )
+
+
+    def test_every_emitted_framework_relation_declares_a_rule(self):
+        source = Path(android_graph.__file__).read_text(encoding="utf-8")
+        emitted = {
+            keyword.value.value
+            for node in ast.walk(ast.parse(source))
+            if isinstance(node, ast.Call)
+            for keyword in node.keywords
+            if keyword.arg == "relation"
+            and isinstance(keyword.value, ast.Constant)
+            and isinstance(keyword.value.value, str)
+        }
+
+        undeclared = emitted - set(AndroidArchitectureGraphBuilder.FRAMEWORK_RULE_SPECIFICITY)
+
+        self.assertEqual(undeclared, set())
+
+    def test_declared_specificities_are_within_the_contract(self):
+        self.assertEqual(
+            set(AndroidArchitectureGraphBuilder.FRAMEWORK_RULE_SPECIFICITY.values()) - {"unique", "narrowing"},
+            set(),
         )
 
 

@@ -19,7 +19,7 @@ from .graph_models import (
 _CODE_SUFFIXES = {".py", ".pyi", ".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".kt", ".kts"}
 _CONFIG_NAMES = {".env"}
 _CONFIG_SUFFIXES = {".json", ".yaml", ".yml", ".toml", ".properties"}
-_STRING_RE = re.compile(r"(?P<quote>['\"])(?P<value>[^'\"\r\n]+)(?P=quote)")
+STRING_RE = re.compile(r"(?P<quote>['\"])(?P<value>[^'\"\r\n]+)(?P=quote)")
 
 
 def enrich_repository(architecture: Any) -> Any:
@@ -120,7 +120,7 @@ def _add_configuration_relations(root: Path, nodes: List[GraphNode], edges: List
             text = path.read_text(encoding="utf-8")
         except (OSError, UnicodeError):
             continue
-        for index, (key, line) in enumerate(_config_keys(path, text)):
+        for index, (key, line) in enumerate(config_keys(path, text)):
             node_id = f"config:{relative}:{line}:{index}:{key}"
             config_node = GraphNode(
                 id=node_id,
@@ -143,10 +143,10 @@ def _add_configuration_relations(root: Path, nodes: List[GraphNode], edges: List
                     code_text = (root / code_path).read_text(encoding="utf-8")
                 except (OSError, UnicodeError):
                     continue
-                matches = [match for match in _STRING_RE.finditer(code_text) if match.group("value") == key]
+                matches = [match for match in STRING_RE.finditer(code_text) if match.group("value") == key]
                 for match in matches:
                     use_line = code_text.count("\n", 0, match.start()) + 1
-                    consumer = _smallest_node_at_line(candidates, use_line)
+                    consumer = smallest_node_at_line(candidates, use_line)
                     if consumer is not None:
                         _append_edge(
                             edges, existing, node_id, consumer.id, RelationKind.CONFIGURES,
@@ -165,7 +165,7 @@ def _discover_config_files(root: Path) -> Iterable[Path]:
             yield path
 
 
-def _config_keys(path: Path, text: str) -> List[Tuple[str, int]]:
+def config_keys(path: Path, text: str) -> List[Tuple[str, int]]:
     suffix = path.suffix.lower()
     if suffix == ".json":
         try:
@@ -209,7 +209,7 @@ def _first_line(text: str, value: str) -> int:
     return text.count("\n", 0, match.start()) + 1 if match else 1
 
 
-def _smallest_node_at_line(nodes: Sequence[GraphNode], line: int) -> Optional[GraphNode]:
+def smallest_node_at_line(nodes: Sequence[GraphNode], line: int) -> Optional[GraphNode]:
     matches = [
         node for node in nodes
         if node.span is not None and node.span.start_line <= line <= node.span.end_line

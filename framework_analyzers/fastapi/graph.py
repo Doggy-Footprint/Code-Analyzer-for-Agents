@@ -110,6 +110,16 @@ class ArchitectureGraphBuilder:
         self.include_dependencies = include_dependencies
         self.include_language_graph = include_language_graph
 
+    FRAMEWORK_RULE_SPECIFICITY = {
+        "MIDDLEWARE_OF": "unique",
+        "INCLUDES": "unique",
+        "ROUTES": "unique",
+        "DEPENDS_ON": "unique",
+        "SUB_DEPENDENCY": "unique",
+        "REQUEST_BODY": "unique",
+        "RESPONSE_MODEL": "unique",
+    }
+
     def build_graph(self, arch: ProjectArchitecture) -> ProjectArchitecture:
         nodes: List[GraphNode] = []
         edges: List[GraphEdge] = []
@@ -386,7 +396,8 @@ class ArchitectureGraphBuilder:
         deps_counter = Counter([d for ep in arch.endpoints for d in ep.dependencies])
 
         annotate_nodes(nodes, arch.project_path, self.PROVENANCE, "python")
-        mark_edges(edges, nodes=nodes)
+        mark_edges(edges, nodes=nodes, rule_namespace="fastapi",
+                   rule_specificity=self.FRAMEWORK_RULE_SPECIFICITY)
         if self.include_language_graph:
             language_nodes, language_edges = self._language_graph(arch)
             known = {node.id for node in nodes}
@@ -446,6 +457,7 @@ class ArchitectureGraphBuilder:
                 confidence=Confidence.FRAMEWORK_INFERRED,
                 resolution=Resolution.EXACT,
                 evidence=SourceSpan(file_path, line, line),
+                metadata={"framework_rule": {"id": "fastapi.implemented_by", "specificity": "unique"}},
             ))
         return edges
 

@@ -1,13 +1,15 @@
 import contextlib
 import importlib.util
 import io
+import json
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
 
 import analysis
-from code_analyzer.cli import parse_args
+from code_analyzer.cli import main, parse_args
 
 
 class RemovedCliArgumentsTests(unittest.TestCase):
@@ -28,6 +30,33 @@ class RemovedCliArgumentsTests(unittest.TestCase):
                 self.assertEqual(raised.exception.code, 2)
                 self.assertIn("unrecognized arguments", stderr.getvalue())
                 self.assertIn(arguments[0], stderr.getvalue())
+
+
+class AgentViewCliArgumentTests(unittest.TestCase):
+    def parse(self, arguments):
+        with patch.object(sys, "argv", ["code-analyzer", ".", *arguments]):
+            return parse_args()
+
+    def test_agent_view_arguments_are_accepted(self):
+        args = self.parse(["--agent-view", "view.json", "--agent-view-profile", "rules.yaml"])
+
+        self.assertEqual(args.agent_view, "view.json")
+        self.assertEqual(args.agent_view_profile, "rules.yaml")
+        self.assertIsNone(args.agent_view_diff)
+
+    def test_agent_view_diff_takes_two_paths(self):
+        args = self.parse(["--agent-view-diff", "before.json", "after.json"])
+
+        self.assertEqual(args.agent_view_diff, ["before.json", "after.json"])
+
+    def test_agent_view_profile_without_agent_view_exits_with_code_two(self):
+        stderr = io.StringIO()
+        with contextlib.redirect_stderr(stderr):
+            with self.assertRaises(SystemExit) as raised:
+                self.parse(["--agent-view-profile", "rules.yaml"])
+
+        self.assertEqual(raised.exception.code, 2)
+        self.assertIn("--agent-view-profile", stderr.getvalue())
 
 
 class RemovedDiagnosticsApiTests(unittest.TestCase):
@@ -70,6 +99,55 @@ class RemovedDiagnosticsApiTests(unittest.TestCase):
             with self.subTest(module_name=module_name):
                 self.assertIsNone(importlib.util.find_spec(module_name))
                 self.assertFalse((root / Path(*module_name.split("."))).with_suffix(".py").exists())
+
+
+class AgentViewCliBehaviourTests(unittest.TestCase):
+    def test_agent_view_writes_the_serialized_graph_to_the_given_path(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "app.py").write_text("handler = 1\n", encoding="utf-8")
+            output = root / "graph.json"
+
+            argv = ["code-analyzer", str(root), "-l", "python",
+                    "-o", str(root / "report.html"), "--agent-view", str(output)]
+            with patch.object(sys, "argv", argv):
+                with contextlib.redirect_stdout(io.StringIO()):
+                    main()
+
+            payload = json.loads(output.read_text(encoding="utf-8"))
+
+        self.assertEqual(
+            sorted(payload),
+            ["framework_links", "profile", "project_name", "query_nodes",
+             "readable_nodes", "scan", "schema_version", "unreachable_node_ids"],
+        )
+        self.assertIn("handler", [node["term"] for node in payload["query_nodes"]])
+
+    def test_agent_view_diff_prints_a_diff_and_ignores_a_missing_project_path(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            before = root / "before.json"
+            after = root / "after.json"
+            before.write_text(json.dumps({
+                "readable_nodes": [{"id": "gone", "flags": [], "read_cost": {"token_estimate": 1}}],
+                "query_nodes": [], "framework_links": [], "profile": {"version": 1},
+            }), encoding="utf-8")
+            after.write_text(json.dumps({
+                "readable_nodes": [{"id": "fresh", "flags": [], "read_cost": {"token_estimate": 1}}],
+                "query_nodes": [], "framework_links": [], "profile": {"version": 1},
+            }), encoding="utf-8")
+
+            argv = ["code-analyzer", str(root / "does-not-exist"),
+                    "--agent-view-diff", str(before), str(after)]
+            stdout = io.StringIO()
+            with patch.object(sys, "argv", argv):
+                with contextlib.redirect_stdout(stdout):
+                    main()
+
+        result = json.loads(stdout.getvalue())
+
+        self.assertEqual(result["readable_nodes"]["added"], ["fresh"])
+        self.assertEqual(result["readable_nodes"]["removed"], ["gone"])
 
 
 if __name__ == "__main__":

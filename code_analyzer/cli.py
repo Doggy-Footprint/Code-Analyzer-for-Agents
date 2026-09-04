@@ -8,6 +8,7 @@ import sys
 import webbrowser
 from pathlib import Path
 
+from agent_view import build_agent_view, diff_agent_view, graph_to_json, load_profile
 from analysis import GraphAnalyzer
 from language_analyzers.core.serialization import architecture_to_dict
 
@@ -103,14 +104,45 @@ def parse_args():
         action="store_true",
         help="Print Mermaid diagram markdown to stdout.",
     )
+    parser.add_argument(
+        "--agent-view",
+        default=None,
+        metavar="PATH",
+        help="Write the deterministic agent-view graph (readable nodes, query nodes, framework links) as JSON.",
+    )
+    parser.add_argument(
+        "--agent-view-diff",
+        nargs=2,
+        default=None,
+        metavar=("BEFORE", "AFTER"),
+        help="Print the diff between two agent-view JSON files and exit.",
+    )
+    parser.add_argument(
+        "--agent-view-profile",
+        default=None,
+        metavar="PATH",
+        help="Override the derived-query rule profile used by --agent-view.",
+    )
     args = parser.parse_args()
     if (args.language or args.framework != "fastapi") and (args.entrypoint or args.app):
         parser.error("--entrypoint and --app are only supported with --framework fastapi")
+    if args.agent_view_profile and not args.agent_view:
+        parser.error("--agent-view-profile requires --agent-view")
     return args
 
 
 def main():
     args = parse_args()
+
+    if args.agent_view_diff:
+        before_path, after_path = args.agent_view_diff
+        with open(before_path, encoding="utf-8") as handle:
+            before = json.load(handle)
+        with open(after_path, encoding="utf-8") as handle:
+            after = json.load(handle)
+        print(json.dumps(diff_agent_view(before, after), indent=2, sort_keys=True))
+        return
+
     project_path = Path(args.project_path).resolve()
 
     if not project_path.exists():
@@ -174,6 +206,14 @@ def main():
         with open(json_output_path, "w", encoding="utf-8") as f:
             json.dump(architecture_to_dict(arch), f, indent=2, ensure_ascii=False, default=str)
         print(f"[✓] Exported architecture JSON: {json_output_path}")
+
+    if args.agent_view:
+        profile = load_profile(args.agent_view_profile) if args.agent_view_profile else None
+        agent_view_path = Path(args.agent_view)
+        agent_view_path.write_text(
+            graph_to_json(build_agent_view(arch, profile=profile)), encoding="utf-8"
+        )
+        print(f"[✓] Exported agent-view graph: {agent_view_path}")
 
     if args.mermaid:
         if builder is None:

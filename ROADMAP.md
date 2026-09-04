@@ -224,7 +224,7 @@ graph-wide 분석에서 문제가 될 소지가 높은 target을 선정하고, s
 
 완료 조건: 모든 기준 문서가 동일한 목적과 용어를 사용하고, 기존 기능마다 유지·교체·제거 상태가 지정된다.
 
-### M1. Agent-view graph
+### M1. Agent-view graph — 완료
 
 - readable node와 query node 모델
 - exact query 추출과 고유 도착 노드 50개 제한

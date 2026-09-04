@@ -89,6 +89,21 @@ class AndroidArchitectureGraphBuilder:
         self.include_dependencies = include_dependencies
         self.include_language_graph = include_language_graph
 
+    FRAMEWORK_RULE_SPECIFICITY = {
+        "CALLS": "unique",
+        "USES_VIEWMODEL": "unique",
+        "PROVIDES": "unique",
+        "BINDS": "unique",
+        "INSTALLS_IN": "unique",
+        "INJECTS": "unique",
+        "CALLS_API": "unique",
+        "ROUTES": "unique",
+        "QUERIES": "unique",
+        "CONTAINS": "unique",
+        "DEFINES_ENTITY": "unique",
+        "HOSTS": "unique",
+    }
+
     def build_graph(self, arch: AndroidProjectArchitecture) -> AndroidProjectArchitecture:
         nodes: List[GraphNode] = []
         edges: List[GraphEdge] = []
@@ -287,7 +302,8 @@ class AndroidArchitectureGraphBuilder:
                     edges.append(GraphEdge(from_id=af.id, to_id=target.id, relation="HOSTS", color="#9CA3AF"))
 
         annotate_nodes(nodes, arch.project_path, "android", "kotlin")
-        mark_edges(edges, nodes=nodes)
+        mark_edges(edges, nodes=nodes, rule_namespace="android",
+                   rule_specificity=self.FRAMEWORK_RULE_SPECIFICITY)
         if self.include_language_graph:
             try:
                 language_nodes, language_edges = KotlinAnalyzer(arch.project_path).build()
@@ -334,6 +350,7 @@ class AndroidArchitectureGraphBuilder:
                 from_id=source_id, to_id=target_id, relation=RelationKind.IMPLEMENTED_BY,
                 confidence=Confidence.FRAMEWORK_INFERRED, resolution=Resolution.UNIQUE_NAME,
                 evidence=SourceSpan(Path(file_path).as_posix(), 1, 1),
+                metadata={"framework_rule": {"id": "android.implemented_by", "specificity": "unique"}},
             ))
             return True
 

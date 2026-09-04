@@ -24,6 +24,9 @@ class M0DocumentationContractTests(unittest.TestCase):
             self.roadmap,
         )
 
+    def test_roadmap_records_m1_as_complete(self):
+        self.assertIn("### M1. Agent-view graph — 완료", self.roadmap)
+
     def test_readme_links_to_the_single_contract_without_copying_it(self):
         self.assertIn("[ROADMAP.md](ROADMAP.md): 단일 분석 계약", self.readme)
         self.assertIn("potential zone of effect, verification accessibility", self.readme)

@@ -2,6 +2,7 @@
 Unit tests for FastAPI Visualizer static analysis, graph builder, and renderer.
 """
 
+import ast
 import os
 import shutil
 import tempfile
@@ -9,6 +10,7 @@ import unittest
 from pathlib import Path
 
 from framework_analyzers.fastapi.analyzer import FastAPIAnalyzer
+import framework_analyzers.fastapi.graph as fastapi_graph
 from framework_analyzers.fastapi.graph import ArchitectureGraphBuilder
 from renderers.html import HTMLRenderer
 
@@ -158,6 +160,34 @@ app.include_router(users_router, prefix="/api/v1")
         self.assertTrue((asset_dir / "app.js").exists())
         self.assertNotIn("<style>", content)
 
+    def test_built_framework_edges_carry_their_declared_rule(self):
+        self._create_sample_fastapi_app()
+        arch = ArchitectureGraphBuilder().build_graph(FastAPIAnalyzer(str(self.project_path)).analyze())
+
+        framework_edges = [
+            edge for edge in arch.edges
+            if str(edge.confidence) == "framework_inferred"
+        ]
+        undeclared = [
+            edge.relation for edge in framework_edges
+            if "framework_rule" not in (edge.metadata or {})
+        ]
+        implemented_by = [edge for edge in framework_edges if edge.relation == "IMPLEMENTED_BY"]
+
+        self.assertGreater(len(framework_edges), 0)
+        self.assertEqual(undeclared, [])
+        self.assertGreater(len(implemented_by), 0)
+        self.assertEqual(
+            implemented_by[0].metadata["framework_rule"],
+            {"id": "fastapi.implemented_by", "specificity": "unique"},
+        )
+        routes = [edge for edge in framework_edges if edge.relation == "ROUTES"]
+        self.assertGreater(len(routes), 0)
+        self.assertEqual(
+            routes[0].metadata["framework_rule"],
+            {"id": "fastapi.routes", "specificity": "unique"},
+        )
+
     def test_mermaid_generation(self):
         self._create_sample_fastapi_app()
         analyzer = FastAPIAnalyzer(str(self.project_path))
@@ -168,6 +198,30 @@ app.include_router(users_router, prefix="/api/v1")
         mermaid = builder.generate_mermaid(arch)
         self.assertTrue(mermaid.startswith("graph TD"))
         self.assertIn("Sample API", mermaid)
+
+
+class FastAPIFrameworkRuleDeclarationTests(unittest.TestCase):
+    def test_every_emitted_framework_relation_declares_a_rule(self):
+        source = Path(fastapi_graph.__file__).read_text(encoding="utf-8")
+        emitted = {
+            keyword.value.value
+            for node in ast.walk(ast.parse(source))
+            if isinstance(node, ast.Call)
+            for keyword in node.keywords
+            if keyword.arg == "relation"
+            and isinstance(keyword.value, ast.Constant)
+            and isinstance(keyword.value.value, str)
+        }
+
+        undeclared = emitted - set(ArchitectureGraphBuilder.FRAMEWORK_RULE_SPECIFICITY)
+
+        self.assertEqual(undeclared, set())
+
+    def test_declared_specificities_are_within_the_contract(self):
+        self.assertEqual(
+            set(ArchitectureGraphBuilder.FRAMEWORK_RULE_SPECIFICITY.values()) - {"unique", "narrowing"},
+            set(),
+        )
 
 
 if __name__ == "__main__":
