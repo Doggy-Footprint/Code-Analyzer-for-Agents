@@ -109,6 +109,15 @@ class TestPathFlags(unittest.TestCase):
         ):
             self.assertIn(flag_names.GENERATED, flag_names.path_flags(path), path)
 
+    def test_room_exported_schema_is_generated(self):
+        self.assertIn(
+            flag_names.GENERATED,
+            flag_names.path_flags("core_database/schemas/com.example.AppDatabase/14.json"),
+        )
+
+    def test_hand_written_json_under_a_schemas_directory_is_not_generated(self):
+        self.assertEqual(flag_names.path_flags("core_database/schemas/openapi.json"), [])
+
     def test_versions_directory_alone_is_not_generated(self):
         self.assertEqual(flag_names.path_flags("app/api/versions/v1.py"), [])
 

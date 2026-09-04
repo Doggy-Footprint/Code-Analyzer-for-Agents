@@ -1,7 +1,7 @@
 from dataclasses import asdict, is_dataclass
 from typing import Any, Dict, List, Optional
 
-SCHEMA_VERSION = "4"
+SCHEMA_VERSION = "5"
 
 
 def _structure(value: Any) -> Optional[Dict[str, Any]]:
@@ -34,6 +34,7 @@ def node_to_dict(node: Any) -> Dict[str, Any]:
         "docstring": getattr(node, "docstring", None),
         "exported": getattr(node, "exported", None),
         "symbol_path": getattr(node, "symbol_path", ""),
+        "display_label": getattr(node, "display_label", "") or "",
         "flags": list(getattr(node, "flags", []) or []),
         "provenance": getattr(node, "provenance", ""),
         "metadata": getattr(node, "metadata", {}) or {},

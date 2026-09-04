@@ -69,8 +69,9 @@ class TestSerialization(unittest.TestCase):
         payload = architecture_to_dict(sample_architecture())
         node = payload["nodes"][0]
 
-        self.assertEqual(SCHEMA_VERSION, "4")
-        self.assertEqual(payload["schema_version"], "4")
+        self.assertEqual(SCHEMA_VERSION, "5")
+        self.assertEqual(payload["schema_version"], "5")
+        self.assertEqual(node["display_label"], "")
         self.assertNotIn("evaluation_relations", payload)
         self.assertEqual(node["span"], {
             "file_path": "mod.py", "start_line": 3, "end_line": 8, "start_col": 0, "end_col": 0,

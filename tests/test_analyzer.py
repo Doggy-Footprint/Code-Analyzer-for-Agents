@@ -218,6 +218,28 @@ app.include_router(users_router, prefix="/api/v1")
         self.assertIn("Sample API", mermaid)
 
 
+    def test_node_labels_are_bare_identifiers_and_decoration_reaches_the_rendered_html(self):
+        self._create_sample_fastapi_app()
+        builder = ArchitectureGraphBuilder(include_models=True, include_dependencies=True)
+        arch = builder.build_graph(FastAPIAnalyzer(str(self.project_path)).analyze())
+
+        decorated = [
+            node.label for node in arch.nodes
+            if "\n" in node.label or any(ord(char) > 0x2000 for char in node.label)
+        ]
+        app_node = next(node for node in arch.nodes if node.category == "app")
+
+        self.assertEqual(decorated, [])
+        self.assertEqual(app_node.label, "app")
+        self.assertIn("\U0001f680", app_node.display_label)
+
+        out_html = self.project_path / "labels.html"
+        HTMLRenderer().render(arch, str(out_html))
+        content = out_html.read_text(encoding="utf-8")
+
+        self.assertIn("\U0001f680", content)
+
+
 class FastAPIFrameworkRuleDeclarationTests(unittest.TestCase):
     def test_every_emitted_framework_relation_declares_a_rule(self):
         source = Path(fastapi_graph.__file__).read_text(encoding="utf-8")

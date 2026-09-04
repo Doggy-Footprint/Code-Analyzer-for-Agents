@@ -149,7 +149,7 @@ class AndroidArchitectureGraphBuilder:
 
         for c in arch.composables:
             add_node(GraphNode(
-                id=c.id, label=f"🧩 {c.name}", group="composable", category="composable",
+                id=c.id, label=c.name, display_label=f"🧩 {c.name}", group="composable", category="composable",
                 title=f"<b>Composable: {c.name}</b><br>Module: {c.module}<br>File: {c.file_path}:{c.line_number}",
                 shape="box", size=24, color=self.COLORS["composable"],
                 metadata={"name": c.name, "module": c.module, "file_path": c.file_path,
@@ -169,7 +169,7 @@ class AndroidArchitectureGraphBuilder:
 
         for v in arch.viewmodels:
             add_node(GraphNode(
-                id=v.id, label=f"🧠 {v.name}", group="viewmodel", category="viewmodel",
+                id=v.id, label=v.name, display_label=f"🧠 {v.name}", group="viewmodel", category="viewmodel",
                 title=f"<b>ViewModel: {v.name}</b><br>Hilt: {v.is_hilt}<br>Module: {v.module}<br>File: {v.file_path}:{v.line_number}",
                 shape="box", size=28, color=self.COLORS["viewmodel"],
                 metadata={"name": v.name, "module": v.module, "file_path": v.file_path,
@@ -180,7 +180,7 @@ class AndroidArchitectureGraphBuilder:
         if self.include_dependencies:
             for m in arch.di_modules:
                 add_node(GraphNode(
-                    id=m.id, label=f"📁 {m.name}", group="di_module", category="di_module",
+                    id=m.id, label=m.name, display_label=f"📁 {m.name}", group="di_module", category="di_module",
                     title=f"<b>DI Module: {m.name}</b><br>Install In: {', '.join(m.install_in)}<br>File: {m.file_path}:{m.line_number}",
                     shape="box", size=30, color=self.COLORS["di_module"],
                     metadata={"name": m.name, "module": m.module, "file_path": m.file_path,
@@ -190,7 +190,7 @@ class AndroidArchitectureGraphBuilder:
 
             for comp in arch.dagger_components:
                 add_node(GraphNode(
-                    id=comp.id, label=f"🚀 {comp.name}", group="dagger_component", category="dagger_component",
+                    id=comp.id, label=comp.name, display_label=f"🚀 {comp.name}", group="dagger_component", category="dagger_component",
                     title=f"<b>Dagger Component: {comp.name}</b>{'<br>(synthesized)' if comp.synthesized else ''}",
                     shape="box", size=34, color=self.COLORS["dagger_component"],
                     metadata={"name": comp.name, "file_path": comp.file_path,
@@ -200,7 +200,7 @@ class AndroidArchitectureGraphBuilder:
 
             for b in arch.di_bindings:
                 add_node(GraphNode(
-                    id=b.id, label=f"⚙️ {b.name}", group="di_binding", category="di_binding",
+                    id=b.id, label=b.name, display_label=f"⚙️ {b.name}", group="di_binding", category="di_binding",
                     title=f"<b>DI Binding: {b.name}</b><br>Kind: {b.kind}<br>File: {b.file_path}:{b.line_number}",
                     shape="ellipse", size=20, color=self.COLORS["di_binding"],
                     symbol_path=f"{b.owner_class_name or ''}.{b.field_name or b.name}",
@@ -241,7 +241,7 @@ class AndroidArchitectureGraphBuilder:
         if self.include_models:
             for e in arch.room_entities:
                 add_node(GraphNode(
-                    id=e.id, label=f"📦 {e.name}\n({len(e.fields)} fields)", group="room_entity", category="room_entity",
+                    id=e.id, label=e.name, display_label=f"📦 {e.name}\n({len(e.fields)} fields)", group="room_entity", category="room_entity",
                     title=f"<b>Room Entity: {e.name}</b><br>Fields: {len(e.fields)}<br>File: {e.file_path}:{e.line_number}",
                     shape="box", size=20, color=self.COLORS["room_entity"],
                     metadata={"name": e.name, "module": e.module, "file_path": e.file_path,
@@ -251,7 +251,7 @@ class AndroidArchitectureGraphBuilder:
 
         for d in arch.room_daos:
             add_node(GraphNode(
-                id=d.id, label=f"🗄️ {d.name}", group="room_dao", category="room_dao",
+                id=d.id, label=d.name, display_label=f"🗄️ {d.name}", group="room_dao", category="room_dao",
                 title=f"<b>Room DAO: {d.name}</b><br>Methods: {len(d.methods)}<br>File: {d.file_path}:{d.line_number}",
                 shape="box", size=28, color=self.COLORS["room_dao"],
                 metadata={"name": d.name, "module": d.module, "file_path": d.file_path,
@@ -259,7 +259,7 @@ class AndroidArchitectureGraphBuilder:
             ))
             for method in d.methods:
                 add_node(GraphNode(
-                    id=method.id, label=f"{method.kind.upper()} {method.name}()", group="room_query", category="room_query",
+                    id=method.id, label=method.name, display_label=f"{method.kind.upper()} {method.name}()", group="room_query", category="room_query",
                     title=f"<b>{method.kind}: {method.name}()</b><br>{method.query_text or ''}",
                     shape="box", size=18, color=self.COLORS["room_query"],
                     metadata={"name": method.name, "kind": method.kind, "query_text": method.query_text,
@@ -275,7 +275,7 @@ class AndroidArchitectureGraphBuilder:
 
         for db in arch.room_databases:
             add_node(GraphNode(
-                id=db.id, label=f"🚀 {db.name}", group="room_database", category="room_database",
+                id=db.id, label=db.name, display_label=f"🚀 {db.name}", group="room_database", category="room_database",
                 title=f"<b>Room Database: {db.name}</b><br>Entities: {', '.join(db.entity_names)}",
                 shape="box", size=34, color=self.COLORS["room_database"],
                 metadata={"name": db.name, "module": db.module, "file_path": db.file_path,
@@ -294,7 +294,7 @@ class AndroidArchitectureGraphBuilder:
 
         for api in arch.retrofit_apis:
             add_node(GraphNode(
-                id=api.id, label=f"📁 {api.name}", group="retrofit_api", category="retrofit_api",
+                id=api.id, label=api.name, display_label=f"📁 {api.name}", group="retrofit_api", category="retrofit_api",
                 title=f"<b>Retrofit API: {api.name}</b><br>Endpoints: {len(api.endpoints)}<br>File: {api.file_path}:{api.line_number}",
                 shape="box", size=30, color=self.COLORS["retrofit_api"],
                 metadata={"name": api.name, "module": api.module, "file_path": api.file_path,
@@ -302,7 +302,7 @@ class AndroidArchitectureGraphBuilder:
             ))
             for ep in api.endpoints:
                 add_node(GraphNode(
-                    id=ep.id, label=f"{ep.http_method} {ep.path}\n{ep.name}()", group="retrofit_endpoint", category="retrofit_endpoint",
+                    id=ep.id, label=ep.name, display_label=f"{ep.http_method} {ep.path}\n{ep.name}()", group="retrofit_endpoint", category="retrofit_endpoint",
                     title=f"<b>[{ep.http_method}] {ep.path}</b><br>Handler: {ep.name}()",
                     shape="box", size=20, color=self.COLORS["retrofit_endpoint"],
                     metadata={"name": ep.name, "http_method": ep.http_method, "path": ep.path,
@@ -313,7 +313,7 @@ class AndroidArchitectureGraphBuilder:
 
         for af in arch.activities_fragments:
             add_node(GraphNode(
-                id=af.id, label=f"📱 {af.name}", group="activity_fragment", category="activity_fragment",
+                id=af.id, label=af.name, display_label=f"📱 {af.name}", group="activity_fragment", category="activity_fragment",
                 title=f"<b>{af.kind.title()}: {af.name}</b><br>Hilt Entry Point: {af.is_hilt_entry_point}<br>File: {af.file_path}:{af.line_number}",
                 shape="box", size=32, color=self.COLORS["activity_fragment"],
                 metadata={"name": af.name, "kind": af.kind, "module": af.module, "file_path": af.file_path,

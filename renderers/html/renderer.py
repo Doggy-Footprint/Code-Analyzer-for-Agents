@@ -36,6 +36,7 @@ class HTMLRenderer:
             )
 
         raw_data = architecture_to_dict(arch)
+        raw_data["nodes"] = [self._vis_node(node) for node in raw_data["nodes"]]
         raw_data["edges"] = [self._vis_edge(edge) for edge in raw_data["edges"]]
         raw_data["confidence_styles"] = CONFIDENCE_STYLES
 
@@ -52,6 +53,12 @@ class HTMLRenderer:
 
         output.write_text(document, encoding="utf-8")
         return output
+
+    @staticmethod
+    def _vis_node(node: Dict[str, Any]) -> Dict[str, Any]:
+        vis = dict(node)
+        vis["label"] = node.get("display_label") or node.get("label", "")
+        return vis
 
     @staticmethod
     def _vis_edge(edge: Dict[str, Any]) -> Dict[str, Any]:

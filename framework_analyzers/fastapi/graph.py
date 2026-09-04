@@ -129,7 +129,8 @@ class ArchitectureGraphBuilder:
         for app in arch.apps:
             node = GraphNode(
                 id=app.id,
-                label=f"🚀 {app.title}\napp: {app.var_name}",
+                label=app.var_name,
+                display_label=f"🚀 {app.title}\napp: {app.var_name}",
                 group="app",
                 category="app",
                 title=f"<b>FastAPI Application: {app.title}</b><br>Version: {app.version}<br>Module: {app.module}<br>File: {app.file_path}:{app.line_number}",
@@ -155,7 +156,8 @@ class ArchitectureGraphBuilder:
                 if mw_id not in node_ids:
                     mw_node = GraphNode(
                         id=mw_id,
-                        label=f"🛡️ {mw['name']}",
+                        label=mw["name"],
+                        display_label=f"🛡️ {mw['name']}",
                         group="middleware",
                         category="middleware",
                         title=f"<b>Middleware: {mw['name']}</b><br>Registered on: {app.title}",
@@ -179,7 +181,8 @@ class ArchitectureGraphBuilder:
             prefix_label = f"\nprefix: {router.prefix}" if router.prefix else "\nprefix: /"
             node = GraphNode(
                 id=router.id,
-                label=f"📁 {router.var_name}{prefix_label}",
+                label=router.var_name,
+                display_label=f"📁 {router.var_name}{prefix_label}",
                 group="router",
                 category="router",
                 title=f"<b>Router: {router.var_name}</b><br>Prefix: {router.prefix or '/'}<br>Tags: {', '.join(router.tags)}<br>Module: {router.module}<br>File: {router.file_path}:{router.line_number}",
@@ -234,7 +237,8 @@ class ArchitectureGraphBuilder:
             
             node = GraphNode(
                 id=ep.id,
-                label=f"{badge} {ep.full_path or ep.path}\n{ep.function_name}()",
+                label=ep.function_name,
+                display_label=f"{badge} {ep.full_path or ep.path}\n{ep.function_name}()",
                 group=group_name,
                 category="endpoint",
                 title=f"<b>[{ep.http_method}] {ep.full_path or ep.path}</b><br>Handler: <code>{ep.function_name}()</code><br>Module: {ep.module}<br>Tags: {', '.join(ep.tags)}<br>Status: {ep.status_code or '200'}<br>Response: {ep.response_model or 'default'}",
@@ -294,7 +298,8 @@ class ArchitectureGraphBuilder:
                 dep_label = f"⚙️ {dep.name}"
                 dep_node = GraphNode(
                     id=dep.id,
-                    label=dep_label,
+                    label=dep.name,
+                    display_label=dep_label,
                     group="dependency",
                     category="dependency",
                     title=f"<b>Dependency: {dep.name}</b><br>Kind: {dep.kind}<br>Module: {dep.module}<br>File: {dep.file_path}:{dep.line_number}",
@@ -345,7 +350,8 @@ class ArchitectureGraphBuilder:
             for schema in arch.schemas:
                 schema_node = GraphNode(
                     id=schema.id,
-                    label=f"📦 {schema.name}\n({len(schema.fields)} fields)",
+                    label=schema.name,
+                    display_label=f"📦 {schema.name}\n({len(schema.fields)} fields)",
                     group="schema",
                     category="schema",
                     title=f"<b>Schema Model: {schema.name}</b><br>Fields: {len(schema.fields)}<br>Module: {schema.module}",

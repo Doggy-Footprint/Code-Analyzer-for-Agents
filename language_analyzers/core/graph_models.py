@@ -93,6 +93,7 @@ class GraphNode:
     docstring: Optional[str] = None
     exported: Optional[bool] = None
     symbol_path: str = ""
+    display_label: str = ""
     flags: List[str] = field(default_factory=list)
     provenance: str = ""
 

@@ -101,6 +101,59 @@ class AndroidGraphContractTests(unittest.TestCase):
         )
 
 
+class AndroidDisplayLabelTests(unittest.TestCase):
+    def test_node_label_is_the_bare_identifier_and_decoration_moves_to_display_label(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "MainActivity.kt"
+            source.write_text("class MainActivity\n", encoding="utf-8")
+            architecture = AndroidProjectArchitecture(
+                project_name="sample",
+                project_path=str(root),
+                di_bindings=[AndroidGraphContractTests._binding("resolved", source, "Owner", "existing")],
+            )
+
+            with patch("framework_analyzers.android.graph.KotlinAnalyzer") as analyzer:
+                analyzer.return_value.build.return_value = ([], [])
+                result = AndroidArchitectureGraphBuilder().build_graph(architecture)
+
+        binding = next(node for node in result.nodes if node.id == "resolved")
+        self.assertEqual(binding.label, "existing")
+        self.assertEqual(binding.display_label, "\u2699\ufe0f existing")
+
+    def test_no_framework_node_label_carries_decoration(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "MainActivity.kt"
+            source.write_text("class MainActivity\n", encoding="utf-8")
+            architecture = AndroidProjectArchitecture(
+                project_name="sample",
+                project_path=str(root),
+                di_bindings=[AndroidGraphContractTests._binding("resolved", source, "Owner", "existing")],
+                composables=[
+                    ComposableInfo(
+                        id="composable", name="TopicScreen", module="ui",
+                        file_path=str(source), line_number=1, end_line_number=1,
+                    )
+                ],
+            )
+
+            with patch("framework_analyzers.android.graph.KotlinAnalyzer") as analyzer:
+                analyzer.return_value.build.return_value = ([], [])
+                result = AndroidArchitectureGraphBuilder().build_graph(architecture)
+
+        framework_nodes = result.nodes
+        self.assertGreater(len(framework_nodes), 0)
+        self.assertEqual(
+            [node.label for node in framework_nodes if not node.label.isprintable() or "\n" in node.label],
+            [],
+        )
+        self.assertEqual(
+            [node.label for node in framework_nodes if any(ord(char) > 0x2000 for char in node.label)],
+            [],
+        )
+
+
 class AndroidFrameworkRuleDeclarationTests(unittest.TestCase):
     def test_built_framework_edges_carry_their_declared_rule(self):
         with tempfile.TemporaryDirectory() as directory:
