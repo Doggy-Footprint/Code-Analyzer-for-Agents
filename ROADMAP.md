@@ -40,6 +40,10 @@ read 비용은 symbol 범위가 아니라 그 symbol이 속한 파일 전체의 
 
 파일 단위 read 비용은 노드 경계가 아니라 비용 모델의 결정이므로, symbol 수준의 관계 방향과 zone 전파는 그대로 유지한다.
 
+### 기본 제외 대상
+
+에이전트가 목적을 갖고 검색·판독하지 않는 파일은 readable node로 만들지 않는다. lockfile, 바이너리, build 산출물, generated 코드는 기본적으로 제외하며, 제외 규칙은 버전 관리되는 설정 파일에 두고 저장소별로 재정의할 수 있다. 제외된 파일은 target이나 zone 의 대상이 되지 않는다.
+
 ### Query nodes and result groups
 
 query node는 동일한 탐색 행동으로 한 번에 노출되는 결과 그룹을 표현한다. query 후보는 exact query와 derived query 두 종류이며, 둘 다 이미 읽은 저장소 내용에서 결정적으로 생성한다.
@@ -64,7 +68,7 @@ derived query는 이미 읽은 identifier를 고정된 규칙표로 변형해 �
 
 검색 occurrence는 독립 readable node로 만들지 않는다. occurrence는 query 결과의 근거이며 실제 도착점은 enclosing readable node다. query 출력 비용은 실제 검색 결과의 모든 occurrence를 기준으로 계산한다.
 
-정확 검색은 코드·문서·주석 전체를 대상으로 한다. 고유 도착 노드가 50개를 초과하는 query는 일반어로 간주해 제외한다. 제외된 query가 유일한 경로였던 노드는 도달 불가로 처리하며 임의의 penalty를 넣지 않는다.
+정확 검색은 코드·문서·주석 전체를 대상으로 한다.
 
 ### Framework connections
 
@@ -127,6 +131,10 @@ derived query와 프레임워크 연결은 여기에 해당하지 않는다. 둘
 가중 비용은 여러 축을 하나의 저장소 점수로 축약하기 위한 값이 아니라, 하나의 탐색 경로를 선택하기 위한 목적 함수다. 초기에는 명시적으로 임시인 기본 weight profile을 사용하고 모든 원래 비용 축과 weight를 함께 출력한다.
 
 weight 값은 계약 문서나 코드 상수가 아니라 저장소 안의 버전 관리되는 profile 파일에 둔다. 비용 weight profile과 verification accessibility weight를 같은 방식으로 관리하며, 모든 결과에 사용한 profile id와 버전을 기록한다. 임시 값의 교체는 profile 파일의 변경 이력으로 추적하고, 교체 전후 비용은 같은 graph에서 비교한다.
+
+### 토크나이저
+
+token 비용은 문자 수 × 3으로 근사한다. 숫자는 이 근사에서 제외하고 통용되는 숫자 토크나이저 방식으로 센다.
 
 ### 최소 비용
 
@@ -221,7 +229,7 @@ graph-wide 분석에서 문제가 될 소지가 높은 target을 선정하고, s
 ### M1. Agent-view graph
 
 - readable node와 query node 모델
-- exact query 추출과 고유 도착 노드 50개 제한
+- exact query 추출
 - 버전 관리되는 규칙표 기반 derived query 생성
 - 유일 특정·후보 축소로 구분한 framework connection
 - 코드·문서·주석 occurrence 및 framework connection 근거
