@@ -1,6 +1,7 @@
 import unittest
 
 from language_analyzers.core import flags as flag_names
+from language_analyzers.core.annotate import mark_edges
 from language_analyzers.core.cost import cost_for_span, cost_for_text, estimate_tokens
 from language_analyzers.core.graph_models import (
     Confidence,
@@ -108,6 +109,15 @@ class TestPathFlags(unittest.TestCase):
         ):
             self.assertIn(flag_names.GENERATED, flag_names.path_flags(path), path)
 
+    def test_room_exported_schema_is_generated(self):
+        self.assertIn(
+            flag_names.GENERATED,
+            flag_names.path_flags("core_database/schemas/com.example.AppDatabase/14.json"),
+        )
+
+    def test_hand_written_json_under_a_schemas_directory_is_not_generated(self):
+        self.assertEqual(flag_names.path_flags("core_database/schemas/openapi.json"), [])
+
     def test_versions_directory_alone_is_not_generated(self):
         self.assertEqual(flag_names.path_flags("app/api/versions/v1.py"), [])
 
@@ -124,6 +134,43 @@ class TestPathFlags(unittest.TestCase):
 
     def test_latest_test_word_inside_a_filename_is_not_a_test(self):
         self.assertEqual(flag_names.path_flags("app/contest.py"), [])
+
+
+class TestMarkEdgesFrameworkRules(unittest.TestCase):
+    def test_declared_relation_gets_namespaced_rule_and_specificity(self):
+        edge = GraphEdge("a", "b", "USES_VIEWMODEL")
+
+        mark_edges([edge], rule_namespace="android",
+                   rule_specificity={"USES_VIEWMODEL": "unique"})
+
+        self.assertEqual(
+            edge.metadata["framework_rule"],
+            {"id": "android.uses_viewmodel", "specificity": "unique"},
+        )
+
+    def test_undeclared_relation_gets_no_rule(self):
+        edge = GraphEdge("a", "b", "HOSTS")
+
+        mark_edges([edge], rule_namespace="android",
+                   rule_specificity={"USES_VIEWMODEL": "unique"})
+
+        self.assertNotIn("framework_rule", edge.metadata)
+
+    def test_namespace_without_specificity_map_declares_nothing(self):
+        edge = GraphEdge("a", "b", "ROUTES")
+
+        mark_edges([edge], rule_namespace="android")
+
+        self.assertNotIn("framework_rule", edge.metadata)
+
+    def test_existing_rule_is_not_overwritten(self):
+        existing = {"id": "android.implemented_by", "specificity": "narrowing"}
+        edge = GraphEdge("a", "b", "ROUTES", metadata={"framework_rule": existing})
+
+        mark_edges([edge], rule_namespace="android",
+                   rule_specificity={"ROUTES": "unique"})
+
+        self.assertEqual(edge.metadata["framework_rule"], existing)
 
 
 if __name__ == "__main__":

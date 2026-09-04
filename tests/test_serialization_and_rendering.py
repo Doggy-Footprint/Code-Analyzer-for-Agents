@@ -69,7 +69,10 @@ class TestSerialization(unittest.TestCase):
         payload = architecture_to_dict(sample_architecture())
         node = payload["nodes"][0]
 
-        self.assertEqual(payload["schema_version"], SCHEMA_VERSION)
+        self.assertEqual(SCHEMA_VERSION, "5")
+        self.assertEqual(payload["schema_version"], "5")
+        self.assertEqual(node["display_label"], "")
+        self.assertNotIn("evaluation_relations", payload)
         self.assertEqual(node["span"], {
             "file_path": "mod.py", "start_line": 3, "end_line": 8, "start_col": 0, "end_col": 0,
         })
@@ -105,6 +108,12 @@ class TestSerialization(unittest.TestCase):
         self.assertIsNone(node["cost"])
         self.assertEqual(node["flags"], [])
         self.assertEqual(node["kind"], "thing")
+
+    def test_legacy_evaluation_relations_are_not_serialized(self):
+        architecture = sample_architecture()
+        architecture.evaluation_relations = [{"cost": 4.0}]
+
+        self.assertNotIn("evaluation_relations", architecture_to_dict(architecture))
 
     def test_mapping_edges_are_normalized_to_from_id_and_to_id(self):
         architecture = sample_architecture()

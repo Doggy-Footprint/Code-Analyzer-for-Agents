@@ -2,6 +2,7 @@
 Unit tests for FastAPI Visualizer static analysis, graph builder, and renderer.
 """
 
+import ast
 import os
 import shutil
 import tempfile
@@ -9,7 +10,10 @@ import unittest
 from pathlib import Path
 
 from framework_analyzers.fastapi.analyzer import FastAPIAnalyzer
+import framework_analyzers.fastapi.graph as fastapi_graph
 from framework_analyzers.fastapi.graph import ArchitectureGraphBuilder
+from framework_analyzers.fastapi.models import EndpointInfo, ProjectArchitecture, SchemaInfo
+from language_analyzers.core.graph_models import Resolution
 from renderers.html import HTMLRenderer
 
 
@@ -158,6 +162,50 @@ app.include_router(users_router, prefix="/api/v1")
         self.assertTrue((asset_dir / "app.js").exists())
         self.assertNotIn("<style>", content)
 
+    def test_built_framework_edges_carry_their_declared_rule(self):
+        self._create_sample_fastapi_app()
+        arch = ArchitectureGraphBuilder().build_graph(FastAPIAnalyzer(str(self.project_path)).analyze())
+
+        framework_edges = [
+            edge for edge in arch.edges
+            if str(edge.confidence) == "framework_inferred"
+        ]
+        undeclared = [
+            edge.relation for edge in framework_edges
+            if "framework_rule" not in (edge.metadata or {})
+        ]
+        implemented_by = [edge for edge in framework_edges if edge.relation == "IMPLEMENTED_BY"]
+
+        self.assertGreater(len(framework_edges), 0)
+        self.assertEqual(undeclared, [])
+        self.assertGreater(len(implemented_by), 0)
+        self.assertEqual(
+            implemented_by[0].metadata["framework_rule"],
+            {"id": "fastapi.implemented_by", "specificity": "unique"},
+        )
+        routes = [edge for edge in framework_edges if edge.relation == "ROUTES"]
+        self.assertGreater(len(routes), 0)
+        self.assertEqual(
+            routes[0].metadata["framework_rule"],
+            {"id": "fastapi.routes", "specificity": "unique"},
+        )
+
+    def test_every_framework_edge_carries_repository_relative_evidence(self):
+        self._create_sample_fastapi_app()
+        arch = ArchitectureGraphBuilder().build_graph(FastAPIAnalyzer(str(self.project_path)).analyze())
+
+        framework_edges = [
+            edge for edge in arch.edges
+            if str(edge.confidence) == "framework_inferred"
+        ]
+        absolute = [
+            edge.evidence.file_path for edge in framework_edges
+            if edge.evidence is not None and Path(edge.evidence.file_path).is_absolute()
+        ]
+
+        self.assertGreater(len(framework_edges), 0)
+        self.assertEqual(absolute, [])
+
     def test_mermaid_generation(self):
         self._create_sample_fastapi_app()
         analyzer = FastAPIAnalyzer(str(self.project_path))
@@ -168,6 +216,81 @@ app.include_router(users_router, prefix="/api/v1")
         mermaid = builder.generate_mermaid(arch)
         self.assertTrue(mermaid.startswith("graph TD"))
         self.assertIn("Sample API", mermaid)
+
+
+    def test_node_labels_are_bare_identifiers_and_decoration_reaches_the_rendered_html(self):
+        self._create_sample_fastapi_app()
+        builder = ArchitectureGraphBuilder(include_models=True, include_dependencies=True)
+        arch = builder.build_graph(FastAPIAnalyzer(str(self.project_path)).analyze())
+
+        decorated = [
+            node.label for node in arch.nodes
+            if "\n" in node.label or any(ord(char) > 0x2000 for char in node.label)
+        ]
+        app_node = next(node for node in arch.nodes if node.category == "app")
+
+        self.assertEqual(decorated, [])
+        self.assertEqual(app_node.label, "app")
+        self.assertIn("\U0001f680", app_node.display_label)
+
+        out_html = self.project_path / "labels.html"
+        HTMLRenderer().render(arch, str(out_html))
+        content = out_html.read_text(encoding="utf-8")
+
+        self.assertIn("\U0001f680", content)
+
+
+class FastAPIFrameworkRuleDeclarationTests(unittest.TestCase):
+    def test_every_emitted_framework_relation_declares_a_rule(self):
+        source = Path(fastapi_graph.__file__).read_text(encoding="utf-8")
+        emitted = {
+            keyword.value.value
+            for node in ast.walk(ast.parse(source))
+            if isinstance(node, ast.Call)
+            for keyword in node.keywords
+            if keyword.arg == "relation"
+            and isinstance(keyword.value, ast.Constant)
+            and isinstance(keyword.value.value, str)
+        }
+
+        undeclared = emitted - set(ArchitectureGraphBuilder.FRAMEWORK_RULE_SPECIFICITY)
+
+        self.assertEqual(undeclared, set())
+
+    def test_declared_specificities_are_within_the_contract(self):
+        self.assertEqual(
+            set(ArchitectureGraphBuilder.FRAMEWORK_RULE_SPECIFICITY.values()) - {"unique", "narrowing"},
+            set(),
+        )
+
+
+class FastAPINameCollisionTests(unittest.TestCase):
+    def test_two_schemas_sharing_a_name_are_recorded_as_candidates(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "api.py").write_text("x = 1\n", encoding="utf-8")
+            architecture = ProjectArchitecture(
+                project_name="sample",
+                project_path=str(root),
+                endpoints=[EndpointInfo(
+                    id="endpoint", http_method="POST", path="/users", function_name="create",
+                    module="api", file_path=str(root / "api.py"), line_number=1, end_line_number=1,
+                    request_schemas=["User"],
+                )],
+                schemas=[
+                    SchemaInfo(id="schema-a", name="User", module="api.v1",
+                               file_path=str(root / "api.py"), line_number=1, end_line_number=1),
+                    SchemaInfo(id="schema-b", name="User", module="api.v2",
+                               file_path=str(root / "api.py"), line_number=1, end_line_number=1),
+                ],
+            )
+
+            result = ArchitectureGraphBuilder(include_language_graph=False).build_graph(architecture)
+
+        body = next(edge for edge in result.edges if edge.relation == "REQUEST_BODY")
+        self.assertEqual(body.to_id, "schema-a")
+        self.assertEqual(body.candidates, ["schema-b"])
+        self.assertEqual(str(body.resolution), str(Resolution.AMBIGUOUS))
 
 
 if __name__ == "__main__":

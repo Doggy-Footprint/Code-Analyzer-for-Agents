@@ -121,6 +121,9 @@ export function execute() {
             "total_files": 0,
             "total_symbols": 0,
             "symbols_by_kind": {},
+            "nodes_by_kind": {},
+            "edges_by_relation": {},
+            "edges_by_confidence": {},
         })
         self.assertEqual(architecture.report_collections[0].rows, [])
 

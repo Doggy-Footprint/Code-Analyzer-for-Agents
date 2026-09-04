@@ -5,10 +5,11 @@ and computes architecture metrics.
 """
 
 from collections import Counter
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Set
 
 from analysis import GraphAnalyzer
-from language_analyzers.core.annotate import annotate_nodes, mark_edges
+from language_analyzers.core.annotate import annotate_nodes, mark_edges, relative_repo_path
 from language_analyzers.core.enrichment import enrich_repository
 from language_analyzers.core.graph_models import Confidence, RelationKind, Resolution, SourceSpan
 from language_analyzers.core.report_schema import ColumnSpec, ReportCollection
@@ -110,6 +111,16 @@ class ArchitectureGraphBuilder:
         self.include_dependencies = include_dependencies
         self.include_language_graph = include_language_graph
 
+    FRAMEWORK_RULE_SPECIFICITY = {
+        "MIDDLEWARE_OF": "unique",
+        "INCLUDES": "unique",
+        "ROUTES": "unique",
+        "DEPENDS_ON": "unique",
+        "SUB_DEPENDENCY": "unique",
+        "REQUEST_BODY": "unique",
+        "RESPONSE_MODEL": "unique",
+    }
+
     def build_graph(self, arch: ProjectArchitecture) -> ProjectArchitecture:
         nodes: List[GraphNode] = []
         edges: List[GraphEdge] = []
@@ -118,7 +129,8 @@ class ArchitectureGraphBuilder:
         for app in arch.apps:
             node = GraphNode(
                 id=app.id,
-                label=f"🚀 {app.title}\napp: {app.var_name}",
+                label=app.var_name,
+                display_label=f"🚀 {app.title}\napp: {app.var_name}",
                 group="app",
                 category="app",
                 title=f"<b>FastAPI Application: {app.title}</b><br>Version: {app.version}<br>Module: {app.module}<br>File: {app.file_path}:{app.line_number}",
@@ -144,7 +156,8 @@ class ArchitectureGraphBuilder:
                 if mw_id not in node_ids:
                     mw_node = GraphNode(
                         id=mw_id,
-                        label=f"🛡️ {mw['name']}",
+                        label=mw["name"],
+                        display_label=f"🛡️ {mw['name']}",
                         group="middleware",
                         category="middleware",
                         title=f"<b>Middleware: {mw['name']}</b><br>Registered on: {app.title}",
@@ -168,7 +181,8 @@ class ArchitectureGraphBuilder:
             prefix_label = f"\nprefix: {router.prefix}" if router.prefix else "\nprefix: /"
             node = GraphNode(
                 id=router.id,
-                label=f"📁 {router.var_name}{prefix_label}",
+                label=router.var_name,
+                display_label=f"📁 {router.var_name}{prefix_label}",
                 group="router",
                 category="router",
                 title=f"<b>Router: {router.var_name}</b><br>Prefix: {router.prefix or '/'}<br>Tags: {', '.join(router.tags)}<br>Module: {router.module}<br>File: {router.file_path}:{router.line_number}",
@@ -223,7 +237,8 @@ class ArchitectureGraphBuilder:
             
             node = GraphNode(
                 id=ep.id,
-                label=f"{badge} {ep.full_path or ep.path}\n{ep.function_name}()",
+                label=ep.function_name,
+                display_label=f"{badge} {ep.full_path or ep.path}\n{ep.function_name}()",
                 group=group_name,
                 category="endpoint",
                 title=f"<b>[{ep.http_method}] {ep.full_path or ep.path}</b><br>Handler: <code>{ep.function_name}()</code><br>Module: {ep.module}<br>Tags: {', '.join(ep.tags)}<br>Status: {ep.status_code or '200'}<br>Response: {ep.response_model or 'default'}",
@@ -283,7 +298,8 @@ class ArchitectureGraphBuilder:
                 dep_label = f"⚙️ {dep.name}"
                 dep_node = GraphNode(
                     id=dep.id,
-                    label=dep_label,
+                    label=dep.name,
+                    display_label=dep_label,
                     group="dependency",
                     category="dependency",
                     title=f"<b>Dependency: {dep.name}</b><br>Kind: {dep.kind}<br>Module: {dep.module}<br>File: {dep.file_path}:{dep.line_number}",
@@ -308,35 +324,34 @@ class ArchitectureGraphBuilder:
 
             for ep in arch.endpoints:
                 for d_name in ep.dependencies:
-                    target_dep = self._find_dep_by_name(d_name, arch.dependencies)
-                    if target_dep and target_dep.id in node_ids:
-                        edges.append(GraphEdge(
-                            from_id=ep.id,
-                            to_id=target_dep.id,
-                            relation="DEPENDS_ON",
-                            label="depends",
-                            dashes=True,
-                            color="#38BDF8"
+                    targets = [
+                        d for d in self._find_deps_by_name(d_name, arch.dependencies)
+                        if d.id in node_ids
+                    ]
+                    if targets:
+                        edges.append(self._named_edge(
+                            ep.id, targets, "DEPENDS_ON",
+                            label="depends", dashes=True, color="#38BDF8",
                         ))
 
             for dep in arch.dependencies:
                 for sub_name in dep.sub_dependencies:
-                    target_sub = self._find_dep_by_name(sub_name, arch.dependencies)
-                    if target_sub and target_sub.id in node_ids and target_sub.id != dep.id:
-                        edges.append(GraphEdge(
-                            from_id=dep.id,
-                            to_id=target_sub.id,
-                            relation="SUB_DEPENDENCY",
-                            label="calls",
-                            dashes=True,
-                            color="#38BDF8"
+                    targets = [
+                        d for d in self._find_deps_by_name(sub_name, arch.dependencies)
+                        if d.id in node_ids and d.id != dep.id
+                    ]
+                    if targets:
+                        edges.append(self._named_edge(
+                            dep.id, targets, "SUB_DEPENDENCY",
+                            label="calls", dashes=True, color="#38BDF8",
                         ))
 
         if self.include_models:
             for schema in arch.schemas:
                 schema_node = GraphNode(
                     id=schema.id,
-                    label=f"📦 {schema.name}\n({len(schema.fields)} fields)",
+                    label=schema.name,
+                    display_label=f"📦 {schema.name}\n({len(schema.fields)} fields)",
                     group="schema",
                     category="schema",
                     title=f"<b>Schema Model: {schema.name}</b><br>Fields: {len(schema.fields)}<br>Module: {schema.module}",
@@ -360,33 +375,32 @@ class ArchitectureGraphBuilder:
 
             for ep in arch.endpoints:
                 for req_s in ep.request_schemas:
-                    target_schema = self._find_schema_by_name(req_s, arch.schemas)
-                    if target_schema and target_schema.id in node_ids:
-                        edges.append(GraphEdge(
-                            from_id=ep.id,
-                            to_id=target_schema.id,
-                            relation="REQUEST_BODY",
-                            label="body",
-                            dashes=True,
-                            color="#E879F9"
+                    targets = [
+                        s for s in self._find_schemas_by_name(req_s, arch.schemas)
+                        if s.id in node_ids
+                    ]
+                    if targets:
+                        edges.append(self._named_edge(
+                            ep.id, targets, "REQUEST_BODY",
+                            label="body", dashes=True, color="#E879F9",
                         ))
                 for resp_s in ep.response_schemas:
-                    target_schema = self._find_schema_by_name(resp_s, arch.schemas)
-                    if target_schema and target_schema.id in node_ids:
-                        edges.append(GraphEdge(
-                            from_id=ep.id,
-                            to_id=target_schema.id,
-                            relation="RESPONSE_MODEL",
-                            label="returns",
-                            dashes=True,
-                            color="#E879F9"
+                    targets = [
+                        s for s in self._find_schemas_by_name(resp_s, arch.schemas)
+                        if s.id in node_ids
+                    ]
+                    if targets:
+                        edges.append(self._named_edge(
+                            ep.id, targets, "RESPONSE_MODEL",
+                            label="returns", dashes=True, color="#E879F9"
                         ))
 
         methods_counter = Counter([ep.http_method for ep in arch.endpoints])
         deps_counter = Counter([d for ep in arch.endpoints for d in ep.dependencies])
 
         annotate_nodes(nodes, arch.project_path, self.PROVENANCE, "python")
-        mark_edges(edges, nodes=nodes)
+        mark_edges(edges, nodes=nodes, rule_namespace="fastapi",
+                   rule_specificity=self.FRAMEWORK_RULE_SPECIFICITY)
         if self.include_language_graph:
             language_nodes, language_edges = self._language_graph(arch)
             known = {node.id for node in nodes}
@@ -427,6 +441,7 @@ class ArchitectureGraphBuilder:
     @staticmethod
     def _implementation_edges(arch: ProjectArchitecture, known_ids: Set[str]) -> List[GraphEdge]:
         edges: List[GraphEdge] = []
+        root = Path(arch.project_path)
         pairs = [(ep.id, ep.module, ep.function_name, ep.file_path, ep.line_number) for ep in arch.endpoints]
         pairs += [(dep.id, dep.module, dep.name, dep.file_path, dep.line_number) for dep in arch.dependencies]
         pairs += [(schema.id, schema.module, schema.name, schema.file_path, schema.line_number) for schema in arch.schemas]
@@ -445,7 +460,8 @@ class ArchitectureGraphBuilder:
                 color="#94A3B8",
                 confidence=Confidence.FRAMEWORK_INFERRED,
                 resolution=Resolution.EXACT,
-                evidence=SourceSpan(file_path, line, line),
+                evidence=SourceSpan(relative_repo_path(file_path, root), line, line),
+                metadata={"framework_rule": {"id": "fastapi.implemented_by", "specificity": "unique"}},
             ))
         return edges
 
@@ -553,20 +569,26 @@ class ArchitectureGraphBuilder:
         return None
 
     @staticmethod
-    def _find_dep_by_name(name: str, dependencies: List[DependencyInfo]) -> Optional[DependencyInfo]:
+    def _find_deps_by_name(name: str, dependencies: List[DependencyInfo]) -> List[DependencyInfo]:
         clean_name = name.split("(")[0].split(".")[-1]
-        for d in dependencies:
-            if d.name == clean_name or d.name == name or d.id.endswith(f"_{clean_name}"):
-                return d
-        return None
+        return [
+            d for d in dependencies
+            if d.name == clean_name or d.name == name or d.id.endswith(f"_{clean_name}")
+        ]
 
     @staticmethod
-    def _find_schema_by_name(name: str, schemas: List[SchemaInfo]) -> Optional[SchemaInfo]:
+    def _find_schemas_by_name(name: str, schemas: List[SchemaInfo]) -> List[SchemaInfo]:
         clean_name = name.split(".")[-1]
-        for s in schemas:
-            if s.name == clean_name or s.name == name:
-                return s
-        return None
+        return [s for s in schemas if s.name == clean_name or s.name == name]
+
+    @staticmethod
+    def _named_edge(from_id, targets, relation, **style) -> GraphEdge:
+        return GraphEdge(
+            from_id=from_id, to_id=targets[0].id, relation=relation,
+            resolution=Resolution.AMBIGUOUS if targets[1:] else Resolution.UNIQUE_NAME,
+            candidates=[item.id for item in targets[1:]],
+            **style,
+        )
 
     @staticmethod
     def _get_method_badge(method: str) -> str:

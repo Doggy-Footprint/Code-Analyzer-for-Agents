@@ -396,9 +396,15 @@ graph-wide 분석에서 문제가 될 소지가 높은 target을 선정하고, s
 
 각 마일스톤은 자기 결과의 출력 스키마와 역추적 근거 필드를 함께 정의하고 완료 조건에 포함한다. 출력 계약을 따로 모으는 마일스톤은 두지 않는다.
 
-기존 구현의 완료 표시는 새 분석 계약에 대한 완료를 뜻하지 않는다. 현재 코드는 언어·프레임워크 graph, graph metric과 구조적 마찰 진단을 포함한다. 이전 계약의 exploration cost, task difficulty, 저장소 cost diff와 git diff 영향 분석은 새 query 행동 모델·비용 의미와 맞지 않아 제거 대상이며, 코드와 fixture의 잔재까지 함께 제거해야 M0이 닫힌다.
+기존 구현의 완료 표시는 새 분석 계약에 대한 완료를 뜻하지 않는다. 구현 상태는 다음과 같다.
 
-### M0. 문서와 계약 재정렬 — 진행 중
+| 상태 | 기능 |
+|---|---|
+| 유지 | 언어·프레임워크 analyzer, 정적 관계와 근거, effective·weighted 지표를 포함한 graph metric, renderer |
+| 교체·확장 | 기존 symbol graph는 M1 readable·query node로, serialization과 CLI 출력은 각 milestone 계약으로 확장한다. 현재 graph metric은 M4 입력이며 M4 완료를 뜻하지 않는다. |
+| 제거 | 이전 exploration cost, task difficulty, 저장소 cost diff, git diff 영향 분석, 구조적 마찰 진단, Android inject-field 임의 비용·경고 |
+
+### M0. 문서와 계약 재정렬 — 완료
 
 - 프로젝트 목적, graph 경계와 비목표 확정
 - query group, 탐색 turn, 비용 축과 세 비용 계약 문서화
@@ -408,7 +414,7 @@ graph-wide 분석에서 문제가 될 소지가 높은 target을 선정하고, s
 
 완료 조건: 모든 기준 문서가 동일한 목적과 용어를 사용하고, 기존 기능마다 유지·교체·제거 상태가 매핑표에 지정된다. 제거로 표시된 기능은 저장소에 참조가 남지 않으며, 전체 테스트가 import 오류 없이 수집된다.
 
-### M1. Agent-view graph
+### M1. Agent-view graph — 완료
 
 - readable node와 query node 모델
 - 파일 token 임계 기반 read 단위 분할. greedy 순차 분할과 단일 symbol 초과 허용
@@ -468,12 +474,15 @@ graph-wide 분석에서 문제가 될 소지가 높은 target을 선정하고, s
 ### M4. Graph-wide bottleneck analysis
 
 - graph metric과 potential zone 집계
-- query branching, refinement 연쇄, candidate dilution과 search-only 관계
+- query branching, candidate dilution과 search-only 관계
+- 후보 축소 프레임워크 규칙 모델링과 그 규칙이 만드는 query 분기
 - cycle, bridge, articulation, unresolved boundary와 abnormal subgraph
 - target 발견 병목과 zone 검증 병목 분리
 - 병목 제거·완화의 반사실 비용 비교
 
-완료 조건: 각 병목이 어떤 target 또는 zone의 어떤 비용 축을 높이는지 경로와 what-if 결과로 설명한다.
+M1은 후보 축소 규칙의 표현과 비용 계산을 구현했으나 실제 규칙을 하나도 등록하지 않았다. 메시지 enqueue와 dequeue, 이벤트 발행과 수신처럼 정적으로 도착 노드를 확정할 수 없는 관계가 여기에 해당한다. 이 규칙을 등록하면 graph에 엣지가 추가되므로 M2와 M3의 기존 결과는 새 기준선으로 다시 산출한다.
+
+완료 조건: 각 병목이 어떤 target 또는 zone의 어떤 비용 축을 높이는지 경로와 what-if 결과로 설명하고, 등록된 후보 축소 규칙마다 그 규칙이 만든 query 분기를 보고한다.
 
 ### M5. Generated evaluation scenarios
 

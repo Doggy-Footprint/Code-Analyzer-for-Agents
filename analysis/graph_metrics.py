@@ -9,6 +9,10 @@ from typing import Any, Callable, Dict, Mapping, Optional, Sequence, Set
 from language_analyzers.core.cost import CHARACTERS_PER_TOKEN
 
 
+def _display_name(node: Any, fallback: str) -> str:
+    return getattr(node, "display_label", "") or getattr(node, "label", "") or fallback
+
+
 @dataclass(frozen=True)
 class GraphAnalysisConfig:
     damping: float = 0.85
@@ -276,7 +280,7 @@ class GraphAnalyzer:
                 return self._estimate_tokens(source)
         fallback = json.dumps(
             {
-                "label": getattr(node, "label", ""),
+                "label": _display_name(node, ""),
                 "title": getattr(node, "title", ""),
                 "metadata": metadata,
             },
@@ -344,7 +348,7 @@ class GraphAnalyzer:
         return [
             {
                 "id": node_id,
-                "label": getattr(nodes[node_id], "label", node_id),
+                "label": _display_name(nodes[node_id], node_id),
                 "value": metrics[node_id][metric_name],
             }
             for node_id in ranked[:limit]

@@ -13,7 +13,6 @@ __all__ = [
     "ViewModelInfo",
     "DiModuleInfo",
     "DiBindingInfo",
-    "EvaluationRelation",
     "DaggerComponentInfo",
     "RoomFieldInfo",
     "RoomEntityInfo",
@@ -81,15 +80,6 @@ class DiBindingInfo:
     injected_type: Optional[str] = None  # the class this binding is attached to (inject_constructor/inject_field)
     owner_class_name: Optional[str] = None
     field_name: Optional[str] = None
-
-
-@dataclass
-class EvaluationRelation:
-    binding_id: str
-    target_name: str
-    evidence: Optional[Any] = None
-    kind: str = "unresolved_inject_field"
-    cost: float = 4.0
 
 
 @dataclass
@@ -205,6 +195,5 @@ class AndroidProjectArchitecture:
     activities_fragments: List[ActivityFragmentInfo] = field(default_factory=list)
     nodes: List[GraphNode] = field(default_factory=list)
     edges: List[GraphEdge] = field(default_factory=list)
-    evaluation_relations: List[EvaluationRelation] = field(default_factory=list)
     stats: Dict[str, Any] = field(default_factory=dict)
     report_collections: List[ReportCollection] = field(default_factory=list)

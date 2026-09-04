@@ -16,7 +16,7 @@ from language_analyzers.core.report_schema import ColumnSpec, ReportCollection
 from language_analyzers.core.graph_models import Confidence, RelationKind, Resolution, SourceSpan
 from language_analyzers.kotlin import KotlinAnalyzer
 
-from .models import AndroidProjectArchitecture, EvaluationRelation, GraphEdge, GraphNode
+from .models import AndroidProjectArchitecture, GraphEdge, GraphNode
 
 
 class AndroidArchitectureGraphBuilder:
@@ -84,11 +84,25 @@ class AndroidArchitectureGraphBuilder:
     }
 
     def __init__(self, include_models: bool = True, include_dependencies: bool = True,
-                 include_language_graph: bool = True, unresolved_inject_field_cost: float = 4.0):
+                 include_language_graph: bool = True):
         self.include_models = include_models
         self.include_dependencies = include_dependencies
         self.include_language_graph = include_language_graph
-        self.unresolved_inject_field_cost = unresolved_inject_field_cost
+
+    FRAMEWORK_RULE_SPECIFICITY = {
+        "CALLS": "unique",
+        "USES_VIEWMODEL": "unique",
+        "PROVIDES": "unique",
+        "BINDS": "unique",
+        "INSTALLS_IN": "unique",
+        "INJECTS": "unique",
+        "CALLS_API": "unique",
+        "ROUTES": "unique",
+        "QUERIES": "unique",
+        "CONTAINS": "unique",
+        "DEFINES_ENTITY": "unique",
+        "HOSTS": "unique",
+    }
 
     def build_graph(self, arch: AndroidProjectArchitecture) -> AndroidProjectArchitecture:
         nodes: List[GraphNode] = []
@@ -99,11 +113,30 @@ class AndroidArchitectureGraphBuilder:
             nodes.append(node)
             node_ids.add(node.id)
 
-        def by_name(items, attr="name") -> Dict[str, object]:
-            result: Dict[str, object] = {}
+        def by_name(items, attr="name") -> Dict[str, List[object]]:
+            result: Dict[str, List[object]] = {}
             for item in items:
-                result.setdefault(getattr(item, attr), item)
+                result.setdefault(getattr(item, attr), []).append(item)
             return result
+
+        def resolve(mapping, name, *, require_node=True, exclude_id=None, predicate=None):
+            usable = [
+                item for item in mapping.get(name) or []
+                if item.id != exclude_id
+                and (not require_node or item.id in node_ids)
+                and (predicate is None or predicate(item))
+            ]
+            if not usable:
+                return None, []
+            return usable[0], [item.id for item in usable[1:]]
+
+        def named_edge(from_id, target, others, relation, **style) -> GraphEdge:
+            return GraphEdge(
+                from_id=from_id, to_id=target.id, relation=relation,
+                resolution=Resolution.AMBIGUOUS if others else Resolution.UNIQUE_NAME,
+                candidates=list(others),
+                **style,
+            )
 
         composable_by_name = by_name(arch.composables)
         viewmodel_by_name = by_name(arch.viewmodels)
@@ -116,7 +149,7 @@ class AndroidArchitectureGraphBuilder:
 
         for c in arch.composables:
             add_node(GraphNode(
-                id=c.id, label=f"🧩 {c.name}", group="composable", category="composable",
+                id=c.id, label=c.name, display_label=f"🧩 {c.name}", group="composable", category="composable",
                 title=f"<b>Composable: {c.name}</b><br>Module: {c.module}<br>File: {c.file_path}:{c.line_number}",
                 shape="box", size=24, color=self.COLORS["composable"],
                 metadata={"name": c.name, "module": c.module, "file_path": c.file_path,
@@ -125,18 +158,18 @@ class AndroidArchitectureGraphBuilder:
             ))
         for c in arch.composables:
             for call_name in c.calls:
-                target = composable_by_name.get(call_name)
-                if target and target.id != c.id and target.id in node_ids:
-                    edges.append(GraphEdge(from_id=c.id, to_id=target.id, relation="CALLS", color="#10B981"))
-            if c.uses_viewmodel:
-                target = viewmodel_by_name.get(c.uses_viewmodel)
+                target, others = resolve(composable_by_name, call_name, exclude_id=c.id)
                 if target:
-                    edges.append(GraphEdge(from_id=c.id, to_id=target.id, relation="USES_VIEWMODEL",
+                    edges.append(named_edge(c.id, target, others, "CALLS", color="#10B981"))
+            if c.uses_viewmodel:
+                target, others = resolve(viewmodel_by_name, c.uses_viewmodel, require_node=False)
+                if target:
+                    edges.append(named_edge(c.id, target, others, "USES_VIEWMODEL",
                                             label="uses", dashes=True, color="#3B82F6"))
 
         for v in arch.viewmodels:
             add_node(GraphNode(
-                id=v.id, label=f"🧠 {v.name}", group="viewmodel", category="viewmodel",
+                id=v.id, label=v.name, display_label=f"🧠 {v.name}", group="viewmodel", category="viewmodel",
                 title=f"<b>ViewModel: {v.name}</b><br>Hilt: {v.is_hilt}<br>Module: {v.module}<br>File: {v.file_path}:{v.line_number}",
                 shape="box", size=28, color=self.COLORS["viewmodel"],
                 metadata={"name": v.name, "module": v.module, "file_path": v.file_path,
@@ -147,7 +180,7 @@ class AndroidArchitectureGraphBuilder:
         if self.include_dependencies:
             for m in arch.di_modules:
                 add_node(GraphNode(
-                    id=m.id, label=f"📁 {m.name}", group="di_module", category="di_module",
+                    id=m.id, label=m.name, display_label=f"📁 {m.name}", group="di_module", category="di_module",
                     title=f"<b>DI Module: {m.name}</b><br>Install In: {', '.join(m.install_in)}<br>File: {m.file_path}:{m.line_number}",
                     shape="box", size=30, color=self.COLORS["di_module"],
                     metadata={"name": m.name, "module": m.module, "file_path": m.file_path,
@@ -157,7 +190,7 @@ class AndroidArchitectureGraphBuilder:
 
             for comp in arch.dagger_components:
                 add_node(GraphNode(
-                    id=comp.id, label=f"🚀 {comp.name}", group="dagger_component", category="dagger_component",
+                    id=comp.id, label=comp.name, display_label=f"🚀 {comp.name}", group="dagger_component", category="dagger_component",
                     title=f"<b>Dagger Component: {comp.name}</b>{'<br>(synthesized)' if comp.synthesized else ''}",
                     shape="box", size=34, color=self.COLORS["dagger_component"],
                     metadata={"name": comp.name, "file_path": comp.file_path,
@@ -167,7 +200,7 @@ class AndroidArchitectureGraphBuilder:
 
             for b in arch.di_bindings:
                 add_node(GraphNode(
-                    id=b.id, label=f"⚙️ {b.name}", group="di_binding", category="di_binding",
+                    id=b.id, label=b.name, display_label=f"⚙️ {b.name}", group="di_binding", category="di_binding",
                     title=f"<b>DI Binding: {b.name}</b><br>Kind: {b.kind}<br>File: {b.file_path}:{b.line_number}",
                     shape="ellipse", size=20, color=self.COLORS["di_binding"],
                     symbol_path=f"{b.owner_class_name or ''}.{b.field_name or b.name}",
@@ -185,9 +218,9 @@ class AndroidArchitectureGraphBuilder:
                                                 relation="PROVIDES" if b.kind == "provides" else "BINDS",
                                                 dashes=True, color="#A855F7"))
                 for target_name in m.install_in:
-                    target = component_by_name.get(target_name)
-                    if target and target.id in node_ids:
-                        edges.append(GraphEdge(from_id=m.id, to_id=target.id, relation="INSTALLS_IN", color="#818CF8"))
+                    target, others = resolve(component_by_name, target_name)
+                    if target:
+                        edges.append(named_edge(m.id, target, others, "INSTALLS_IN", color="#818CF8"))
 
             for v in arch.viewmodels:
                 for injected_type in v.injected_types:
@@ -195,15 +228,20 @@ class AndroidArchitectureGraphBuilder:
                     if binding and binding.id in node_ids:
                         edges.append(GraphEdge(from_id=v.id, to_id=binding.id, relation="INJECTS",
                                                 label="injects", dashes=True, color="#38BDF8"))
-                    api = api_by_name.get(injected_type)
-                    if api and any(call in {e.name for e in api.endpoints} for call in v.calls):
-                        edges.append(GraphEdge(from_id=v.id, to_id=api.id, relation="CALLS_API",
+                    api, api_others = resolve(
+                        api_by_name, injected_type, require_node=False,
+                        predicate=lambda item: any(
+                            call in {e.name for e in item.endpoints} for call in v.calls
+                        ),
+                    )
+                    if api:
+                        edges.append(named_edge(v.id, api, api_others, "CALLS_API",
                                                 label="calls", dashes=True, color="#A855F7"))
 
         if self.include_models:
             for e in arch.room_entities:
                 add_node(GraphNode(
-                    id=e.id, label=f"📦 {e.name}\n({len(e.fields)} fields)", group="room_entity", category="room_entity",
+                    id=e.id, label=e.name, display_label=f"📦 {e.name}\n({len(e.fields)} fields)", group="room_entity", category="room_entity",
                     title=f"<b>Room Entity: {e.name}</b><br>Fields: {len(e.fields)}<br>File: {e.file_path}:{e.line_number}",
                     shape="box", size=20, color=self.COLORS["room_entity"],
                     metadata={"name": e.name, "module": e.module, "file_path": e.file_path,
@@ -213,7 +251,7 @@ class AndroidArchitectureGraphBuilder:
 
         for d in arch.room_daos:
             add_node(GraphNode(
-                id=d.id, label=f"🗄️ {d.name}", group="room_dao", category="room_dao",
+                id=d.id, label=d.name, display_label=f"🗄️ {d.name}", group="room_dao", category="room_dao",
                 title=f"<b>Room DAO: {d.name}</b><br>Methods: {len(d.methods)}<br>File: {d.file_path}:{d.line_number}",
                 shape="box", size=28, color=self.COLORS["room_dao"],
                 metadata={"name": d.name, "module": d.module, "file_path": d.file_path,
@@ -221,7 +259,7 @@ class AndroidArchitectureGraphBuilder:
             ))
             for method in d.methods:
                 add_node(GraphNode(
-                    id=method.id, label=f"{method.kind.upper()} {method.name}()", group="room_query", category="room_query",
+                    id=method.id, label=method.name, display_label=f"{method.kind.upper()} {method.name}()", group="room_query", category="room_query",
                     title=f"<b>{method.kind}: {method.name}()</b><br>{method.query_text or ''}",
                     shape="box", size=18, color=self.COLORS["room_query"],
                     metadata={"name": method.name, "kind": method.kind, "query_text": method.query_text,
@@ -230,14 +268,14 @@ class AndroidArchitectureGraphBuilder:
                 ))
                 edges.append(GraphEdge(from_id=d.id, to_id=method.id, relation="ROUTES", color="#F59E0B"))
                 if self.include_models and method.return_type:
-                    entity = entity_by_name.get(method.return_type)
-                    if entity and entity.id in node_ids:
-                        edges.append(GraphEdge(from_id=method.id, to_id=entity.id, relation="QUERIES",
+                    entity, others = resolve(entity_by_name, method.return_type)
+                    if entity:
+                        edges.append(named_edge(method.id, entity, others, "QUERIES",
                                                 label="queries", dashes=True, color="#E879F9"))
 
         for db in arch.room_databases:
             add_node(GraphNode(
-                id=db.id, label=f"🚀 {db.name}", group="room_database", category="room_database",
+                id=db.id, label=db.name, display_label=f"🚀 {db.name}", group="room_database", category="room_database",
                 title=f"<b>Room Database: {db.name}</b><br>Entities: {', '.join(db.entity_names)}",
                 shape="box", size=34, color=self.COLORS["room_database"],
                 metadata={"name": db.name, "module": db.module, "file_path": db.file_path,
@@ -245,18 +283,18 @@ class AndroidArchitectureGraphBuilder:
                           "entity_names": db.entity_names},
             ))
             for dao_type in db.dao_accessors:
-                dao = dao_by_name.get(dao_type)
-                if dao and dao.id in node_ids:
-                    edges.append(GraphEdge(from_id=db.id, to_id=dao.id, relation="CONTAINS", color="#F43F5E"))
+                dao, others = resolve(dao_by_name, dao_type)
+                if dao:
+                    edges.append(named_edge(db.id, dao, others, "CONTAINS", color="#F43F5E"))
             if self.include_models:
                 for entity_name in db.entity_names:
-                    entity = entity_by_name.get(entity_name)
-                    if entity and entity.id in node_ids:
-                        edges.append(GraphEdge(from_id=db.id, to_id=entity.id, relation="DEFINES_ENTITY", color="#F43F5E"))
+                    entity, others = resolve(entity_by_name, entity_name)
+                    if entity:
+                        edges.append(named_edge(db.id, entity, others, "DEFINES_ENTITY", color="#F43F5E"))
 
         for api in arch.retrofit_apis:
             add_node(GraphNode(
-                id=api.id, label=f"📁 {api.name}", group="retrofit_api", category="retrofit_api",
+                id=api.id, label=api.name, display_label=f"📁 {api.name}", group="retrofit_api", category="retrofit_api",
                 title=f"<b>Retrofit API: {api.name}</b><br>Endpoints: {len(api.endpoints)}<br>File: {api.file_path}:{api.line_number}",
                 shape="box", size=30, color=self.COLORS["retrofit_api"],
                 metadata={"name": api.name, "module": api.module, "file_path": api.file_path,
@@ -264,7 +302,7 @@ class AndroidArchitectureGraphBuilder:
             ))
             for ep in api.endpoints:
                 add_node(GraphNode(
-                    id=ep.id, label=f"{ep.http_method} {ep.path}\n{ep.name}()", group="retrofit_endpoint", category="retrofit_endpoint",
+                    id=ep.id, label=ep.name, display_label=f"{ep.http_method} {ep.path}\n{ep.name}()", group="retrofit_endpoint", category="retrofit_endpoint",
                     title=f"<b>[{ep.http_method}] {ep.path}</b><br>Handler: {ep.name}()",
                     shape="box", size=20, color=self.COLORS["retrofit_endpoint"],
                     metadata={"name": ep.name, "http_method": ep.http_method, "path": ep.path,
@@ -275,7 +313,7 @@ class AndroidArchitectureGraphBuilder:
 
         for af in arch.activities_fragments:
             add_node(GraphNode(
-                id=af.id, label=f"📱 {af.name}", group="activity_fragment", category="activity_fragment",
+                id=af.id, label=af.name, display_label=f"📱 {af.name}", group="activity_fragment", category="activity_fragment",
                 title=f"<b>{af.kind.title()}: {af.name}</b><br>Hilt Entry Point: {af.is_hilt_entry_point}<br>File: {af.file_path}:{af.line_number}",
                 shape="box", size=32, color=self.COLORS["activity_fragment"],
                 metadata={"name": af.name, "kind": af.kind, "module": af.module, "file_path": af.file_path,
@@ -283,12 +321,13 @@ class AndroidArchitectureGraphBuilder:
                           "is_hilt_entry_point": af.is_hilt_entry_point},
             ))
             for composable_name in af.hosted_composables:
-                target = composable_by_name.get(composable_name)
-                if target and target.id in node_ids:
-                    edges.append(GraphEdge(from_id=af.id, to_id=target.id, relation="HOSTS", color="#9CA3AF"))
+                target, others = resolve(composable_by_name, composable_name)
+                if target:
+                    edges.append(named_edge(af.id, target, others, "HOSTS", color="#9CA3AF"))
 
         annotate_nodes(nodes, arch.project_path, "android", "kotlin")
-        mark_edges(edges, nodes=nodes)
+        mark_edges(edges, nodes=nodes, rule_namespace="android",
+                   rule_specificity=self.FRAMEWORK_RULE_SPECIFICITY)
         if self.include_language_graph:
             try:
                 language_nodes, language_edges = KotlinAnalyzer(arch.project_path).build()
@@ -335,6 +374,7 @@ class AndroidArchitectureGraphBuilder:
                 from_id=source_id, to_id=target_id, relation=RelationKind.IMPLEMENTED_BY,
                 confidence=Confidence.FRAMEWORK_INFERRED, resolution=Resolution.UNIQUE_NAME,
                 evidence=SourceSpan(Path(file_path).as_posix(), 1, 1),
+                metadata={"framework_rule": {"id": "android.implemented_by", "specificity": "unique"}},
             ))
             return True
 
@@ -359,13 +399,7 @@ class AndroidArchitectureGraphBuilder:
             elif binding.kind == "inject_field":
                 owner = binding.owner_class_name or ""
                 field = binding.field_name or binding.name
-                if not add(binding.id, binding.file_path, f"{owner}.{field}"):
-                    arch.evaluation_relations.append(EvaluationRelation(
-                        binding_id=binding.id,
-                        target_name=f"{owner}.{field}",
-                        evidence=SourceSpan(Path(binding.file_path).as_posix(), binding.line_number, binding.end_line_number),
-                        cost=self.unresolved_inject_field_cost,
-                    ))
+                add(binding.id, binding.file_path, f"{owner}.{field}")
         return edges
 
     @staticmethod
@@ -413,14 +447,6 @@ class AndroidArchitectureGraphBuilder:
                 ],
                 rows=[{"id": a.id, "name": a.name,
                        "endpoints": [f"{ep.http_method} {ep.path}" for ep in a.endpoints]} for a in arch.retrofit_apis],
-            ),
-            ReportCollection(
-                key="exploration_warnings", label="Exploration warnings", view="table",
-                columns=[ColumnSpec("severity", "Severity", "text"), ColumnSpec("target", "Target", "mono"),
-                         ColumnSpec("reason", "Reason", "text"), ColumnSpec("cost", "Cost", "text")],
-                rows=[{"id": relation.binding_id, "severity": "low", "target": relation.target_name,
-                       "reason": "Additional exploration may be required to identify the symbol; matching symbol names is recommended.",
-                       "cost": relation.cost} for relation in arch.evaluation_relations],
             ),
         ]
 

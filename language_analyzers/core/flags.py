@@ -13,6 +13,10 @@ TEST = "test"
 
 _GENERATED_DIR_PARTS = ("migrations", "versions", "__generated__", "generated")
 _GENERATED_NAME_RE = re.compile(r"(_pb2(_grpc)?\.pyi?|\.g\.(dart|kt)|\.freezed\.dart|_generated\.[a-z]+)$")
+# Room exports one JSON per database version into the room.schemaLocation directory,
+# named by that integer version. Matching the number-only name keeps hand-written
+# JSON that happens to live under a "schemas" directory out of the rule.
+_ROOM_SCHEMA_NAME_RE = re.compile(r"^\d+\.json$")
 _VENDORED_PARTS = ("vendor", "vendored", "third_party", "thirdparty", "node_modules", "site-packages")
 _TEST_PARTS = ("test", "tests", "__tests__", "spec")
 _TEST_NAME_RE = re.compile(r"(^test_.*\.py$|.+_test\.py$|.+\.(test|spec)\.(ts|tsx|js|jsx|mjs|cjs)$|.+Test\.kt$)")
@@ -35,6 +39,8 @@ def is_generated_path(relative_path: str) -> bool:
             return True
         if part == "versions" and index > 0 and lowered[index - 1] in ("alembic", "migrations"):
             return True
+    if "schemas" in lowered and _ROOM_SCHEMA_NAME_RE.match(parts[-1]):
+        return True
     return False
 
 
