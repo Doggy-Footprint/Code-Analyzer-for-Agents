@@ -1,6 +1,8 @@
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
+from language_analyzers.core.flags import GENERATED, is_generated_path
+
 from .derived_query import build_derived_queries, derive_terms
 from .exact_query import build_exact_queries, extract_clues
 from .framework_link import build_framework_links
@@ -72,7 +74,7 @@ def build_agent_view(
     active = profile if profile is not None else load_profile(default_profile_path())
     root = Path(architecture.project_path)
     reader = file_reader or read_file
-    lister = file_lister or (lambda path: list_repository_files(path, respect_gitignore=active.respect_gitignore))
+    lister = file_lister or (lambda path: list_repository_files(path, tracked_files_only=active.tracked_files_only))
 
     ignore_source, relative_paths = lister(root)
     scanned, excluded, contents = scan_files(
@@ -126,6 +128,8 @@ def build_agent_view(
         scan=ScanReport(
             ignore_source=ignore_source,
             scanned_file_count=len(scanned),
+            generated_file_count=sum(1 for path in scanned if is_generated_path(path)),
+            generated_node_count=sum(1 for node in readable_nodes if GENERATED in node.flags),
             excluded_files=excluded,
             unknown_framework_edges=unknown_edges,
         ),

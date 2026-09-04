@@ -77,6 +77,8 @@ class ExcludedFile:
 class ScanReport:
     ignore_source: str
     scanned_file_count: int
+    generated_file_count: int
+    generated_node_count: int
     excluded_files: List[ExcludedFile]
     unknown_framework_edges: List[str]
 
