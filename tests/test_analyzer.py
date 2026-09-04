@@ -12,6 +12,8 @@ from pathlib import Path
 from framework_analyzers.fastapi.analyzer import FastAPIAnalyzer
 import framework_analyzers.fastapi.graph as fastapi_graph
 from framework_analyzers.fastapi.graph import ArchitectureGraphBuilder
+from framework_analyzers.fastapi.models import EndpointInfo, ProjectArchitecture, SchemaInfo
+from language_analyzers.core.graph_models import Resolution
 from renderers.html import HTMLRenderer
 
 
@@ -222,6 +224,35 @@ class FastAPIFrameworkRuleDeclarationTests(unittest.TestCase):
             set(ArchitectureGraphBuilder.FRAMEWORK_RULE_SPECIFICITY.values()) - {"unique", "narrowing"},
             set(),
         )
+
+
+class FastAPINameCollisionTests(unittest.TestCase):
+    def test_two_schemas_sharing_a_name_are_recorded_as_candidates(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "api.py").write_text("x = 1\n", encoding="utf-8")
+            architecture = ProjectArchitecture(
+                project_name="sample",
+                project_path=str(root),
+                endpoints=[EndpointInfo(
+                    id="endpoint", http_method="POST", path="/users", function_name="create",
+                    module="api", file_path=str(root / "api.py"), line_number=1, end_line_number=1,
+                    request_schemas=["User"],
+                )],
+                schemas=[
+                    SchemaInfo(id="schema-a", name="User", module="api.v1",
+                               file_path=str(root / "api.py"), line_number=1, end_line_number=1),
+                    SchemaInfo(id="schema-b", name="User", module="api.v2",
+                               file_path=str(root / "api.py"), line_number=1, end_line_number=1),
+                ],
+            )
+
+            result = ArchitectureGraphBuilder(include_language_graph=False).build_graph(architecture)
+
+        body = next(edge for edge in result.edges if edge.relation == "REQUEST_BODY")
+        self.assertEqual(body.to_id, "schema-a")
+        self.assertEqual(body.candidates, ["schema-b"])
+        self.assertEqual(str(body.resolution), str(Resolution.AMBIGUOUS))
 
 
 if __name__ == "__main__":

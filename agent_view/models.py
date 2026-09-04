@@ -58,7 +58,9 @@ class FrameworkLink:
     from_node_id: str
     rule_id: str
     specificity: str
+    resolution: str
     to_node_ids: List[str]
+    candidate_node_ids: List[str]
     query_id: Optional[str]
     evidence_file: str
     evidence_line: int

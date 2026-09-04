@@ -1042,6 +1042,41 @@ class DiffTests(TempDirFixture):
         self.assertEqual(result["framework_links"]["removed"], ["alpha|demo.rule|gamma"])
         self.assertEqual(result["framework_links"]["changed"], [])
 
+    def test_ambiguous_framework_edge_keeps_its_candidates(self):
+        contents = {"a.py": "alpha = 1\n", "b.py": "beta = 2\n", "c.py": "gamma = 3\n"}
+        nodes = [
+            symbol("alpha", "a.py", 1, 1, label="alpha"),
+            symbol("beta", "b.py", 1, 1, label="beta"),
+            symbol("gamma", "c.py", 1, 1, label="gamma"),
+        ]
+        edge = GraphEdge(
+            from_id="alpha", to_id="beta", relation=RelationKind.IMPLEMENTED_BY,
+            confidence=Confidence.FRAMEWORK_INFERRED, resolution=Resolution.AMBIGUOUS,
+            candidates=["gamma"],
+            metadata={"framework_rule": {"id": "demo.rule", "specificity": "unique"}},
+        )
+
+        link = self.build(contents, nodes, [edge])["framework_links"][0]
+
+        self.assertEqual(link["specificity"], "unique")
+        self.assertEqual(link["resolution"], "ambiguous")
+        self.assertEqual(link["to_node_ids"], ["beta"])
+        self.assertEqual(link["candidate_node_ids"], ["gamma"])
+
+    def test_candidates_outside_the_readable_set_are_dropped(self):
+        contents = {"a.py": "alpha = 1\n", "b.py": "beta = 2\n"}
+        nodes = [symbol("alpha", "a.py", 1, 1, label="alpha"), symbol("beta", "b.py", 1, 1, label="beta")]
+        edge = GraphEdge(
+            from_id="alpha", to_id="beta", relation=RelationKind.IMPLEMENTED_BY,
+            confidence=Confidence.FRAMEWORK_INFERRED, resolution=Resolution.AMBIGUOUS,
+            candidates=["absent"],
+            metadata={"framework_rule": {"id": "demo.rule", "specificity": "unique"}},
+        )
+
+        link = self.build(contents, nodes, [edge])["framework_links"][0]
+
+        self.assertEqual(link["candidate_node_ids"], [])
+
     def test_framework_link_removal_is_reported(self):
         contents = {"a.py": "alpha = 1\n", "b.py": "beta = 2\n"}
         nodes = [symbol("alpha", "a.py", 1, 1, label="alpha"), symbol("beta", "b.py", 1, 1, label="beta")]

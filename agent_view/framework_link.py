@@ -69,10 +69,16 @@ def build_framework_links(
                 "rule_id": rule_id,
                 "specificity": specificity,
                 "to_node_ids": set(),
+                "candidate_node_ids": set(),
+                "resolution": str(getattr(edge, "resolution", "")),
                 "evidence": (evidence_file, evidence_line),
             }
             groups[key] = group
         group["to_node_ids"].add(edge.to_id)
+        group["candidate_node_ids"].update(
+            candidate for candidate in getattr(edge, "candidates", None) or []
+            if candidate in readable_by_id
+        )
 
     links: List[FrameworkLink] = []
     queries: List[QueryNode] = []
@@ -118,7 +124,9 @@ def build_framework_links(
             from_node_id=group["from_node_id"],
             rule_id=group["rule_id"],
             specificity=group["specificity"],
+            resolution=group["resolution"],
             to_node_ids=targets,
+            candidate_node_ids=sorted(group["candidate_node_ids"] - set(targets)),
             query_id=query_id,
             evidence_file=group["evidence"][0],
             evidence_line=group["evidence"][1],

@@ -113,11 +113,30 @@ class AndroidArchitectureGraphBuilder:
             nodes.append(node)
             node_ids.add(node.id)
 
-        def by_name(items, attr="name") -> Dict[str, object]:
-            result: Dict[str, object] = {}
+        def by_name(items, attr="name") -> Dict[str, List[object]]:
+            result: Dict[str, List[object]] = {}
             for item in items:
-                result.setdefault(getattr(item, attr), item)
+                result.setdefault(getattr(item, attr), []).append(item)
             return result
+
+        def resolve(mapping, name, *, require_node=True, exclude_id=None, predicate=None):
+            usable = [
+                item for item in mapping.get(name) or []
+                if item.id != exclude_id
+                and (not require_node or item.id in node_ids)
+                and (predicate is None or predicate(item))
+            ]
+            if not usable:
+                return None, []
+            return usable[0], [item.id for item in usable[1:]]
+
+        def named_edge(from_id, target, others, relation, **style) -> GraphEdge:
+            return GraphEdge(
+                from_id=from_id, to_id=target.id, relation=relation,
+                resolution=Resolution.AMBIGUOUS if others else Resolution.UNIQUE_NAME,
+                candidates=list(others),
+                **style,
+            )
 
         composable_by_name = by_name(arch.composables)
         viewmodel_by_name = by_name(arch.viewmodels)
@@ -139,13 +158,13 @@ class AndroidArchitectureGraphBuilder:
             ))
         for c in arch.composables:
             for call_name in c.calls:
-                target = composable_by_name.get(call_name)
-                if target and target.id != c.id and target.id in node_ids:
-                    edges.append(GraphEdge(from_id=c.id, to_id=target.id, relation="CALLS", color="#10B981"))
-            if c.uses_viewmodel:
-                target = viewmodel_by_name.get(c.uses_viewmodel)
+                target, others = resolve(composable_by_name, call_name, exclude_id=c.id)
                 if target:
-                    edges.append(GraphEdge(from_id=c.id, to_id=target.id, relation="USES_VIEWMODEL",
+                    edges.append(named_edge(c.id, target, others, "CALLS", color="#10B981"))
+            if c.uses_viewmodel:
+                target, others = resolve(viewmodel_by_name, c.uses_viewmodel, require_node=False)
+                if target:
+                    edges.append(named_edge(c.id, target, others, "USES_VIEWMODEL",
                                             label="uses", dashes=True, color="#3B82F6"))
 
         for v in arch.viewmodels:
@@ -199,9 +218,9 @@ class AndroidArchitectureGraphBuilder:
                                                 relation="PROVIDES" if b.kind == "provides" else "BINDS",
                                                 dashes=True, color="#A855F7"))
                 for target_name in m.install_in:
-                    target = component_by_name.get(target_name)
-                    if target and target.id in node_ids:
-                        edges.append(GraphEdge(from_id=m.id, to_id=target.id, relation="INSTALLS_IN", color="#818CF8"))
+                    target, others = resolve(component_by_name, target_name)
+                    if target:
+                        edges.append(named_edge(m.id, target, others, "INSTALLS_IN", color="#818CF8"))
 
             for v in arch.viewmodels:
                 for injected_type in v.injected_types:
@@ -209,9 +228,14 @@ class AndroidArchitectureGraphBuilder:
                     if binding and binding.id in node_ids:
                         edges.append(GraphEdge(from_id=v.id, to_id=binding.id, relation="INJECTS",
                                                 label="injects", dashes=True, color="#38BDF8"))
-                    api = api_by_name.get(injected_type)
-                    if api and any(call in {e.name for e in api.endpoints} for call in v.calls):
-                        edges.append(GraphEdge(from_id=v.id, to_id=api.id, relation="CALLS_API",
+                    api, api_others = resolve(
+                        api_by_name, injected_type, require_node=False,
+                        predicate=lambda item: any(
+                            call in {e.name for e in item.endpoints} for call in v.calls
+                        ),
+                    )
+                    if api:
+                        edges.append(named_edge(v.id, api, api_others, "CALLS_API",
                                                 label="calls", dashes=True, color="#A855F7"))
 
         if self.include_models:
@@ -244,9 +268,9 @@ class AndroidArchitectureGraphBuilder:
                 ))
                 edges.append(GraphEdge(from_id=d.id, to_id=method.id, relation="ROUTES", color="#F59E0B"))
                 if self.include_models and method.return_type:
-                    entity = entity_by_name.get(method.return_type)
-                    if entity and entity.id in node_ids:
-                        edges.append(GraphEdge(from_id=method.id, to_id=entity.id, relation="QUERIES",
+                    entity, others = resolve(entity_by_name, method.return_type)
+                    if entity:
+                        edges.append(named_edge(method.id, entity, others, "QUERIES",
                                                 label="queries", dashes=True, color="#E879F9"))
 
         for db in arch.room_databases:
@@ -259,14 +283,14 @@ class AndroidArchitectureGraphBuilder:
                           "entity_names": db.entity_names},
             ))
             for dao_type in db.dao_accessors:
-                dao = dao_by_name.get(dao_type)
-                if dao and dao.id in node_ids:
-                    edges.append(GraphEdge(from_id=db.id, to_id=dao.id, relation="CONTAINS", color="#F43F5E"))
+                dao, others = resolve(dao_by_name, dao_type)
+                if dao:
+                    edges.append(named_edge(db.id, dao, others, "CONTAINS", color="#F43F5E"))
             if self.include_models:
                 for entity_name in db.entity_names:
-                    entity = entity_by_name.get(entity_name)
-                    if entity and entity.id in node_ids:
-                        edges.append(GraphEdge(from_id=db.id, to_id=entity.id, relation="DEFINES_ENTITY", color="#F43F5E"))
+                    entity, others = resolve(entity_by_name, entity_name)
+                    if entity:
+                        edges.append(named_edge(db.id, entity, others, "DEFINES_ENTITY", color="#F43F5E"))
 
         for api in arch.retrofit_apis:
             add_node(GraphNode(
@@ -297,9 +321,9 @@ class AndroidArchitectureGraphBuilder:
                           "is_hilt_entry_point": af.is_hilt_entry_point},
             ))
             for composable_name in af.hosted_composables:
-                target = composable_by_name.get(composable_name)
-                if target and target.id in node_ids:
-                    edges.append(GraphEdge(from_id=af.id, to_id=target.id, relation="HOSTS", color="#9CA3AF"))
+                target, others = resolve(composable_by_name, composable_name)
+                if target:
+                    edges.append(named_edge(af.id, target, others, "HOSTS", color="#9CA3AF"))
 
         annotate_nodes(nodes, arch.project_path, "android", "kotlin")
         mark_edges(edges, nodes=nodes, rule_namespace="android",

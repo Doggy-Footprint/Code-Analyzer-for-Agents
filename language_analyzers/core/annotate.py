@@ -61,7 +61,9 @@ def mark_edges(
     specificity = rule_specificity or {}
     for edge in edges:
         edge.confidence = confidence
-        edge.resolution = resolution
+        # 후보를 기록한 엣지는 이름 조회가 도착점을 좁히지 못했다는 뜻이므로 자기 resolution을 유지한다.
+        if not edge.candidates:
+            edge.resolution = resolution
         if rule_namespace and edge.relation in specificity:
             edge.metadata = edge.metadata or {}
             edge.metadata.setdefault("framework_rule", {

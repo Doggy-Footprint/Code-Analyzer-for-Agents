@@ -318,28 +318,26 @@ class ArchitectureGraphBuilder:
 
             for ep in arch.endpoints:
                 for d_name in ep.dependencies:
-                    target_dep = self._find_dep_by_name(d_name, arch.dependencies)
-                    if target_dep and target_dep.id in node_ids:
-                        edges.append(GraphEdge(
-                            from_id=ep.id,
-                            to_id=target_dep.id,
-                            relation="DEPENDS_ON",
-                            label="depends",
-                            dashes=True,
-                            color="#38BDF8"
+                    targets = [
+                        d for d in self._find_deps_by_name(d_name, arch.dependencies)
+                        if d.id in node_ids
+                    ]
+                    if targets:
+                        edges.append(self._named_edge(
+                            ep.id, targets, "DEPENDS_ON",
+                            label="depends", dashes=True, color="#38BDF8",
                         ))
 
             for dep in arch.dependencies:
                 for sub_name in dep.sub_dependencies:
-                    target_sub = self._find_dep_by_name(sub_name, arch.dependencies)
-                    if target_sub and target_sub.id in node_ids and target_sub.id != dep.id:
-                        edges.append(GraphEdge(
-                            from_id=dep.id,
-                            to_id=target_sub.id,
-                            relation="SUB_DEPENDENCY",
-                            label="calls",
-                            dashes=True,
-                            color="#38BDF8"
+                    targets = [
+                        d for d in self._find_deps_by_name(sub_name, arch.dependencies)
+                        if d.id in node_ids and d.id != dep.id
+                    ]
+                    if targets:
+                        edges.append(self._named_edge(
+                            dep.id, targets, "SUB_DEPENDENCY",
+                            label="calls", dashes=True, color="#38BDF8",
                         ))
 
         if self.include_models:
@@ -370,26 +368,24 @@ class ArchitectureGraphBuilder:
 
             for ep in arch.endpoints:
                 for req_s in ep.request_schemas:
-                    target_schema = self._find_schema_by_name(req_s, arch.schemas)
-                    if target_schema and target_schema.id in node_ids:
-                        edges.append(GraphEdge(
-                            from_id=ep.id,
-                            to_id=target_schema.id,
-                            relation="REQUEST_BODY",
-                            label="body",
-                            dashes=True,
-                            color="#E879F9"
+                    targets = [
+                        s for s in self._find_schemas_by_name(req_s, arch.schemas)
+                        if s.id in node_ids
+                    ]
+                    if targets:
+                        edges.append(self._named_edge(
+                            ep.id, targets, "REQUEST_BODY",
+                            label="body", dashes=True, color="#E879F9",
                         ))
                 for resp_s in ep.response_schemas:
-                    target_schema = self._find_schema_by_name(resp_s, arch.schemas)
-                    if target_schema and target_schema.id in node_ids:
-                        edges.append(GraphEdge(
-                            from_id=ep.id,
-                            to_id=target_schema.id,
-                            relation="RESPONSE_MODEL",
-                            label="returns",
-                            dashes=True,
-                            color="#E879F9"
+                    targets = [
+                        s for s in self._find_schemas_by_name(resp_s, arch.schemas)
+                        if s.id in node_ids
+                    ]
+                    if targets:
+                        edges.append(self._named_edge(
+                            ep.id, targets, "RESPONSE_MODEL",
+                            label="returns", dashes=True, color="#E879F9"
                         ))
 
         methods_counter = Counter([ep.http_method for ep in arch.endpoints])
@@ -565,20 +561,26 @@ class ArchitectureGraphBuilder:
         return None
 
     @staticmethod
-    def _find_dep_by_name(name: str, dependencies: List[DependencyInfo]) -> Optional[DependencyInfo]:
+    def _find_deps_by_name(name: str, dependencies: List[DependencyInfo]) -> List[DependencyInfo]:
         clean_name = name.split("(")[0].split(".")[-1]
-        for d in dependencies:
-            if d.name == clean_name or d.name == name or d.id.endswith(f"_{clean_name}"):
-                return d
-        return None
+        return [
+            d for d in dependencies
+            if d.name == clean_name or d.name == name or d.id.endswith(f"_{clean_name}")
+        ]
 
     @staticmethod
-    def _find_schema_by_name(name: str, schemas: List[SchemaInfo]) -> Optional[SchemaInfo]:
+    def _find_schemas_by_name(name: str, schemas: List[SchemaInfo]) -> List[SchemaInfo]:
         clean_name = name.split(".")[-1]
-        for s in schemas:
-            if s.name == clean_name or s.name == name:
-                return s
-        return None
+        return [s for s in schemas if s.name == clean_name or s.name == name]
+
+    @staticmethod
+    def _named_edge(from_id, targets, relation, **style) -> GraphEdge:
+        return GraphEdge(
+            from_id=from_id, to_id=targets[0].id, relation=relation,
+            resolution=Resolution.AMBIGUOUS if targets[1:] else Resolution.UNIQUE_NAME,
+            candidates=[item.id for item in targets[1:]],
+            **style,
+        )
 
     @staticmethod
     def _get_method_badge(method: str) -> str:

@@ -6,8 +6,12 @@ from unittest.mock import patch
 
 import framework_analyzers.android.graph as android_graph
 from framework_analyzers.android.graph import AndroidArchitectureGraphBuilder
-from framework_analyzers.android.models import AndroidProjectArchitecture, DiBindingInfo
-from language_analyzers.core.graph_models import GraphNode, NodeKind, RelationKind
+from framework_analyzers.android.models import (
+    AndroidProjectArchitecture,
+    ComposableInfo,
+    DiBindingInfo,
+)
+from language_analyzers.core.graph_models import GraphNode, NodeKind, RelationKind, Resolution
 
 
 class AndroidGraphContractTests(unittest.TestCase):
@@ -155,6 +159,49 @@ class AndroidFrameworkRuleDeclarationTests(unittest.TestCase):
             set(AndroidArchitectureGraphBuilder.FRAMEWORK_RULE_SPECIFICITY.values()) - {"unique", "narrowing"},
             set(),
         )
+
+
+class AndroidNameCollisionTests(unittest.TestCase):
+    def build(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "TopicScreen.kt"
+            source.write_text("fun a() {}\n", encoding="utf-8")
+
+            def composable(suffix, line, calls=()):
+                return ComposableInfo(
+                    id=f"composable_{suffix}", name="TopicScreen" if suffix.startswith("overload") else suffix,
+                    module="feature", file_path=str(source), line_number=line, end_line_number=line,
+                    calls=list(calls),
+                )
+
+            architecture = AndroidProjectArchitecture(
+                project_name="sample", project_path=str(root),
+                composables=[
+                    composable("overload_a", 74, ["TopicScreen"]),
+                    composable("overload_b", 99),
+                    composable("Caller", 300, ["TopicScreen"]),
+                ],
+            )
+            with patch("framework_analyzers.android.graph.KotlinAnalyzer") as analyzer:
+                analyzer.return_value.build.return_value = ([], [])
+                result = AndroidArchitectureGraphBuilder(include_language_graph=False).build_graph(architecture)
+        return [edge for edge in result.edges if edge.relation == "CALLS"]
+
+    def test_collision_records_the_other_declaration_as_a_candidate(self):
+        caller = next(edge for edge in self.build() if edge.from_id == "composable_Caller")
+
+        self.assertEqual(caller.to_id, "composable_overload_a")
+        self.assertEqual(caller.candidates, ["composable_overload_b"])
+        self.assertEqual(str(caller.resolution), str(Resolution.AMBIGUOUS))
+
+    def test_an_overload_calling_its_sibling_is_not_dropped_as_a_self_call(self):
+        edges = self.build()
+        from_overload = [edge for edge in edges if edge.from_id == "composable_overload_a"]
+
+        self.assertEqual([edge.to_id for edge in from_overload], ["composable_overload_b"])
+        self.assertEqual(from_overload[0].candidates, [])
+        self.assertEqual(str(from_overload[0].resolution), str(Resolution.UNIQUE_NAME))
 
 
 if __name__ == "__main__":
