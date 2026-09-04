@@ -8,7 +8,13 @@ from collections import Counter
 from typing import Any, Dict, List, Optional, Set
 
 from analysis import GraphAnalyzer
+from language_analyzers.core.annotate import annotate_nodes, mark_edges
+from language_analyzers.core.enrichment import enrich_repository
+from language_analyzers.core.graph_models import Confidence, RelationKind, Resolution, SourceSpan
 from language_analyzers.core.report_schema import ColumnSpec, ReportCollection
+from language_analyzers.python.graph import PythonGraphAnalyzer
+from language_analyzers.python.source import PythonSourceAnalyzer
+from language_analyzers.python.symbols import symbol_id
 
 from .models import (
     AppInfo,
@@ -92,9 +98,17 @@ class ArchitectureGraphBuilder:
         },
     }
 
-    def __init__(self, include_models: bool = True, include_dependencies: bool = True):
+    PROVENANCE = "fastapi"
+
+    def __init__(
+        self,
+        include_models: bool = True,
+        include_dependencies: bool = True,
+        include_language_graph: bool = True,
+    ):
         self.include_models = include_models
         self.include_dependencies = include_dependencies
+        self.include_language_graph = include_language_graph
 
     def build_graph(self, arch: ProjectArchitecture) -> ProjectArchitecture:
         nodes: List[GraphNode] = []
@@ -118,6 +132,7 @@ class ArchitectureGraphBuilder:
                     "module": app.module,
                     "file_path": app.file_path,
                     "line_number": app.line_number,
+                    "end_line_number": app.end_line_number,
                     "middlewares": app.middlewares,
                 }
             )
@@ -168,6 +183,7 @@ class ArchitectureGraphBuilder:
                     "module": router.module,
                     "file_path": router.file_path,
                     "line_number": router.line_number,
+                    "end_line_number": router.end_line_number,
                     "dependencies": router.dependencies,
                 }
             )
@@ -223,6 +239,7 @@ class ArchitectureGraphBuilder:
                     "module": ep.module,
                     "file_path": ep.file_path,
                     "line_number": ep.line_number,
+                    "end_line_number": ep.end_line_number,
                     "docstring": ep.docstring,
                     "summary": ep.summary,
                     "tags": ep.tags,
@@ -280,6 +297,7 @@ class ArchitectureGraphBuilder:
                         "module": dep.module,
                         "file_path": dep.file_path,
                         "line_number": dep.line_number,
+                        "end_line_number": dep.end_line_number,
                         "docstring": dep.docstring,
                         "sub_dependencies": dep.sub_dependencies,
                         "consumers": dep.consumers,
@@ -331,6 +349,7 @@ class ArchitectureGraphBuilder:
                         "module": schema.module,
                         "file_path": schema.file_path,
                         "line_number": schema.line_number,
+                        "end_line_number": schema.end_line_number,
                         "docstring": schema.docstring,
                         "base_classes": schema.base_classes,
                         "fields": [f.__dict__ for f in schema.fields],
@@ -366,8 +385,18 @@ class ArchitectureGraphBuilder:
         methods_counter = Counter([ep.http_method for ep in arch.endpoints])
         deps_counter = Counter([d for ep in arch.endpoints for d in ep.dependencies])
 
+        annotate_nodes(nodes, arch.project_path, self.PROVENANCE, "python")
+        mark_edges(edges, nodes=nodes)
+        if self.include_language_graph:
+            language_nodes, language_edges = self._language_graph(arch)
+            known = {node.id for node in nodes}
+            nodes.extend(node for node in language_nodes if node.id not in known)
+            edges.extend(language_edges)
+            edges.extend(self._implementation_edges(arch, {node.id for node in nodes}))
+
         arch.nodes = nodes
         arch.edges = edges
+        enrich_repository(arch)
         arch.stats = {
             "total_apps": len(arch.apps),
             "total_routers": len(arch.routers),
@@ -377,6 +406,9 @@ class ArchitectureGraphBuilder:
             "methods_breakdown": dict(methods_counter),
             "top_reused_dependencies": deps_counter.most_common(5),
             "unique_tags": list(set([t for ep in arch.endpoints for t in ep.tags if t])),
+            "nodes_by_kind": dict(Counter(node.kind or node.category for node in arch.nodes)),
+            "edges_by_relation": dict(Counter(edge.relation for edge in arch.edges)),
+            "edges_by_confidence": dict(Counter(str(edge.confidence) for edge in arch.edges)),
         }
         arch.stats["analysis"] = GraphAnalyzer().analyze(
             arch.nodes,
@@ -386,6 +418,36 @@ class ArchitectureGraphBuilder:
         arch.report_collections = self._build_report_collections(arch)
 
         return arch
+
+    @staticmethod
+    def _language_graph(arch: ProjectArchitecture):
+        analyzer = PythonGraphAnalyzer(arch.project_path)
+        return analyzer.build(PythonSourceAnalyzer(arch.project_path).analyze())
+
+    @staticmethod
+    def _implementation_edges(arch: ProjectArchitecture, known_ids: Set[str]) -> List[GraphEdge]:
+        edges: List[GraphEdge] = []
+        pairs = [(ep.id, ep.module, ep.function_name, ep.file_path, ep.line_number) for ep in arch.endpoints]
+        pairs += [(dep.id, dep.module, dep.name, dep.file_path, dep.line_number) for dep in arch.dependencies]
+        pairs += [(schema.id, schema.module, schema.name, schema.file_path, schema.line_number) for schema in arch.schemas]
+        for source_id, module, name, file_path, line in pairs:
+            if source_id not in known_ids or not module or not name:
+                continue
+            target = symbol_id(module, name)
+            if target not in known_ids:
+                continue
+            edges.append(GraphEdge(
+                from_id=source_id,
+                to_id=target,
+                relation=RelationKind.IMPLEMENTED_BY,
+                label="implemented by",
+                dashes=True,
+                color="#94A3B8",
+                confidence=Confidence.FRAMEWORK_INFERRED,
+                resolution=Resolution.EXACT,
+                evidence=SourceSpan(file_path, line, line),
+            ))
+        return edges
 
     @staticmethod
     def _build_report_collections(arch: ProjectArchitecture) -> List[ReportCollection]:
@@ -532,7 +594,13 @@ class ArchitectureGraphBuilder:
             lines.append(f'    {router.id}["📁 {router.var_name}"]')
             lines.append("  end")
 
+        framework_ids = {
+            node.id for node in arch.nodes
+            if (node.provenance or self.PROVENANCE) == self.PROVENANCE
+        }
         for edge in arch.edges:
+            if edge.from_id not in framework_ids or edge.to_id not in framework_ids:
+                continue
             lbl = f"|{edge.label}|" if edge.label else ""
             arrow = "-.->" if edge.dashes else "-->"
             lines.append(f"  {edge.from_id} {arrow}{lbl} {edge.to_id}")

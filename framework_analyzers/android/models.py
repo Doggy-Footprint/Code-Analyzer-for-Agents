@@ -5,7 +5,6 @@ Data models representing the extracted architecture of an Android/Kotlin project
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
-from language_analyzers.core.git_diff_models import GitDiffInfo
 from language_analyzers.core.graph_models import GraphEdge, GraphNode
 from language_analyzers.core.report_schema import ColumnSpec, ReportCollection
 
@@ -14,6 +13,7 @@ __all__ = [
     "ViewModelInfo",
     "DiModuleInfo",
     "DiBindingInfo",
+    "EvaluationRelation",
     "DaggerComponentInfo",
     "RoomFieldInfo",
     "RoomEntityInfo",
@@ -27,7 +27,6 @@ __all__ = [
     "GraphEdge",
     "ColumnSpec",
     "ReportCollection",
-    "GitDiffInfo",
     "AndroidProjectArchitecture",
 ]
 
@@ -80,6 +79,17 @@ class DiBindingInfo:
     owner_module_id: Optional[str] = None  # the DiModuleInfo.id this binding belongs to (provides/binds only)
     provided_type: Optional[str] = None
     injected_type: Optional[str] = None  # the class this binding is attached to (inject_constructor/inject_field)
+    owner_class_name: Optional[str] = None
+    field_name: Optional[str] = None
+
+
+@dataclass
+class EvaluationRelation:
+    binding_id: str
+    target_name: str
+    evidence: Optional[Any] = None
+    kind: str = "unresolved_inject_field"
+    cost: float = 4.0
 
 
 @dataclass
@@ -195,6 +205,6 @@ class AndroidProjectArchitecture:
     activities_fragments: List[ActivityFragmentInfo] = field(default_factory=list)
     nodes: List[GraphNode] = field(default_factory=list)
     edges: List[GraphEdge] = field(default_factory=list)
+    evaluation_relations: List[EvaluationRelation] = field(default_factory=list)
     stats: Dict[str, Any] = field(default_factory=dict)
-    git_diff: Optional[GitDiffInfo] = None
     report_collections: List[ReportCollection] = field(default_factory=list)

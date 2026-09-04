@@ -5,13 +5,6 @@ Data models representing the extracted architecture of a FastAPI project.
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
-from language_analyzers.core.git_diff_models import (
-    GitCommitInfo,
-    GitDiffHunk,
-    GitDiffInfo,
-    GitDiffLine,
-    GitFileDiff,
-)
 from language_analyzers.core.graph_models import GraphEdge, GraphNode
 from language_analyzers.core.report_schema import ColumnSpec, ReportCollection
 
@@ -26,11 +19,6 @@ __all__ = [
     "SchemaInfo",
     "GraphNode",
     "GraphEdge",
-    "GitCommitInfo",
-    "GitDiffLine",
-    "GitDiffHunk",
-    "GitFileDiff",
-    "GitDiffInfo",
     "ColumnSpec",
     "ReportCollection",
     "ProjectArchitecture",
@@ -56,6 +44,7 @@ class EndpointInfo:
     module: str = ""
     file_path: str = ""
     line_number: int = 0
+    end_line_number: int = 0
     docstring: Optional[str] = None
     summary: Optional[str] = None
     tags: List[str] = field(default_factory=list)
@@ -86,6 +75,7 @@ class RouterInfo:
     module: str
     file_path: str
     line_number: int
+    end_line_number: int = 0
     prefix: str = ""
     tags: List[str] = field(default_factory=list)
     dependencies: List[str] = field(default_factory=list)
@@ -102,6 +92,7 @@ class AppInfo:
     module: str = ""
     file_path: str = ""
     line_number: int = 0
+    end_line_number: int = 0
     middlewares: List[Dict[str, Any]] = field(default_factory=list)
     event_handlers: List[Dict[str, Any]] = field(default_factory=list)
     inclusions: List[RouterInclusion] = field(default_factory=list)
@@ -116,6 +107,7 @@ class DependencyInfo:
     module: str
     file_path: str
     line_number: int = 0
+    end_line_number: int = 0
     docstring: Optional[str] = None
     sub_dependencies: List[str] = field(default_factory=list)
     parameters: List[ParameterInfo] = field(default_factory=list)
@@ -138,6 +130,7 @@ class SchemaInfo:
     module: str
     file_path: str
     line_number: int = 0
+    end_line_number: int = 0
     docstring: Optional[str] = None
     base_classes: List[str] = field(default_factory=list)
     fields: List[SchemaFieldInfo] = field(default_factory=list)
@@ -156,5 +149,4 @@ class ProjectArchitecture:
     nodes: List[GraphNode] = field(default_factory=list)
     edges: List[GraphEdge] = field(default_factory=list)
     stats: Dict[str, Any] = field(default_factory=dict)
-    git_diff: Optional[GitDiffInfo] = None
     report_collections: List[ReportCollection] = field(default_factory=list)

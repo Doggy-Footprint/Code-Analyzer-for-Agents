@@ -1,9 +1,20 @@
 import html
 import json
 import shutil
-from dataclasses import asdict
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Dict, Optional
+
+from language_analyzers.core.serialization import architecture_to_dict
+
+# vis.js line styling per edge confidence. Confidence is a semantic field the analyzers
+# produce; turning it into a dash pattern belongs here so no analyzer carries presentation.
+CONFIDENCE_STYLES: Dict[str, Dict[str, Any]] = {
+    "static_certain": {"dashes": False, "color": "#64748B"},
+    "framework_inferred": {"dashes": False, "color": "#818CF8"},
+    "static_inferred": {"dashes": [8, 6], "color": "#38BDF8"},
+    "dynamic_required": {"dashes": [2, 4], "color": "#F59E0B"},
+}
+DEFAULT_STYLE = CONFIDENCE_STYLES["static_certain"]
 
 
 class HTMLRenderer:
@@ -24,56 +35,9 @@ class HTMLRenderer:
                 asset_dir / asset_name,
             )
 
-        raw_data = {
-            "project_name": arch.project_name,
-            "project_path": arch.project_path,
-            "stats": arch.stats,
-            "nodes": [
-                {
-                    "id": node.id,
-                    "label": node.label,
-                    "group": node.group,
-                    "category": node.category,
-                    "title": node.title,
-                    "shape": node.shape,
-                    "size": node.size,
-                    "color": node.color,
-                    "metadata": node.metadata,
-                }
-                for node in arch.nodes
-            ],
-            "edges": [
-                {
-                    "from": edge.from_id,
-                    "to": edge.to_id,
-                    "relation": edge.relation,
-                    "label": edge.label,
-                    "dashes": edge.dashes,
-                    "arrows": edge.arrows,
-                    "color": {
-                        "color": edge.color or "#64748B",
-                        "highlight": "#38BDF8",
-                        "hover": "#38BDF8",
-                    },
-                    "title": edge.title or (
-                        f"{edge.relation}: {edge.label}" if edge.label else edge.relation
-                    ),
-                }
-                for edge in arch.edges
-            ],
-            "collections": {
-                collection.key: {
-                    "label": collection.label,
-                    "icon": getattr(collection, "icon", "box"),
-                    "view": collection.view,
-                    "node_category": collection.node_category,
-                    "columns": [asdict(column) for column in collection.columns],
-                    "rows": collection.rows,
-                }
-                for collection in getattr(arch, "report_collections", [])
-            },
-            "git_diff": asdict(arch.git_diff) if arch.git_diff else None,
-        }
+        raw_data = architecture_to_dict(arch)
+        raw_data["edges"] = [self._vis_edge(edge) for edge in raw_data["edges"]]
+        raw_data["confidence_styles"] = CONFIDENCE_STYLES
 
         document = (self.package_dir / "templates" / "dashboard.html").read_text(encoding="utf-8")
         replacements = {
@@ -88,3 +52,30 @@ class HTMLRenderer:
 
         output.write_text(document, encoding="utf-8")
         return output
+
+    @staticmethod
+    def _vis_edge(edge: Dict[str, Any]) -> Dict[str, Any]:
+        confidence = edge.get("confidence") or "static_certain"
+        style = CONFIDENCE_STYLES.get(confidence, DEFAULT_STYLE)
+        relation = edge.get("relation", "")
+        evidence = edge.get("evidence")
+        tooltip_lines = [f"<b>{relation}</b>" if relation else "<b>edge</b>"]
+        if edge.get("label"):
+            tooltip_lines.append(edge["label"])
+        tooltip_lines.append(f"confidence: {confidence}")
+        tooltip_lines.append(f"resolution: {edge.get('resolution', 'exact')}")
+        if evidence:
+            tooltip_lines.append(f"evidence: {evidence['file_path']}:{evidence['start_line']}")
+        if edge.get("candidates"):
+            tooltip_lines.append(f"other candidates: {len(edge['candidates'])}")
+        if edge.get("weight", 1.0) > 1:
+            tooltip_lines.append(f"occurrences: {int(edge['weight'])}")
+
+        colour = edge.get("color") or style["color"]
+        vis = dict(edge)
+        vis["from"] = edge["from_id"]
+        vis["to"] = edge["to_id"]
+        vis["dashes"] = edge.get("dashes") or style["dashes"]
+        vis["color"] = {"color": colour, "highlight": "#38BDF8", "hover": "#38BDF8"}
+        vis["title"] = edge.get("title") or "<br>".join(tooltip_lines)
+        return vis

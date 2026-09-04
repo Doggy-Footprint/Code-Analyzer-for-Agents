@@ -24,6 +24,7 @@ let currentSpringLength = 240;
 let selectedNodeId = null;
 
 let activeFilters = {};
+let activeConfidence = {};
 
 let activeMethods = {
   GET: true,
@@ -42,13 +43,13 @@ function titleCase(str) {
 document.addEventListener('DOMContentLoaded', () => {
   renderCollectionNavAndViews();
   buildNodeCategoryFilters();
+  buildConfidenceFilters();
   buildLegend();
   toggleMethodsFilterVisibility();
 
   lucide.createIcons();
   initNetwork();
   Object.keys(ARCH_DATA.collections || {}).forEach(populateCollectionView);
-  populateGitDiff();
 
   window.addEventListener('resize', () => {
     if (network) network.setSize('100%', '100%');
@@ -237,8 +238,6 @@ function switchTab(tabId) {
       network.redraw();
       fitView();
     }, 50);
-  } else if (tabId === 'gitdiff') {
-    lucide.createIcons();
   }
 }
 
@@ -378,6 +377,13 @@ function toggleFilterType(category) {
   applyFilters();
 }
 
+function toggleConfidenceFilter(level) {
+  activeConfidence[level] = !activeConfidence[level];
+  const btn = document.getElementById(`confidence-btn-${level}`);
+  if (btn) btn.classList.toggle('opacity-30', !activeConfidence[level]);
+  applyFilters();
+}
+
 function toggleMethodFilter(method) {
   activeMethods[method] = !activeMethods[method];
   const btn = document.getElementById(`method-btn-${method}`);
@@ -396,6 +402,11 @@ function resetFilters() {
     const btn = document.getElementById(`method-btn-${m}`);
     if (btn) btn.classList.remove('opacity-30');
   });
+  Object.keys(activeConfidence).forEach(level => {
+    activeConfidence[level] = true;
+    const btn = document.getElementById(`confidence-btn-${level}`);
+    if (btn) btn.classList.remove('opacity-30');
+  });
   applyFilters();
 }
 
@@ -410,7 +421,10 @@ function applyFilters() {
   });
 
   const activeNodeIds = new Set(filteredNodes.map(n => n.id));
-  const filteredEdges = ARCH_DATA.edges.filter(e => activeNodeIds.has(e.from) && activeNodeIds.has(e.to));
+  const filteredEdges = ARCH_DATA.edges.filter(e => {
+    if (!activeNodeIds.has(e.from) || !activeNodeIds.has(e.to)) return false;
+    return activeConfidence[e.confidence || 'static_certain'] !== false;
+  });
 
   nodesDataSet.clear();
   nodesDataSet.add(filteredNodes);
@@ -460,11 +474,102 @@ function clearSearch() {
   applyFilters();
 }
 
-function renderGenericMetadata(meta) {
+
+function renderTypedFields(node) {
+  let html = '';
+  const span = node.span;
+  const cost = node.cost;
+
+  if (span) {
+    html += `
+      <div class="bg-slate-900/90 p-4 rounded-xl border border-slate-700/80 space-y-1.5 shadow-inner">
+        <div class="text-slate-500 text-[11px] font-mono break-all">${escapeHtml(span.file_path)}:${span.start_line}${span.end_line > span.start_line ? '-' + span.end_line : ''}</div>
+        ${node.symbol_path ? `<div class="text-indigo-300 text-[11px] font-mono break-all">${escapeHtml(node.symbol_path)}</div>` : ''}
+      </div>
+    `;
+  }
+
+  if (node.signature) {
+    html += `
+      <div>
+        <div class="text-slate-400 font-semibold mb-1.5 text-[11px] uppercase tracking-wider">Signature</div>
+        <div class="bg-slate-900/60 p-2.5 rounded-xl border border-slate-800 font-mono text-[11px] text-slate-300 break-all">${escapeHtml(node.signature)}</div>
+      </div>
+    `;
+  }
+
+  if (node.docstring) {
+    html += `
+      <div>
+        <div class="text-slate-400 font-semibold mb-1.5 text-[11px] uppercase tracking-wider">Doc</div>
+        <div class="bg-slate-900/60 p-2.5 rounded-xl border border-slate-800 text-[11px] text-slate-300">${escapeHtml(node.docstring)}</div>
+      </div>
+    `;
+  }
+
+  if (cost) {
+    const items = [
+      ['Tokens', cost.token_estimate],
+      ['Characters', cost.char_count],
+      ['Lines', cost.line_count],
+    ];
+    html += `
+      <div>
+        <div class="text-slate-400 font-semibold mb-1.5 text-[11px] uppercase tracking-wider">Read Cost</div>
+        <div class="grid grid-cols-3 gap-1.5">
+          ${items.map(([label, value]) => `
+            <div class="bg-slate-900/60 p-2 rounded-lg border border-slate-800">
+              <div class="text-[10px] text-slate-500">${label}</div>
+              <div class="font-mono text-xs text-emerald-300">${value}</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  if (node.flags && node.flags.length) {
+    html += `
+      <div>
+        <div class="text-slate-400 font-semibold mb-1.5 text-[11px] uppercase tracking-wider">Friction Signals</div>
+        <div class="flex flex-wrap gap-1">
+          ${node.flags.map(flag => `<span class="px-2 py-0.5 rounded-lg text-[10px] font-mono bg-amber-500/15 text-amber-300 border border-amber-500/30">${escapeHtml(flag)}</span>`).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  const facts = [
+    ['Kind', node.kind],
+    ['Language', node.language],
+    ['Exported', node.exported === null || node.exported === undefined ? '' : String(node.exported)],
+    ['Extracted by', node.provenance],
+  ].filter(([, value]) => value !== '' && value !== null && value !== undefined);
+  if (facts.length) {
+    html += `
+      <div class="flex flex-wrap gap-1.5">
+        ${facts.map(([label, value]) => `
+          <span class="px-2 py-0.5 rounded-lg text-[10px] bg-slate-900/60 border border-slate-800">
+            <span class="text-slate-500">${label}</span>
+            <span class="text-slate-300 font-mono ml-1">${escapeHtml(String(value))}</span>
+          </span>
+        `).join('')}
+      </div>
+    `;
+  }
+
+  return html;
+}
+
+function renderGenericMetadata(meta, alreadyShownSpan) {
   const skipKeys = new Set(['analysis', 'type']);
   let html = '';
 
-  if (meta.file_path) {
+  if (alreadyShownSpan) {
+    skipKeys.add('file_path');
+    skipKeys.add('line_number');
+    skipKeys.add('end_line_number');
+  } else if (meta.file_path) {
     html += `
       <div class="bg-slate-900/90 p-4 rounded-xl border border-slate-700/80 space-y-1.5 shadow-inner">
         <div class="text-slate-500 text-[11px] font-mono break-all">${escapeHtml(meta.file_path)}${meta.line_number ? ':' + meta.line_number : ''}</div>
@@ -541,7 +646,8 @@ function showInspector(node) {
   let html = '';
   const meta = node.metadata || {};
 
-  html += renderGenericMetadata(meta);
+  html += renderTypedFields(node);
+  html += renderGenericMetadata(meta, Boolean(node.span));
 
   if (meta.analysis) {
     const metrics = meta.analysis;
@@ -720,6 +826,57 @@ function buildNodeCategoryFilters() {
   }).join('');
 }
 
+
+function confidenceStyle(level) {
+  return (ARCH_DATA.confidence_styles || {})[level] || { color: '#64748B', dashes: false };
+}
+
+function presentConfidenceLevels() {
+  const order = ['static_certain', 'framework_inferred', 'static_inferred', 'dynamic_required'];
+  const present = new Set((ARCH_DATA.edges || []).map(e => e.confidence || 'static_certain'));
+  return order.filter(level => present.has(level)).concat(
+    [...present].filter(level => !order.includes(level))
+  );
+}
+
+function buildConfidenceFilters() {
+  const block = document.getElementById('confidence-filter-block');
+  const container = document.getElementById('confidence-filter-container');
+  if (!block || !container) return;
+  const levels = presentConfidenceLevels();
+  block.classList.toggle('hidden', levels.length < 2);
+  container.innerHTML = levels.map(level => {
+    activeConfidence[level] = true;
+    const count = (ARCH_DATA.edges || []).filter(e => (e.confidence || 'static_certain') === level).length;
+    const color = confidenceStyle(level).color;
+    return `
+      <button data-action="toggleConfidenceFilter" data-arg="${level}" id="confidence-btn-${level}" class="filter-pill px-2 py-0.5 rounded-lg text-[10px] font-medium border transition flex items-center space-x-1" style="border-color:${color};color:${color}">
+        <span>${escapeHtml(titleCase(level))}</span>
+        <span class="opacity-75 font-mono">(${count})</span>
+      </button>
+    `;
+  }).join('');
+}
+
+function buildConfidenceLegend() {
+  const container = document.getElementById('legend-confidence');
+  if (!container) return;
+  const levels = presentConfidenceLevels();
+  container.parentElement && container.previousElementSibling &&
+    container.previousElementSibling.classList.toggle('hidden', levels.length < 2);
+  container.classList.toggle('hidden', levels.length < 2);
+  container.innerHTML = levels.map(level => {
+    const style = confidenceStyle(level);
+    const dashArray = Array.isArray(style.dashes) ? style.dashes.join(' ') : '0';
+    return `
+      <div class="flex items-center space-x-1.5">
+        <svg width="18" height="4" viewBox="0 0 18 4"><line x1="0" y1="2" x2="18" y2="2" stroke="${style.color}" stroke-width="2" stroke-dasharray="${dashArray}"/></svg>
+        <span class="text-slate-300">${escapeHtml(titleCase(level))}</span>
+      </div>
+    `;
+  }).join('');
+}
+
 function buildLegend() {
   const container = document.getElementById('legend-content');
   if (!container) return;
@@ -731,6 +888,7 @@ function buildLegend() {
   container.innerHTML = [...seen.entries()].map(([category, color]) => `
     <div class="flex items-center space-x-1.5"><span class="w-2.5 h-2.5 rounded-full" style="background:${color}"></span><span class="text-slate-300">${escapeHtml(titleCase(category))}</span></div>
   `).join('');
+  buildConfidenceLegend();
 }
 
 function toggleMethodsFilterVisibility() {
@@ -769,9 +927,6 @@ function exportMermaid() {
   });
 }
 
-let currentGitStatusFilter = 'ALL';
-let currentGitSearchQuery = '';
-
 function escapeHtml(str) {
   if (str === null || str === undefined) return '';
   return String(str)
@@ -782,473 +937,3 @@ function escapeHtml(str) {
     .replace(/'/g, '&#039;');
 }
 
-function populateGitDiff() {
-  const gd = ARCH_DATA.git_diff;
-  const navBadge = document.getElementById('nav-git-badge');
-  const heroContainer = document.getElementById('git-diff-hero');
-  const impactContainer = document.getElementById('git-arch-impact-container');
-  const mainLayout = document.getElementById('git-diff-main-layout');
-  const emptyState = document.getElementById('git-diff-empty-state');
-
-  if (!gd || !gd.is_git_repo) {
-    if (mainLayout) mainLayout.classList.add('hidden');
-    if (impactContainer) impactContainer.classList.add('hidden');
-    if (heroContainer) heroContainer.classList.add('hidden');
-    if (emptyState) {
-      emptyState.classList.remove('hidden');
-      const title = document.getElementById('git-empty-title');
-      const msg = document.getElementById('git-empty-msg');
-      if (title) title.innerText = 'Not a Git Repository';
-      if (msg) msg.innerText = (gd && gd.error_message) || 'Project directory is not tracked by Git.';
-    }
-    return;
-  }
-
-  if (navBadge) {
-    if (gd.total_files > 0) {
-      navBadge.innerText = `${gd.total_files} ${gd.total_files === 1 ? 'file' : 'files'}`;
-      navBadge.classList.remove('hidden');
-    } else {
-      navBadge.classList.add('hidden');
-    }
-  }
-
-  let modeBadgeCls = 'bg-slate-800 text-slate-300 border-slate-700';
-  let modeIcon = 'git-commit';
-  let modePillText = 'Git Diff';
-
-  if (gd.comparison_mode === 'working_tree_vs_head') {
-    modeBadgeCls = 'bg-amber-500/20 text-amber-300 border-amber-500/40';
-    modeIcon = 'zap';
-    modePillText = 'Uncommitted Changes (Working Tree vs Latest Commit)';
-  } else if (gd.comparison_mode === 'last_two_commits') {
-    modeBadgeCls = 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40';
-    modeIcon = 'git-compare';
-    modePillText = 'Clean Working Tree — Comparing Last 2 Commits';
-  } else if (gd.comparison_mode === 'single_commit') {
-    modeBadgeCls = 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40';
-    modeIcon = 'git-branch';
-    modePillText = 'Clean Working Tree — Initial Commit';
-  }
-
-  const baseCommit = gd.base_commit;
-  const targetCommit = gd.target_commit;
-  const netLines = (gd.total_additions || 0) - (gd.total_deletions || 0);
-  const netSign = netLines >= 0 ? `+${netLines}` : `${netLines}`;
-  const netCls = netLines >= 0 ? 'text-emerald-400' : 'text-rose-400';
-
-  let comparisonCardsHtml = '';
-  if (gd.comparison_mode === 'working_tree_vs_head') {
-    comparisonCardsHtml = `
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
-        <!-- Base: HEAD -->
-        <div class="bg-slate-900/80 p-4 rounded-xl border border-slate-800 flex items-start space-x-3">
-          <div class="p-2 rounded-lg bg-slate-800 text-slate-300 border border-slate-700 mt-0.5 shrink-0">
-            <i data-lucide="git-commit" class="w-4 h-4 text-indigo-400"></i>
-          </div>
-          <div class="flex-1 min-w-0">
-            <div class="flex items-center space-x-2">
-              <span class="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold">Base: HEAD Commit</span>
-              ${baseCommit ? `<span class="px-1.5 py-0.2 rounded font-mono text-[10px] bg-slate-800 text-indigo-300 border border-slate-700 font-bold">${escapeHtml(baseCommit.short_hash)}</span>` : ''}
-            </div>
-            <div class="text-xs text-white font-semibold truncate mt-0.5">${baseCommit ? escapeHtml(baseCommit.message) : 'Initial Commit'}</div>
-            <div class="text-[11px] text-slate-400 font-mono mt-0.5 truncate">${baseCommit ? `${escapeHtml(baseCommit.author)} • ${escapeHtml(baseCommit.date)}` : ''}</div>
-          </div>
-        </div>
-
-        <!-- Target: Working Tree -->
-        <div class="bg-amber-950/20 p-4 rounded-xl border border-amber-500/30 flex items-start space-x-3">
-          <div class="p-2 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/30 mt-0.5 shrink-0">
-            <i data-lucide="folder-git-2" class="w-4 h-4"></i>
-          </div>
-          <div class="flex-1 min-w-0">
-            <div class="flex items-center space-x-2">
-              <span class="text-[10px] font-mono uppercase tracking-wider text-amber-400 font-bold">Target: Working Directory</span>
-              <span class="px-1.5 py-0.2 rounded font-mono text-[10px] bg-amber-500/20 text-amber-300 border border-amber-500/30 font-bold">Uncommitted</span>
-            </div>
-            <div class="text-xs text-white font-semibold mt-0.5">Staged, Unstaged & Untracked Files</div>
-            <div class="text-[11px] text-slate-400 font-mono mt-0.5">Current local modifications on filesystem</div>
-          </div>
-        </div>
-      </div>
-    `;
-  } else if (gd.comparison_mode === 'last_two_commits') {
-    comparisonCardsHtml = `
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
-        <!-- Base: HEAD~1 -->
-        <div class="bg-slate-900/80 p-4 rounded-xl border border-slate-800 flex items-start space-x-3">
-          <div class="p-2 rounded-lg bg-slate-800 text-slate-300 border border-slate-700 mt-0.5 shrink-0">
-            <i data-lucide="git-commit" class="w-4 h-4 text-slate-400"></i>
-          </div>
-          <div class="flex-1 min-w-0">
-            <div class="flex items-center space-x-2">
-              <span class="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold">Base: HEAD~1</span>
-              ${baseCommit ? `<span class="px-1.5 py-0.2 rounded font-mono text-[10px] bg-slate-800 text-slate-300 border border-slate-700 font-bold">${escapeHtml(baseCommit.short_hash)}</span>` : ''}
-            </div>
-            <div class="text-xs text-white font-semibold truncate mt-0.5">${baseCommit ? escapeHtml(baseCommit.message) : 'Parent Commit'}</div>
-            <div class="text-[11px] text-slate-400 font-mono mt-0.5 truncate">${baseCommit ? `${escapeHtml(baseCommit.author)} • ${escapeHtml(baseCommit.date)}` : ''}</div>
-          </div>
-        </div>
-
-        <!-- Target: HEAD -->
-        <div class="bg-indigo-950/30 p-4 rounded-xl border border-indigo-500/40 flex items-start space-x-3">
-          <div class="p-2 rounded-lg bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 mt-0.5 shrink-0">
-            <i data-lucide="git-commit" class="w-4 h-4"></i>
-          </div>
-          <div class="flex-1 min-w-0">
-            <div class="flex items-center space-x-2">
-              <span class="text-[10px] font-mono uppercase tracking-wider text-indigo-400 font-bold">Target: HEAD (Latest Commit)</span>
-              ${targetCommit ? `<span class="px-1.5 py-0.2 rounded font-mono text-[10px] bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-bold">${escapeHtml(targetCommit.short_hash)}</span>` : ''}
-            </div>
-            <div class="text-xs text-white font-semibold truncate mt-0.5">${targetCommit ? escapeHtml(targetCommit.message) : 'Latest Commit'}</div>
-            <div class="text-[11px] text-slate-400 font-mono mt-0.5 truncate">${targetCommit ? `${escapeHtml(targetCommit.author)} • ${escapeHtml(targetCommit.date)}` : ''}</div>
-          </div>
-        </div>
-      </div>
-    `;
-  } else if (gd.comparison_mode === 'single_commit') {
-    comparisonCardsHtml = `
-      <div class="bg-slate-900/80 p-4 rounded-xl border border-slate-800 flex items-start space-x-3">
-        <div class="p-2 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 mt-0.5 shrink-0">
-          <i data-lucide="git-branch" class="w-4 h-4"></i>
-        </div>
-        <div class="flex-1 min-w-0">
-          <div class="flex items-center space-x-2">
-            <span class="text-[10px] font-mono uppercase tracking-wider text-emerald-400 font-bold">Initial Repository Commit</span>
-            ${targetCommit ? `<span class="px-1.5 py-0.2 rounded font-mono text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold">${escapeHtml(targetCommit.short_hash)}</span>` : ''}
-          </div>
-          <div class="text-xs text-white font-semibold truncate mt-0.5">${targetCommit ? escapeHtml(targetCommit.message) : 'Initial Commit'}</div>
-          <div class="text-[11px] text-slate-400 font-mono mt-0.5 truncate">${targetCommit ? `${escapeHtml(targetCommit.author)} • ${escapeHtml(targetCommit.date)}` : ''}</div>
-        </div>
-      </div>
-    `;
-  }
-
-  if (heroContainer) {
-    heroContainer.innerHTML = `
-      <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-800 pb-4">
-        <div class="space-y-1">
-          <div class="flex items-center space-x-2.5">
-            <span class="px-2.5 py-0.5 rounded-lg text-xs font-mono font-bold border ${modeBadgeCls} flex items-center space-x-1.5">
-              <i data-lucide="${modeIcon}" class="w-3.5 h-3.5"></i>
-              <span>${modePillText}</span>
-            </span>
-          </div>
-          <p class="text-xs text-slate-400 font-mono">${escapeHtml(gd.mode_description)}</p>
-        </div>
-
-        <!-- Quick Metrics Bar -->
-        <div class="flex items-center space-x-3 bg-slate-900/90 px-4 py-2 rounded-xl border border-slate-800 text-xs">
-          <div>
-            <span class="text-slate-500 font-mono">Files:</span>
-            <span class="font-bold text-white font-mono ml-1">${gd.total_files}</span>
-          </div>
-          <div class="h-3 w-px bg-slate-700"></div>
-          <div>
-            <span class="text-slate-500 font-mono">Additions:</span>
-            <span class="font-bold text-emerald-400 font-mono ml-1">+${gd.total_additions}</span>
-          </div>
-          <div class="h-3 w-px bg-slate-700"></div>
-          <div>
-            <span class="text-slate-500 font-mono">Deletions:</span>
-            <span class="font-bold text-rose-400 font-mono ml-1">-${gd.total_deletions}</span>
-          </div>
-          <div class="h-3 w-px bg-slate-700"></div>
-          <div>
-            <span class="text-slate-500 font-mono">Net:</span>
-            <span class="font-bold ${netCls} font-mono ml-1">${netSign}</span>
-          </div>
-        </div>
-      </div>
-
-      ${comparisonCardsHtml}
-    `;
-  }
-
-  const impactedByCollection = gd.impacted_by_collection || {};
-  const totalImpacted = Object.values(impactedByCollection).reduce((sum, items) => sum + items.length, 0);
-
-  if (totalImpacted > 0 && impactContainer) {
-    impactContainer.classList.remove('hidden');
-    document.getElementById('impact-count-badge').innerText = `${totalImpacted} Component(s)`;
-    const impactGrid = document.getElementById('git-arch-impact-grid');
-    const collections = ARCH_DATA.collections || {};
-
-    let impactHtml = '';
-    Object.entries(impactedByCollection).forEach(([key, items]) => {
-      const collectionLabel = (collections[key] && collections[key].label) || titleCase(key);
-      items.forEach(item => {
-        const primaryLabel = item.method && item.path ? `${item.method} ${item.path}` : (item.name || item.var_name || item.id);
-        const secondaryLabel = item.func ? `${item.func}()` : (item.file || item.kind || item.prefix || '');
-        impactHtml += `
-          <div class="bg-slate-900/90 p-3 rounded-xl border border-slate-800 flex flex-col justify-between space-y-2 hover:border-indigo-500/50 transition">
-            <div>
-              <div class="flex items-center space-x-1.5 mb-1">
-                <span class="text-[10px] bg-slate-800 text-slate-400 px-1.5 py-0.2 rounded font-mono">${escapeHtml(collectionLabel)}</span>
-              </div>
-              <div class="font-mono text-white text-xs font-semibold truncate" title="${escapeHtml(primaryLabel)}">${escapeHtml(primaryLabel)}</div>
-              <div class="text-slate-400 text-[11px] font-mono truncate">${escapeHtml(secondaryLabel)}</div>
-            </div>
-            <button data-action="switchTab" data-arg="${key}" class="w-full py-1 bg-slate-800 hover:bg-indigo-600 text-slate-300 hover:text-white rounded-lg text-[11px] font-medium transition flex items-center justify-center space-x-1 border border-slate-700">
-              <i data-lucide="eye" class="w-3 h-3"></i>
-              <span>View ${escapeHtml(collectionLabel)}</span>
-            </button>
-          </div>
-        `;
-      });
-    });
-
-    impactGrid.innerHTML = impactHtml;
-  } else if (impactContainer) {
-    impactContainer.classList.add('hidden');
-  }
-
-  renderGitFilesAndDiffs();
-  lucide.createIcons();
-}
-
-function renderGitFilesAndDiffs() {
-  const gd = ARCH_DATA.git_diff;
-  if (!gd || !gd.files) return;
-
-  const fileListContainer = document.getElementById('git-file-list');
-  const diffCardsContainer = document.getElementById('git-diff-cards-container');
-  const sidebarCount = document.getElementById('git-sidebar-file-count');
-  const showingCount = document.getElementById('diff-showing-count');
-
-  const statusBadgeClasses = {
-    modified: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
-    added: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
-    deleted: 'bg-rose-500/20 text-rose-300 border-rose-500/30',
-    untracked: 'bg-sky-500/20 text-sky-300 border-sky-500/30',
-    renamed: 'bg-purple-500/20 text-purple-300 border-purple-500/30',
-  };
-
-  const statusLetters = {
-    modified: 'M',
-    added: 'A',
-    deleted: 'D',
-    untracked: 'U',
-    renamed: 'R',
-  };
-
-  const q = (currentGitSearchQuery || '').toLowerCase();
-  const filteredFiles = gd.files.filter(f => {
-    if (currentGitStatusFilter !== 'ALL' && f.status !== currentGitStatusFilter) return false;
-    if (q && !f.file_path.toLowerCase().includes(q)) return false;
-    return true;
-  });
-
-  if (sidebarCount) sidebarCount.innerText = `${filteredFiles.length} of ${gd.files.length} files`;
-  if (showingCount) showingCount.innerText = filteredFiles.length;
-
-  if (fileListContainer) {
-    fileListContainer.innerHTML = filteredFiles.map((f, idx) => {
-      const sCls = statusBadgeClasses[f.status] || 'bg-slate-800 text-slate-300 border-slate-700';
-      const sLetter = statusLetters[f.status] || 'M';
-      const fileBase = f.file_path.split('/').pop();
-      const fileDir = f.file_path.includes('/') ? f.file_path.substring(0, f.file_path.lastIndexOf('/')) : '';
-
-      return `
-        <div data-action="jumpToGitFile" data-arg="${idx}" class="p-2 rounded-xl bg-slate-900/60 hover:bg-slate-800/80 border border-slate-800 hover:border-slate-700 cursor-pointer transition flex items-center justify-between group">
-          <div class="flex items-center space-x-2 min-w-0 pr-2">
-            <span class="w-5 h-5 flex items-center justify-center rounded font-mono font-bold text-[10px] border ${sCls} shrink-0">${sLetter}</span>
-            <div class="min-w-0">
-              <div class="font-mono text-xs text-white font-medium truncate group-hover:text-indigo-300">${escapeHtml(fileBase)}</div>
-              ${fileDir ? `<div class="font-mono text-[10px] text-slate-500 truncate">${escapeHtml(fileDir)}</div>` : ''}
-            </div>
-          </div>
-          <div class="flex items-center space-x-1 font-mono text-[10px] shrink-0">
-            ${f.additions ? `<span class="text-emerald-400">+${f.additions}</span>` : ''}
-            ${f.deletions ? `<span class="text-rose-400">-${f.deletions}</span>` : ''}
-            ${!f.additions && !f.deletions && f.is_binary ? `<span class="text-slate-500">bin</span>` : ''}
-          </div>
-        </div>
-      `;
-    }).join('') || '<div class="p-4 text-center text-xs text-slate-500 font-mono">No matching files</div>';
-  }
-
-  if (diffCardsContainer) {
-    diffCardsContainer.innerHTML = filteredFiles.map((f, idx) => {
-      const sCls = statusBadgeClasses[f.status] || 'bg-slate-800 text-slate-300 border-slate-700';
-
-      let diffContentHtml = '';
-
-      if (f.is_binary) {
-        diffContentHtml = `
-          <div class="p-6 text-center text-xs text-slate-400 font-mono bg-slate-900/40 rounded-xl border border-slate-800">
-            <i data-lucide="file-type" class="w-6 h-6 mx-auto mb-2 text-slate-500"></i>
-            <div>Binary file changed (${escapeHtml(f.file_path)})</div>
-            <div class="text-[11px] text-slate-500 mt-0.5">Direct visual text diff not displayable for binary formats</div>
-          </div>
-        `;
-      } else if (!f.hunks || f.hunks.length === 0) {
-        diffContentHtml = `
-          <div class="p-4 text-center text-xs text-slate-400 font-mono bg-slate-900/40 rounded-xl border border-slate-800">
-            ${f.status === 'deleted' ? 'File deleted' : 'No diff content available'}
-          </div>
-        `;
-      } else {
-        diffContentHtml = `
-          <div class="diff-viewer font-mono text-xs overflow-x-auto bg-[#070b14] rounded-xl border border-slate-800 divide-y divide-slate-800/40">
-            ${f.hunks.map(hunk => `
-              <div class="diff-hunk-header px-4 py-1.5 bg-indigo-950/40 text-indigo-300 text-[11px] font-semibold border-y border-indigo-800/30 flex items-center space-x-2 select-none">
-                <i data-lucide="corner-down-right" class="w-3 h-3 text-indigo-400"></i>
-                <span>${escapeHtml(hunk.header)}</span>
-              </div>
-              ${hunk.lines.map(l => {
-                let lineCls = 'text-slate-300';
-                let bgCls = 'hover:bg-slate-800/30';
-                let oldGutterBg = 'bg-slate-900/40 text-slate-600';
-                let newGutterBg = 'bg-slate-900/40 text-slate-600';
-                let prefix = ' ';
-
-                if (l.type === 'add') {
-                  lineCls = 'text-emerald-300 font-medium';
-                  bgCls = 'bg-emerald-950/30 border-l-2 border-emerald-500';
-                  oldGutterBg = 'bg-emerald-950/50 text-emerald-600/70';
-                  newGutterBg = 'bg-emerald-950/50 text-emerald-400 font-bold';
-                  prefix = '+';
-                } else if (l.type === 'del') {
-                  lineCls = 'text-rose-300 font-medium';
-                  bgCls = 'bg-rose-950/30 border-l-2 border-rose-500';
-                  oldGutterBg = 'bg-rose-950/50 text-rose-400 font-bold';
-                  newGutterBg = 'bg-rose-950/50 text-rose-600/70';
-                  prefix = '-';
-                }
-
-                return `
-                  <div class="diff-line flex ${bgCls} text-[11px] leading-relaxed transition">
-                    <div class="diff-gutter w-12 text-right pr-2 select-none border-r border-slate-800/80 ${oldGutterBg} shrink-0">${l.old_lineno !== null ? l.old_lineno : ''}</div>
-                    <div class="diff-gutter w-12 text-right pr-2 select-none border-r border-slate-800/80 ${newGutterBg} shrink-0">${l.new_lineno !== null ? l.new_lineno : ''}</div>
-                    <div class="diff-code px-3 py-0.5 ${lineCls} flex-1 whitespace-pre break-all font-mono">${prefix} ${escapeHtml(l.content)}</div>
-                  </div>
-                `;
-              }).join('')}
-            `).join('')}
-          </div>
-        `;
-      }
-
-      return `
-        <div id="git-file-card-${idx}" class="git-diff-card glass-panel rounded-2xl p-4 shadow-xl border border-slate-700/80 space-y-3 transition">
-
-          <!-- File Card Header -->
-          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
-            <div class="flex items-center space-x-2.5 min-w-0">
-              <span class="px-2.5 py-0.5 rounded-lg text-xs font-mono font-bold uppercase border ${sCls}">${f.status}</span>
-              <span class="font-mono text-xs font-bold text-white truncate" title="${escapeHtml(f.file_path)}">${escapeHtml(f.file_path)}</span>
-              ${f.old_path ? `<span class="text-[11px] text-slate-500 font-mono truncate">(from ${escapeHtml(f.old_path)})</span>` : ''}
-            </div>
-
-            <div class="flex items-center space-x-2 shrink-0">
-              <div class="flex items-center space-x-1.5 font-mono text-xs bg-slate-900/80 px-2.5 py-1 rounded-lg border border-slate-800">
-                <span class="text-emerald-400 font-bold">+${f.additions}</span>
-                <span class="text-slate-600">/</span>
-                <span class="text-rose-400 font-bold">-${f.deletions}</span>
-              </div>
-              <button data-action="copyGitFileDiff" data-arg="${idx}" class="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg transition border border-slate-700 text-xs flex items-center space-x-1" title="Copy Diff">
-                <i data-lucide="copy" class="w-3.5 h-3.5"></i>
-              </button>
-              <button data-action="toggleGitFileCollapse" data-arg="${idx}" id="git-toggle-btn-${idx}" class="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg transition border border-slate-700 text-xs" title="Toggle Collapse">
-                <i data-lucide="chevron-up" class="w-3.5 h-3.5"></i>
-              </button>
-            </div>
-          </div>
-
-          <!-- Collapsible Diff Body -->
-          <div id="git-diff-body-${idx}" class="git-diff-body space-y-2">
-            ${diffContentHtml}
-          </div>
-
-        </div>
-      `;
-    }).join('') || '<div class="glass-panel p-8 rounded-2xl text-center text-slate-400 text-xs font-mono">No matching file diffs found</div>';
-  }
-
-  lucide.createIcons();
-}
-
-function filterGitFiles(query) {
-  currentGitSearchQuery = query;
-  renderGitFilesAndDiffs();
-}
-
-function filterGitStatus(status) {
-  currentGitStatusFilter = status;
-  document.querySelectorAll('.git-filter-pill').forEach(btn => {
-    btn.classList.remove('bg-indigo-600', 'text-white');
-    btn.classList.add('text-slate-400');
-  });
-  const activeBtn = document.getElementById(`git-filter-${status}`);
-  if (activeBtn) {
-    activeBtn.classList.add('bg-indigo-600', 'text-white');
-    activeBtn.classList.remove('text-slate-400');
-  }
-  renderGitFilesAndDiffs();
-}
-
-function toggleGitFileCollapse(idx) {
-  const body = document.getElementById(`git-diff-body-${idx}`);
-  const btn = document.getElementById(`git-toggle-btn-${idx}`);
-  if (!body || !btn) return;
-  const isHidden = body.classList.contains('hidden');
-  if (isHidden) {
-    body.classList.remove('hidden');
-    btn.innerHTML = '<i data-lucide="chevron-up" class="w-3.5 h-3.5"></i>';
-  } else {
-    body.classList.add('hidden');
-    btn.innerHTML = '<i data-lucide="chevron-down" class="w-3.5 h-3.5"></i>';
-  }
-  lucide.createIcons();
-}
-
-function expandAllGitDiffs() {
-  document.querySelectorAll('.git-diff-body').forEach(b => b.classList.remove('hidden'));
-  document.querySelectorAll('[id^="git-toggle-btn-"]').forEach(btn => {
-    btn.innerHTML = '<i data-lucide="chevron-up" class="w-3.5 h-3.5"></i>';
-  });
-  lucide.createIcons();
-}
-
-function collapseAllGitDiffs() {
-  document.querySelectorAll('.git-diff-body').forEach(b => b.classList.add('hidden'));
-  document.querySelectorAll('[id^="git-toggle-btn-"]').forEach(btn => {
-    btn.innerHTML = '<i data-lucide="chevron-down" class="w-3.5 h-3.5"></i>';
-  });
-  lucide.createIcons();
-}
-
-function copyGitFileDiff(idx) {
-  const gd = ARCH_DATA.git_diff;
-  if (!gd || !gd.files || !gd.files[idx]) return;
-  const f = gd.files[idx];
-  navigator.clipboard.writeText(f.raw_diff || '').then(() => {
-    alert(`Diff for ${f.file_path} copied to clipboard!`);
-  });
-}
-
-function copyAllGitDiffs() {
-  const gd = ARCH_DATA.git_diff;
-  if (!gd || !gd.files) return;
-  const allDiffs = gd.files.map(f => f.raw_diff).join('\n\n');
-  navigator.clipboard.writeText(allDiffs).then(() => {
-    alert('All Git diffs copied to clipboard!');
-  });
-}
-
-function jumpToGitFile(idx) {
-  const card = document.getElementById(`git-file-card-${idx}`);
-  const body = document.getElementById(`git-diff-body-${idx}`);
-  const btn = document.getElementById(`git-toggle-btn-${idx}`);
-  if (body && body.classList.contains('hidden')) {
-    body.classList.remove('hidden');
-    if (btn) btn.innerHTML = '<i data-lucide="chevron-up" class="w-3.5 h-3.5"></i>';
-    lucide.createIcons();
-  }
-  if (card) {
-    card.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    card.classList.add('ring-2', 'ring-indigo-500');
-    setTimeout(() => card.classList.remove('ring-2', 'ring-indigo-500'), 1500);
-  }
-}

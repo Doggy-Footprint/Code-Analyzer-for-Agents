@@ -1,6 +1,9 @@
 # Project Definition
 
-Static code analyzer for repositories developed with AI agents. The purpose of the analysis emulates AI agents' code exploring and figures out a graph of files/modules/classes/functions/etc and its connectivities (ripples, side effect, dependency, metioned in comments, etc). Our end goal is to provide a diagnosis for AI agent friendly repository.
+Measures how discoverable a repository is to an AI coding agent, and how safely that agent can change it.
+Scope is limited to what an agent can reproducibly observe in the repository, so results stay deterministic and traceable instead of judging code quality or task difficulty.
+The point is to expose what is hard to find, easy to miss, and expensive to explore, and to show what restructuring would actually relieve.
+Outputs are the cost of finding a change target, the range that must be verified before changing it ranked by how likely an agent is to reach it, and the structural bottlenecks behind both, each traceable to its evidence.
 
 # Documentation Guide
 
@@ -63,20 +66,32 @@ code_hash: <hash of participating files' non-comment content>
 
 ## Architecture Decision Record Rule
 
-To write ADR, prompt user with your decision. (Do not write by your decision)
+To write ADR, prompt user with checklists & contents below. Do not write by your decision.
+ADRs record past architectural decisions; they are not immutable principles.
 
 ### Checklist for updating ADR
 
-1. The decision is expensive to reverse
-2. A concrete alternative was seriously considered and rejected.
-3. The reasoning cannot be recovered by reading the code.
+Create an ADR only if all of the following are true:
 
-### Proposal
+- [ ] The decision is expensive or risky to reverse.
+- [ ] A concrete alternative was seriously considered and rejected.
+- [ ] The reason for the decision cannot be reliably recovered from the code alone.
 
+### Contents
+
+- Title / Status
 - Context
 - Decision
-- Alternatives: with reason to reject
-- Consequences: expected consequences of this decision
+- Alternatives: acutally considered but rejected (capped to 1-2)
+- Consequences: positive / negative (capped to 1-2 each)
+
+#### DO NOT Include
+
+- Any tutorials, concepts.
+- Any rhetoric expressions.
+- Any non-deterministic sentences.
+- Any non-falsifiable sentences.
+- Any Session-dependent sentences.
 
 # Task Guide
 

@@ -64,9 +64,6 @@ class AndroidAnalyzer:
 
         self._link(arch)
 
-        from .git_differ import GitDiffer
-        arch.git_diff = GitDiffer(self.project_path).get_diff_info(arch)
-
         return arch
 
     def _discover_files(self) -> List[Path]:
@@ -173,7 +170,7 @@ class AndroidAnalyzer:
                     uses_viewmodel = call["type_args"][0]
 
         arch.composables.append(ComposableInfo(
-            id=f"composable_{module}_{name}",
+            id=f"composable_{module}_{name}_{ka.start_line(decl)}",
             name=name,
             module=module,
             file_path=module,
@@ -220,7 +217,7 @@ class AndroidAnalyzer:
                 query_text = ka.annotation_first_string_arg(method_anns["Query"], source)
             base_type, inner_type = ka.function_return_types(method, source)
             methods.append(RoomQueryMethodInfo(
-                id=f"query_{module}_{name}_{method_name}",
+                id=f"query_{module}_{name}_{method_name}_{ka.start_line(method)}",
                 name=method_name,
                 kind=kind,
                 query_text=query_text,
@@ -347,6 +344,8 @@ class AndroidAnalyzer:
                 line_number=ka.start_line(child),
                 end_line_number=ka.end_line(child),
                 injected_type=prop_type,
+                owner_class_name=name,
+                field_name=prop_name,
             ))
 
     def _retrofit_endpoints(self, decl, source: bytes) -> List[RetrofitEndpointInfo]:

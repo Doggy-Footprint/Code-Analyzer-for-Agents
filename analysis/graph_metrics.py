@@ -4,7 +4,9 @@ import math
 from collections import deque
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, Mapping, Optional, Sequence, Set
+from typing import Any, Callable, Dict, Mapping, Optional, Sequence, Set
+
+from language_analyzers.core.cost import CHARACTERS_PER_TOKEN
 
 
 @dataclass(frozen=True)
@@ -12,7 +14,10 @@ class GraphAnalysisConfig:
     damping: float = 0.85
     tolerance: float = 1e-10
     max_iterations: int = 100
-    characters_per_token: float = 4.0
+    characters_per_token: float = CHARACTERS_PER_TOKEN
+    exact_betweenness_threshold: int = 500
+    betweenness_sample_size: int = 100
+    betweenness_sampler: Optional[Callable[[Sequence[str], int], Sequence[str]]] = None
 
 
 class GraphAnalyzer:
@@ -43,9 +48,13 @@ class GraphAnalyzer:
             node_id: self._node_token_cost(node, project_path)
             for node_id, node in node_by_id.items()
         }
+        effective_token_costs = {
+            node_id: token_costs[node_id] * self._cost_multiplier(node)
+            for node_id, node in node_by_id.items()
+        }
         pagerank = self._pagerank(outgoing)
         hub_scores, authority_scores = self._hits(outgoing, incoming)
-        betweenness = self._betweenness(outgoing)
+        betweenness, betweenness_strategy, betweenness_sample_size = self._betweenness_for_graph(outgoing)
         undirected = {
             node_id: outgoing[node_id] | incoming[node_id]
             for node_id in node_by_id
@@ -54,22 +63,22 @@ class GraphAnalyzer:
 
         metrics: Dict[str, Dict[str, Any]] = {}
         for node_id, node in node_by_id.items():
-            hop_2_nodes = self._nodes_within_hops(node_id, undirected, 2)
-            hop_3_nodes = self._nodes_within_hops(node_id, undirected, 3)
+            hop_2_nodes, hop_3_nodes = self._neighborhoods(node_id, undirected)
             node_metrics = {
                 "token_cost": token_costs[node_id],
+                "effective_token_cost": effective_token_costs[node_id],
                 "pagerank": pagerank[node_id],
                 "hub_score": hub_scores[node_id],
                 "authority_score": authority_scores[node_id],
                 "degree_centrality": (len(outgoing[node_id]) + len(incoming[node_id])) / denominator,
                 "betweenness_centrality": betweenness[node_id],
-                "weighted_centrality_cost": pagerank[node_id] * token_costs[node_id],
+                "weighted_centrality_cost": pagerank[node_id] * effective_token_costs[node_id],
                 "fan_in": len(incoming[node_id]),
                 "fan_out": len(outgoing[node_id]),
                 "hop_2_node_count": len(hop_2_nodes),
-                "hop_2_token_cost": sum(token_costs[item] for item in hop_2_nodes),
+                "hop_2_token_cost": sum(effective_token_costs[item] for item in hop_2_nodes),
                 "hop_3_node_count": len(hop_3_nodes),
-                "hop_3_token_cost": sum(token_costs[item] for item in hop_3_nodes),
+                "hop_3_token_cost": sum(effective_token_costs[item] for item in hop_3_nodes),
             }
             metrics[node_id] = node_metrics
             metadata = getattr(node, "metadata", None)
@@ -85,7 +94,30 @@ class GraphAnalyzer:
             "top_hop_2_cost": self._rank(metrics, node_by_id, "hop_2_token_cost"),
             "top_hop_3_cost": self._rank(metrics, node_by_id, "hop_3_token_cost"),
             "total_token_cost": sum(token_costs.values()),
+            "total_effective_token_cost": sum(effective_token_costs.values()),
+            "cost_policy": {
+                "vendored": 0.0,
+                "generated": 0.1,
+                "migration": 0.1,
+                "default": 1.0,
+            },
+            "betweenness_strategy": betweenness_strategy,
+            "betweenness_sample_size": betweenness_sample_size,
+            "neighborhood_strategy": "single_bfs_to_3_hops",
         }
+
+    def _betweenness_for_graph(self, outgoing: Mapping[str, Set[str]]):
+        count = len(outgoing)
+        if count <= self.config.exact_betweenness_threshold:
+            return self._betweenness(outgoing), "exact", count
+        requested = min(count, max(1, self.config.betweenness_sample_size))
+        ordered = sorted(outgoing)
+        if self.config.betweenness_sampler is not None:
+            sampled = list(self.config.betweenness_sampler(ordered, requested))
+        else:
+            sampled = [ordered[index * count // requested] for index in range(requested)]
+        sampled = list(dict.fromkeys(item for item in sampled if item in outgoing))
+        return self._betweenness(outgoing, sampled), "deterministic_sampled", len(sampled)
 
     def _pagerank(self, outgoing: Mapping[str, Set[str]]) -> Dict[str, float]:
         count = len(outgoing)
@@ -145,9 +177,12 @@ class GraphAnalyzer:
                 values[key] /= norm
 
     @staticmethod
-    def _betweenness(outgoing: Mapping[str, Set[str]]) -> Dict[str, float]:
+    def _betweenness(
+        outgoing: Mapping[str, Set[str]], sources: Optional[Sequence[str]] = None
+    ) -> Dict[str, float]:
         scores = {node_id: 0.0 for node_id in outgoing}
-        for source in outgoing:
+        source_ids = list(sources) if sources is not None else list(outgoing)
+        for source in source_ids:
             stack = []
             predecessors = {node_id: [] for node_id in outgoing}
             path_counts = {node_id: 0.0 for node_id in outgoing}
@@ -159,7 +194,7 @@ class GraphAnalyzer:
             while queue:
                 current = queue.popleft()
                 stack.append(current)
-                for target in outgoing[current]:
+                for target in sorted(outgoing[current]):
                     if distances[target] < 0:
                         queue.append(target)
                         distances[target] = distances[current] + 1
@@ -178,20 +213,24 @@ class GraphAnalyzer:
                     scores[target] += dependencies[target]
 
         count = len(outgoing)
-        scale = (count - 1) * (count - 2)
+        scale = (
+            (count - 1) * (count - 2)
+            if sources is None
+            else len(source_ids) * max(1, count - 2)
+        )
         if scale > 0:
             scores = {node_id: value / scale for node_id, value in scores.items()}
         return scores
 
     @staticmethod
-    def _nodes_within_hops(
+    def _neighborhoods(
         start: str,
         adjacency: Mapping[str, Set[str]],
-        max_hops: int,
-    ) -> Set[str]:
+    ) -> tuple[Set[str], Set[str]]:
         visited = {start}
         frontier = {start}
-        for _ in range(max_hops):
+        hop_2: Set[str] = set()
+        for depth in range(1, 4):
             frontier = {
                 neighbor
                 for node_id in frontier
@@ -199,12 +238,31 @@ class GraphAnalyzer:
                 if neighbor not in visited
             }
             visited.update(frontier)
+            if depth == 2:
+                hop_2 = visited - {start}
             if not frontier:
                 break
-        visited.remove(start)
-        return visited
+        if not hop_2:
+            hop_2 = visited - {start}
+        return hop_2, visited - {start}
+
+    @staticmethod
+    def _cost_multiplier(node: Any) -> float:
+        flags = {str(flag).lower() for flag in (getattr(node, "flags", None) or [])}
+        metadata = getattr(node, "metadata", {}) or {}
+        flags.update(str(flag).lower() for flag in metadata.get("flags", []))
+        path = str(metadata.get("file_path", "")).replace("\\", "/").lower()
+        if "vendored" in flags or "/vendor/" in f"/{path}" or "/node_modules/" in f"/{path}":
+            return 0.0
+        if "generated" in flags or "migration" in flags or "/migrations/" in f"/{path}" or "/alembic/versions/" in f"/{path}":
+            return 0.1
+        return 1.0
 
     def _node_token_cost(self, node: Any, project_path: Optional[str]) -> int:
+        cost = getattr(node, "cost", None)
+        token_estimate = getattr(cost, "token_estimate", None)
+        if isinstance(token_estimate, int) and token_estimate > 0:
+            return token_estimate
         metadata = getattr(node, "metadata", {}) or {}
         file_value = metadata.get("file_path")
         line_number = metadata.get("line_number")

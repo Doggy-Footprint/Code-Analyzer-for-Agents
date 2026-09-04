@@ -5,7 +5,6 @@ Requires tree-sitter + tree-sitter-language-pack; skips cleanly when unavailable
 """
 
 import shutil
-import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -19,6 +18,7 @@ except ImportError:
 if _HAS_TREE_SITTER:
     from framework_analyzers.android.analyzer import AndroidAnalyzer
     from framework_analyzers.android.graph import AndroidArchitectureGraphBuilder
+    from language_analyzers.kotlin import KotlinAnalyzer
     from renderers.html import HTMLRenderer
 
 
@@ -369,16 +369,15 @@ class MainActivity : ComponentActivity() {
             self.assertIn(edge.to_id, node_ids)
 
         relation_names = {e.relation for e in arch.edges}
-        self.assertEqual(
-            relation_names,
-            {"CALLS", "USES_VIEWMODEL", "BINDS", "PROVIDES", "INSTALLS_IN", "INJECTS",
-             "CALLS_API", "ROUTES", "QUERIES", "CONTAINS", "DEFINES_ENTITY", "HOSTS"},
-        )
+        self.assertTrue({"CALLS", "USES_VIEWMODEL", "BINDS", "PROVIDES", "INSTALLS_IN", "INJECTS",
+                         "CALLS_API", "ROUTES", "QUERIES", "CONTAINS", "DEFINES_ENTITY", "HOSTS",
+                         "IMPLEMENTED_BY"}.issubset(relation_names))
+        self.assertTrue(any(node.provenance == "kotlin-core" for node in arch.nodes))
 
-        def find_edge(relation, from_suffix, to_suffix):
+        def find_edge(relation, from_fragment, to_fragment):
             return next(
                 (e for e in arch.edges
-                 if e.relation == relation and e.from_id.endswith(from_suffix) and e.to_id.endswith(to_suffix)),
+                 if e.relation == relation and from_fragment in e.from_id and to_fragment in e.to_id),
                 None,
             )
 
@@ -410,7 +409,8 @@ class MainActivity : ComponentActivity() {
         self.assertTrue(all("analysis" in node.metadata for node in arch.nodes))
 
         collection_keys = {c.key for c in arch.report_collections}
-        self.assertEqual(collection_keys, {"composables", "viewmodels", "di_bindings", "room_entities", "retrofit_apis"})
+        self.assertEqual(collection_keys, {"composables", "viewmodels", "di_bindings", "room_entities", "retrofit_apis",
+                                           "exploration_warnings"})
         composables_collection = next(c for c in arch.report_collections if c.key == "composables")
         self.assertEqual(len(composables_collection.rows), 3)
 
@@ -459,41 +459,23 @@ class MainActivity : ComponentActivity() {
         self.assertTrue(mermaid.startswith("graph TD"))
         self.assertIn("-->", mermaid)
 
-    def _init_git_repo(self):
-        subprocess.run(["git", "init"], cwd=self.project_path, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        subprocess.run(["git", "config", "user.email", "test@example.com"], cwd=self.project_path, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        subprocess.run(["git", "config", "user.name", "Test User"], cwd=self.project_path, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-
-    def _git_commit(self, msg: str):
-        subprocess.run(["git", "add", "."], cwd=self.project_path, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        subprocess.run(["git", "commit", "-m", msg], cwd=self.project_path, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-
-    def test_git_diff_non_git_repo(self):
+    def test_language_graph_is_merged_without_mutating_kotlin_edges(self):
         self._create_sample_android_app()
-        analyzer = AndroidAnalyzer(str(self.project_path))
-        arch = analyzer.analyze()
-
-        self.assertIsNotNone(arch.git_diff)
-        self.assertFalse(arch.git_diff.is_git_repo)
-        self.assertEqual(arch.git_diff.comparison_mode, "none")
-        self.assertEqual(arch.git_diff.impacted_by_collection.get("composables", []), [])
-
-    def test_git_diff_impacted_composables(self):
-        self._create_sample_android_app()
-        self._init_git_repo()
-        self._git_commit("initial commit")
-
-        topic_screen = self.project_path / "feature_topic" / "src" / "main" / "kotlin" / "com" / "example" / "feature" / "topic" / "TopicScreen.kt"
-        topic_screen.write_text(topic_screen.read_text() + "\n// added note\n")
-
-        analyzer = AndroidAnalyzer(str(self.project_path))
-        arch = analyzer.analyze()
-
-        self.assertIsNotNone(arch.git_diff)
-        self.assertTrue(arch.git_diff.is_git_repo)
-        impacted_names = {c["name"] for c in arch.git_diff.impacted_by_collection.get("composables", [])}
-        self.assertEqual(impacted_names, {"TopicRoute", "TopicScreen", "TopicDetail"})
-        self.assertEqual(arch.git_diff.impacted_by_collection.get("viewmodels", []), [])
+        core_nodes, core_edges = KotlinAnalyzer(self.project_path).build()
+        arch = AndroidArchitectureGraphBuilder().build_graph(AndroidAnalyzer(self.project_path).analyze())
+        merged_nodes = {node.id for node in arch.nodes}
+        merged_edges = {(edge.from_id, edge.to_id, edge.relation): edge for edge in arch.edges}
+        self.assertTrue({node.id for node in core_nodes}.issubset(merged_nodes))
+        for edge in core_edges:
+            actual = merged_edges[(edge.from_id, edge.to_id, edge.relation)]
+            self.assertEqual(actual.confidence, edge.confidence)
+            self.assertEqual(actual.resolution, edge.resolution)
+            self.assertEqual(actual.candidates, edge.candidates)
+            self.assertEqual(actual.evidence, edge.evidence)
+        no_language = AndroidArchitectureGraphBuilder(include_language_graph=False).build_graph(
+            AndroidAnalyzer(self.project_path).analyze()
+        )
+        self.assertFalse(any(node.provenance == "kotlin-core" for node in no_language.nodes))
 
 
 NOWINANDROID_SAMPLE = Path(__file__).resolve().parents[1] / "examples" / "nowinandroid_sample"
