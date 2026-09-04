@@ -5,10 +5,11 @@ and computes architecture metrics.
 """
 
 from collections import Counter
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Set
 
 from analysis import GraphAnalyzer
-from language_analyzers.core.annotate import annotate_nodes, mark_edges
+from language_analyzers.core.annotate import annotate_nodes, mark_edges, relative_repo_path
 from language_analyzers.core.enrichment import enrich_repository
 from language_analyzers.core.graph_models import Confidence, RelationKind, Resolution, SourceSpan
 from language_analyzers.core.report_schema import ColumnSpec, ReportCollection
@@ -434,6 +435,7 @@ class ArchitectureGraphBuilder:
     @staticmethod
     def _implementation_edges(arch: ProjectArchitecture, known_ids: Set[str]) -> List[GraphEdge]:
         edges: List[GraphEdge] = []
+        root = Path(arch.project_path)
         pairs = [(ep.id, ep.module, ep.function_name, ep.file_path, ep.line_number) for ep in arch.endpoints]
         pairs += [(dep.id, dep.module, dep.name, dep.file_path, dep.line_number) for dep in arch.dependencies]
         pairs += [(schema.id, schema.module, schema.name, schema.file_path, schema.line_number) for schema in arch.schemas]
@@ -452,7 +454,7 @@ class ArchitectureGraphBuilder:
                 color="#94A3B8",
                 confidence=Confidence.FRAMEWORK_INFERRED,
                 resolution=Resolution.EXACT,
-                evidence=SourceSpan(file_path, line, line),
+                evidence=SourceSpan(relative_repo_path(file_path, root), line, line),
                 metadata={"framework_rule": {"id": "fastapi.implemented_by", "specificity": "unique"}},
             ))
         return edges

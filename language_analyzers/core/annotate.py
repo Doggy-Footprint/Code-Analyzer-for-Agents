@@ -5,6 +5,16 @@ from .cost import cost_for_span
 from .graph_models import Confidence, GraphEdge, GraphNode, Resolution, SourceSpan
 
 
+def relative_repo_path(raw_path: str, root: Path) -> str:
+    absolute = Path(raw_path)
+    if not absolute.is_absolute():
+        absolute = root / absolute
+    try:
+        return absolute.resolve().relative_to(root.resolve()).as_posix()
+    except ValueError:
+        return Path(raw_path).as_posix()
+
+
 def annotate_nodes(
     nodes: Iterable[GraphNode],
     project_path: str,
@@ -24,13 +34,10 @@ def annotate_nodes(
         start = metadata.get("line_number")
         if not raw_path or not start:
             continue
+        relative = relative_repo_path(raw_path, root)
         absolute = Path(raw_path)
         if not absolute.is_absolute():
             absolute = root / absolute
-        try:
-            relative = absolute.resolve().relative_to(root.resolve()).as_posix()
-        except ValueError:
-            relative = Path(raw_path).as_posix()
         end = metadata.get("end_line_number") or start
         span = SourceSpan(relative, int(start), int(end))
         node.span = span

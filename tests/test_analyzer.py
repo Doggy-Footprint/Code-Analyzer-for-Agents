@@ -190,6 +190,22 @@ app.include_router(users_router, prefix="/api/v1")
             {"id": "fastapi.routes", "specificity": "unique"},
         )
 
+    def test_every_framework_edge_carries_repository_relative_evidence(self):
+        self._create_sample_fastapi_app()
+        arch = ArchitectureGraphBuilder().build_graph(FastAPIAnalyzer(str(self.project_path)).analyze())
+
+        framework_edges = [
+            edge for edge in arch.edges
+            if str(edge.confidence) == "framework_inferred"
+        ]
+        absolute = [
+            edge.evidence.file_path for edge in framework_edges
+            if edge.evidence is not None and Path(edge.evidence.file_path).is_absolute()
+        ]
+
+        self.assertGreater(len(framework_edges), 0)
+        self.assertEqual(absolute, [])
+
     def test_mermaid_generation(self):
         self._create_sample_fastapi_app()
         analyzer = FastAPIAnalyzer(str(self.project_path))
