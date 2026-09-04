@@ -1,9 +1,13 @@
 import bisect
 import re
+import string
 from pathlib import Path
 from typing import Dict, List, Mapping, Sequence, Tuple
 
 from .models import Occurrence, ReadableNode
+
+_WORD_RE = re.compile(r"[A-Za-z0-9_]+")
+_WORD_CHARS = frozenset(string.ascii_letters + string.digits + "_")
 
 DOC_SUFFIXES = {".md", ".rst", ".txt"}
 CONFIG_SUFFIXES = {".json", ".yaml", ".yml", ".toml", ".properties", ".env", ".gradle"}
@@ -72,6 +76,15 @@ class OccurrenceIndex:
         self._regions: Dict[str, List[Tuple[int, int, str]]] = {}
         self._region_starts: Dict[str, List[int]] = {}
         self._base_context = {path: file_context_kind(path) for path in self._contents}
+        self._enclosing_cache: Dict[Tuple[str, int], str] = {}
+        self._postings = self._build_postings()
+
+    def _build_postings(self) -> Dict[str, List[Tuple[str, int]]]:
+        postings: Dict[str, List[Tuple[str, int]]] = {}
+        for path in sorted(self._contents):
+            for match in _WORD_RE.finditer(self._contents[path]):
+                postings.setdefault(match.group(0), []).append((path, match.start()))
+        return postings
 
     def _context(self, path: str, offset: int) -> str:
         base = self._base_context[path]
@@ -89,27 +102,71 @@ class OccurrenceIndex:
         return "code"
 
     def _enclosing(self, path: str, line: int) -> str:
-        return enclosing_node_id(self._nodes_by_file.get(path, []), path, line)
+        key = (path, line)
+        cached = self._enclosing_cache.get(key)
+        if cached is None:
+            cached = enclosing_node_id(self._nodes_by_file.get(path, []), path, line)
+            self._enclosing_cache[key] = cached
+        return cached
+
+    def _at(self, path: str, offset: int, term: str) -> Occurrence:
+        starts = self._line_starts[path]
+        line_index = bisect.bisect_right(starts, offset) - 1
+        return Occurrence(
+            file_path=path,
+            line=line_index + 1,
+            col=offset - starts[line_index],
+            matched_text=term,
+            context=self._context(path, offset),
+            enclosing_node_id=self._enclosing(path, line_index + 1),
+        )
 
     def find(self, term: str) -> List[Occurrence]:
         if not term:
             return []
+        anchors = list(_WORD_RE.finditer(term))
+        if not anchors:
+            return self._scan(term)
+
+        # 후보 위치는 가장 희소한 토큰의 posting에서만 나온다. term 내부 토큰은 term 안의
+        # 비영숫자 구분자에 둘러싸여 텍스트에서도 같은 토큰으로 잘리고, 가장자리 토큰이 텍스트에서
+        # 더 긴 토큰으로 이어지는 경우는 아래 경계 검사가 그대로 걸러낸다.
+        anchor = min(anchors, key=lambda match: len(self._postings.get(match.group(0), ())))
+        lead = anchor.start()
+        width = len(term)
+
+        results: List[Occurrence] = []
+        consumed_path = ""
+        consumed_until = 0
+        # posting은 파일 경로 순, 파일 안에서는 오프셋 순으로 쌓여 있으므로 왼쪽부터 훑으면서
+        # 직전 매치가 덮은 구간을 건너뛰면 re.finditer의 비중첩 매치와 같은 집합이 된다.
+        # `0.0.0.0` 안의 `0.0.0`처럼 겹치는 후보는 검색 도구도 한 번만 보고한다.
+        for path, offset in self._postings.get(anchor.group(0), ()):
+            start = offset - lead
+            if start < 0:
+                continue
+            if path == consumed_path and start < consumed_until:
+                continue
+            text = self._contents[path]
+            end = start + width
+            if text[start:end] != term:
+                continue
+            if start > 0 and text[start - 1] in _WORD_CHARS:
+                continue
+            if end < len(text) and text[end] in _WORD_CHARS:
+                continue
+            consumed_path = path
+            consumed_until = end
+            results.append(self._at(path, start, term))
+        results.sort(key=lambda item: (item.file_path, item.line, item.col))
+        return results
+
+    def _scan(self, term: str) -> List[Occurrence]:
         pattern = re.compile(rf"(?<![A-Za-z0-9_]){re.escape(term)}(?![A-Za-z0-9_])")
         results: List[Occurrence] = []
         for path in sorted(self._contents):
-            text = self._contents[path]
-            starts = self._line_starts[path]
-            for match in pattern.finditer(text):
-                offset = match.start()
-                line_index = bisect.bisect_right(starts, offset) - 1
-                results.append(Occurrence(
-                    file_path=path,
-                    line=line_index + 1,
-                    col=offset - starts[line_index],
-                    matched_text=match.group(0),
-                    context=self._context(path, offset),
-                    enclosing_node_id=self._enclosing(path, line_index + 1),
-                ))
+            for match in pattern.finditer(self._contents[path]):
+                results.append(self._at(path, match.start(), match.group(0)))
         results.sort(key=lambda item: (item.file_path, item.line, item.col))
         return results
 
