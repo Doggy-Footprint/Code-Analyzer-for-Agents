@@ -263,11 +263,14 @@ graph-wide 분석에서 문제가 될 소지가 높은 target을 선정하고, s
 
 - graph metric과 potential zone 집계
 - query branching, candidate dilution과 search-only 관계
+- 후보 축소 프레임워크 규칙 모델링과 그 규칙이 만드는 query 분기
 - cycle, bridge, articulation, unresolved boundary와 abnormal subgraph
 - target 발견 병목과 zone 검증 병목 분리
 - 병목 제거·완화의 반사실 비용 비교
 
-완료 조건: 각 병목이 어떤 target 또는 zone의 어떤 비용 축을 높이는지 경로와 what-if 결과로 설명한다.
+M1은 후보 축소 규칙의 표현과 비용 계산을 구현했으나 실제 규칙을 하나도 등록하지 않았다. 메시지 enqueue와 dequeue, 이벤트 발행과 수신처럼 정적으로 도착 노드를 확정할 수 없는 관계가 여기에 해당한다. 이 규칙을 등록하면 graph에 엣지가 추가되므로 M2와 M3의 기존 결과는 새 기준선으로 다시 산출한다.
+
+완료 조건: 각 병목이 어떤 target 또는 zone의 어떤 비용 축을 높이는지 경로와 what-if 결과로 설명하고, 등록된 후보 축소 규칙마다 그 규칙이 만든 query 분기를 보고한다.
 
 ### M5. Generated evaluation scenarios
 
