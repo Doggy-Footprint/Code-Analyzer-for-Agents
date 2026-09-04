@@ -409,8 +409,7 @@ class MainActivity : ComponentActivity() {
         self.assertTrue(all("analysis" in node.metadata for node in arch.nodes))
 
         collection_keys = {c.key for c in arch.report_collections}
-        self.assertEqual(collection_keys, {"composables", "viewmodels", "di_bindings", "room_entities", "retrofit_apis",
-                                           "exploration_warnings"})
+        self.assertEqual(collection_keys, {"composables", "viewmodels", "di_bindings", "room_entities", "retrofit_apis"})
         composables_collection = next(c for c in arch.report_collections if c.key == "composables")
         self.assertEqual(len(composables_collection.rows), 3)
 

@@ -208,9 +208,15 @@ graph-wide 분석에서 문제가 될 소지가 높은 target을 선정하고, s
 
 각 마일스톤은 자기 결과의 출력 스키마와 역추적 근거 필드를 함께 정의하고 완료 조건에 포함한다. 출력 계약을 따로 모으는 마일스톤은 두지 않는다.
 
-기존 구현의 완료 표시는 새 분석 계약에 대한 완료를 뜻하지 않는다. 현재 코드는 언어·프레임워크 graph, graph metric과 구조적 마찰 진단을 포함한다. 이전 계약의 exploration cost, task difficulty, 저장소 cost diff와 git diff 영향 분석은 새 query 행동 모델·비용 의미와 맞지 않아 제거했다.
+기존 구현의 완료 표시는 새 분석 계약에 대한 완료를 뜻하지 않는다. 구현 상태는 다음과 같다.
 
-### M0. 문서와 계약 재정렬 — 진행 중
+| 상태 | 기능 |
+|---|---|
+| 유지 | 언어·프레임워크 analyzer, 정적 관계와 근거, effective·weighted 지표를 포함한 graph metric, renderer |
+| 교체·확장 | 기존 symbol graph는 M1 readable·query node로, serialization과 CLI 출력은 각 milestone 계약으로 확장한다. 현재 graph metric은 M4 입력이며 M4 완료를 뜻하지 않는다. |
+| 제거 | 이전 exploration cost, task difficulty, 저장소 cost diff, git diff 영향 분석, 구조적 마찰 진단, Android inject-field 임의 비용·경고 |
+
+### M0. 문서와 계약 재정렬 — 완료
 
 - 프로젝트 목적, graph 경계와 비목표 확정
 - query group, 탐색 turn, 비용 축과 세 비용 계약 문서화

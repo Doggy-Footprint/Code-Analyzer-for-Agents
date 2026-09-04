@@ -4,17 +4,11 @@ Command-line interface for the FastAPI Visualizer.
 
 import argparse
 import json
-import math
 import sys
 import webbrowser
 from pathlib import Path
 
-from analysis import (
-    FrictionDiagnoser,
-    GraphAnalyzer,
-    diagnostics_collection,
-    diagnostics_to_dict,
-)
+from analysis import GraphAnalyzer
 from language_analyzers.core.serialization import architecture_to_dict
 
 from framework_analyzers.android.analyzer import AndroidAnalyzer
@@ -95,10 +89,6 @@ def parse_args():
              "imports and calls) and show framework components only.",
     )
     parser.add_argument(
-        "--graph-cost-config",
-        help="JSON file configuring graph costs.",
-    )
-    parser.add_argument(
         "--open",
         action="store_true",
         help="Automatically open the generated HTML report in the default web browser.",
@@ -113,52 +103,14 @@ def parse_args():
         action="store_true",
         help="Print Mermaid diagram markdown to stdout.",
     )
-    parser.add_argument(
-        "--diagnostics",
-        action="store_true",
-        help="Detect structural friction (central large symbols, bridges, re-export ambiguity, "
-             "dependency cycles, missing test links) and export the findings.",
-    )
-    parser.add_argument(
-        "--diagnostics-output",
-        default="diagnostics.json",
-        help="Output path for structural friction diagnostics.",
-    )
     args = parser.parse_args()
     if (args.language or args.framework != "fastapi") and (args.entrypoint or args.app):
         parser.error("--entrypoint and --app are only supported with --framework fastapi")
     return args
 
 
-def load_graph_cost_config(path: str | None) -> dict[str, float]:
-    default = {"unresolved_inject_field_cost": 4.0}
-    if path is None:
-        return default
-    try:
-        value = json.loads(Path(path).read_text(encoding="utf-8"))
-    except OSError as exc:
-        raise ValueError(f"cannot load graph cost config: {exc}") from exc
-    except json.JSONDecodeError as exc:
-        raise ValueError(f"invalid graph cost config JSON: {exc}") from exc
-    if not isinstance(value, dict):
-        raise ValueError("graph cost config must be an object")
-    if set(value) != set(default):
-        missing = set(default) - set(value)
-        unknown = set(value) - set(default)
-        detail = f"missing keys: {', '.join(sorted(missing))}" if missing else f"unknown keys: {', '.join(sorted(unknown))}"
-        raise ValueError(f"invalid graph cost config ({detail})")
-    cost = value["unresolved_inject_field_cost"]
-    if isinstance(cost, bool) or not isinstance(cost, (int, float)) or not math.isfinite(cost) or cost < 0:
-        raise ValueError("unresolved_inject_field_cost must be a non-negative finite number")
-    return {"unresolved_inject_field_cost": float(cost)}
-
-
 def main():
     args = parse_args()
-    try:
-        graph_cost_config = load_graph_cost_config(args.graph_cost_config)
-    except ValueError as exc:
-        raise SystemExit(f"[!] Invalid graph cost config: {exc}") from exc
     project_path = Path(args.project_path).resolve()
 
     if not project_path.exists():
@@ -191,7 +143,6 @@ def main():
             include_models=not args.no_models,
             include_dependencies=not args.no_deps,
             include_language_graph=not args.no_language_graph,
-            unresolved_inject_field_cost=graph_cost_config["unresolved_inject_field_cost"],
         )
         arch = builder.build_graph(arch)
     else:
@@ -214,22 +165,6 @@ def main():
         )
         arch = builder.build_graph(arch)
 
-    if args.diagnostics:
-        # Framework adapters build their graph without running the generic metrics pass, but
-        # diagnostics are defined on those metrics.
-        if not arch.stats.get("analysis"):
-            arch.stats["analysis"] = GraphAnalyzer().analyze(
-                arch.nodes, arch.edges, project_path=arch.project_path
-            )
-
-    diagnostics_report = None
-    if args.diagnostics:
-        diagnostics_report = FrictionDiagnoser().diagnose(
-            arch.nodes, arch.edges, arch.stats["analysis"]["node_metrics"]
-        )
-        arch.stats["diagnostics"] = diagnostics_to_dict(diagnostics_report)
-        arch.report_collections.append(diagnostics_collection(diagnostics_report, arch.nodes))
-
     renderer = HTMLRenderer(title=args.title, framework_label=analyzer_label)
     output_html_path = renderer.render(arch, args.output)
     print(f"[✓] Generated interactive HTML dashboard: {output_html_path}")
@@ -249,15 +184,6 @@ def main():
         print(mermaid_code)
         print("------------------------------------\n")
 
-    if args.diagnostics:
-        diagnostics_output_path = Path(args.diagnostics_output)
-        diagnostics_output_path.parent.mkdir(parents=True, exist_ok=True)
-        diagnostics_output_path.write_text(
-            json.dumps(arch.stats["diagnostics"], indent=2, ensure_ascii=False),
-            encoding="utf-8",
-        )
-        print(f"[✓] Exported structural friction diagnostics: {diagnostics_output_path}")
-
     stats = arch.stats
     print(f"\n📊 Summary Statistics:")
     if "total_apps" in stats:
@@ -266,9 +192,6 @@ def main():
         print(f"  • {collection.label:<14}{len(collection.rows)}")
     if stats.get("methods_breakdown"):
         print(f"  • Methods:      {stats['methods_breakdown']}")
-    if diagnostics_report is not None:
-        for kind, count in sorted(diagnostics_report.counts().items()):
-            print(f"  • {kind:<24}{count}")
     top_cost = stats.get("analysis", {}).get("top_weighted_cost", [])
     if top_cost:
         print(f"  • Highest agent context cost: {top_cost[0]['label']} ({top_cost[0]['value']:.4f})")

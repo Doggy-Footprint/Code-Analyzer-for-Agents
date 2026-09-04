@@ -16,7 +16,7 @@ from language_analyzers.core.report_schema import ColumnSpec, ReportCollection
 from language_analyzers.core.graph_models import Confidence, RelationKind, Resolution, SourceSpan
 from language_analyzers.kotlin import KotlinAnalyzer
 
-from .models import AndroidProjectArchitecture, EvaluationRelation, GraphEdge, GraphNode
+from .models import AndroidProjectArchitecture, GraphEdge, GraphNode
 
 
 class AndroidArchitectureGraphBuilder:
@@ -84,11 +84,10 @@ class AndroidArchitectureGraphBuilder:
     }
 
     def __init__(self, include_models: bool = True, include_dependencies: bool = True,
-                 include_language_graph: bool = True, unresolved_inject_field_cost: float = 4.0):
+                 include_language_graph: bool = True):
         self.include_models = include_models
         self.include_dependencies = include_dependencies
         self.include_language_graph = include_language_graph
-        self.unresolved_inject_field_cost = unresolved_inject_field_cost
 
     def build_graph(self, arch: AndroidProjectArchitecture) -> AndroidProjectArchitecture:
         nodes: List[GraphNode] = []
@@ -359,13 +358,7 @@ class AndroidArchitectureGraphBuilder:
             elif binding.kind == "inject_field":
                 owner = binding.owner_class_name or ""
                 field = binding.field_name or binding.name
-                if not add(binding.id, binding.file_path, f"{owner}.{field}"):
-                    arch.evaluation_relations.append(EvaluationRelation(
-                        binding_id=binding.id,
-                        target_name=f"{owner}.{field}",
-                        evidence=SourceSpan(Path(binding.file_path).as_posix(), binding.line_number, binding.end_line_number),
-                        cost=self.unresolved_inject_field_cost,
-                    ))
+                add(binding.id, binding.file_path, f"{owner}.{field}")
         return edges
 
     @staticmethod
@@ -413,14 +406,6 @@ class AndroidArchitectureGraphBuilder:
                 ],
                 rows=[{"id": a.id, "name": a.name,
                        "endpoints": [f"{ep.http_method} {ep.path}" for ep in a.endpoints]} for a in arch.retrofit_apis],
-            ),
-            ReportCollection(
-                key="exploration_warnings", label="Exploration warnings", view="table",
-                columns=[ColumnSpec("severity", "Severity", "text"), ColumnSpec("target", "Target", "mono"),
-                         ColumnSpec("reason", "Reason", "text"), ColumnSpec("cost", "Cost", "text")],
-                rows=[{"id": relation.binding_id, "severity": "low", "target": relation.target_name,
-                       "reason": "Additional exploration may be required to identify the symbol; matching symbol names is recommended.",
-                       "cost": relation.cost} for relation in arch.evaluation_relations],
             ),
         ]
 

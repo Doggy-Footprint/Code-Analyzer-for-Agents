@@ -531,7 +531,7 @@ function renderTypedFields(node) {
   if (node.flags && node.flags.length) {
     html += `
       <div>
-        <div class="text-slate-400 font-semibold mb-1.5 text-[11px] uppercase tracking-wider">Friction Signals</div>
+        <div class="text-slate-400 font-semibold mb-1.5 text-[11px] uppercase tracking-wider">Flags</div>
         <div class="flex flex-wrap gap-1">
           ${node.flags.map(flag => `<span class="px-2 py-0.5 rounded-lg text-[10px] font-mono bg-amber-500/15 text-amber-300 border border-amber-500/30">${escapeHtml(flag)}</span>`).join('')}
         </div>
@@ -936,4 +936,3 @@ function escapeHtml(str) {
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;');
 }
-
