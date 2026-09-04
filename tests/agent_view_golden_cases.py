@@ -59,7 +59,7 @@ GOLDEN_CASES: Sequence[GoldenCase] = (
 
 
 def scan_manifest(case: GoldenCase) -> List[str]:
-    _source, paths = list_repository_files(case.project_path, respect_gitignore=True)
+    _source, paths = list_repository_files(case.project_path, tracked_files_only=True)
     return list(paths)
 
 
@@ -70,7 +70,7 @@ def read_manifest(case: GoldenCase) -> List[str]:
 def build_json(case: GoldenCase, paths: Sequence[str]) -> str:
     # 파일 목록을 주입해 git 체크아웃 상태와 무관하게 같은 결과가 나오게 한다.
     def lister(_root) -> Tuple[str, List[str]]:
-        return "git", list(paths)
+        return "git-tracked", list(paths)
 
     return graph_to_json(build_agent_view(case.architecture(case.project_path), file_lister=lister))
 

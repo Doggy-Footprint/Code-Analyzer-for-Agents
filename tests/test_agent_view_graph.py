@@ -71,7 +71,7 @@ def make_profile(**overrides) -> Profile:
             Transform("strip-affix", prefixes=["get"], suffixes=["Service"]),
         ],
         "include_agent_docs": True,
-        "respect_gitignore": True,
+        "tracked_files_only": True,
     }
     values.update(overrides)
     return Profile(**values)
@@ -117,6 +117,13 @@ class ProfileLoadingTests(TempDirFixture):
             [transform.id for transform in profile.transforms],
             ["split-case", "token-adjacent-pairs", "normalize-case", "plural-singular", "strip-affix"],
         )
+
+    def test_shipped_default_profile_is_version_two_and_lists_tracked_files_only(self):
+        profile = load_profile(default_profile_path())
+
+        self.assertEqual(default_profile_path().name, "derived_query_rules.v2.yaml")
+        self.assertEqual(profile.version, 2)
+        self.assertTrue(profile.tracked_files_only)
 
     def test_content_hash_is_sha256_of_file_bytes(self):
         path = self.write("profile.yaml", BASE_PROFILE_YAML)
@@ -226,7 +233,7 @@ class ScanTests(TempDirFixture):
 
         source, paths = list_repository_files(self.directory)
 
-        self.assertEqual(source, "git")
+        self.assertEqual(source, "git-tracked")
         self.assertEqual(paths, ["tracked.py"])
 
     def test_non_repository_falls_back_to_static_walk(self):
@@ -493,6 +500,22 @@ class ClueExtractionTests(unittest.TestCase):
         clues, _ = self.extract([node], {"app.py": "x = 1\n"})
 
         self.assertNotIn("line\nbreak", clues)
+
+    def test_display_label_is_not_used_as_an_identifier_clue(self):
+        node = GraphNode(
+            id="TopicScreen",
+            label="TopicScreen",
+            display_label="\U0001f9e9 TopicScreen",
+            group="composable",
+            category="composable",
+            kind=NodeKind.FUNCTION,
+            span=SourceSpan("Topic.kt", 1, 1),
+        )
+
+        clues, _ = self.extract([node], {"Topic.kt": "fun TopicScreen() {}\n"})
+
+        self.assertIn("identifier", clues["TopicScreen"].clue_kinds)
+        self.assertNotIn("\U0001f9e9 TopicScreen", clues)
 
     def test_one_term_seen_twice_merges_into_one_clue(self):
         contents = {"app.py": 'handler = "handler"\n', "notes.md": "`handler`\n"}
@@ -942,6 +965,28 @@ class GraphBuildingTests(TempDirFixture):
         self.assertEqual(
             [(item.file_path, item.reason) for item in graph.scan.excluded_files],
             [("blob.bin", "binary")],
+        )
+
+
+    def test_scan_report_counts_generated_files_and_nodes(self):
+        contents = {
+            "app.py": "handler = 1\n",
+            "core_database/schemas/com.example.AppDatabase/1.json": '{"formatVersion": 1}\n',
+        }
+        nodes = [
+            symbol("handler", "app.py", 1, 1, label="handler"),
+            symbol("formatVersion", "core_database/schemas/com.example.AppDatabase/1.json", 1, 1,
+                   label="formatVersion", kind=NodeKind.CONFIGURATION),
+        ]
+
+        graph = self.build(contents, nodes)
+
+        self.assertEqual(graph.scan.scanned_file_count, 2)
+        self.assertEqual(graph.scan.generated_file_count, 1)
+        self.assertEqual(graph.scan.generated_node_count, 1)
+        self.assertEqual(
+            [node.id for node in graph.readable_nodes if "generated" in node.flags],
+            ["formatVersion"],
         )
 
 
