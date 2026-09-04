@@ -10,7 +10,7 @@ ROADMAP은 derived query 규칙표와 비용 weight를 임시 값으로 정의�
 
 ## Decision
 
-규칙표와 임계값을 `profiles/derived_query_rules.v1.yaml`에 두고, `Profile.ref`가 id, version, 파일 바이트의 sha256을 함께 보관한다. query node id는 `sha256(kind|term|profile.version)`의 앞 16자로 계산해 profile 버전이 바뀌면 id도 바뀐다. 직렬화된 graph는 항상 `profile` 필드를 포함한다.
+규칙표와 임계값을 `profiles/` 아래 버전이 붙은 YAML 파일에 두고, `Profile.ref`가 id, version, 파일 바이트의 sha256을 함께 보관한다. query node id는 `sha256(kind|term|profile.version)`의 앞 16자로 계산해 profile 버전이 바뀌면 id도 바뀐다. 직렬화된 graph는 항상 `profile` 필드를 포함한다.
 
 `load_profile`은 규칙표에 등록되지 않은 변형 id를 `ProfileError`로 거부한다.
 

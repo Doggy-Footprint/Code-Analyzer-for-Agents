@@ -18,11 +18,11 @@ def read_file(path: Path) -> Optional[str]:
         return None
 
 
-def list_repository_files(root: Path, *, respect_gitignore: bool = True) -> Tuple[str, List[str]]:
-    if respect_gitignore:
+def list_repository_files(root: Path, *, tracked_files_only: bool = True) -> Tuple[str, List[str]]:
+    if tracked_files_only:
         tracked = _git_tracked_files(root)
         if tracked is not None:
-            return "git", sorted(tracked)
+            return "git-tracked", sorted(tracked)
     return "static_fallback", sorted(_walk_files(root))
 
 

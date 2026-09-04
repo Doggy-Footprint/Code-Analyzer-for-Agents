@@ -37,7 +37,7 @@ class Profile:
     max_file_bytes: int
     transforms: List[Transform]
     include_agent_docs: bool
-    respect_gitignore: bool
+    tracked_files_only: bool
 
     @property
     def version(self) -> int:
@@ -45,7 +45,7 @@ class Profile:
 
 
 def default_profile_path() -> Path:
-    return Path(__file__).resolve().parents[1] / "profiles" / "derived_query_rules.v1.yaml"
+    return Path(__file__).resolve().parents[1] / "profiles" / "derived_query_rules.v2.yaml"
 
 
 def load_profile(path: Union[str, Path]) -> Profile:
@@ -90,7 +90,7 @@ def load_profile(path: Union[str, Path]) -> Profile:
         max_file_bytes=values["max_file_bytes"],
         transforms=transforms,
         include_agent_docs=bool(document.get("include_agent_docs", True)),
-        respect_gitignore=bool(document.get("respect_gitignore", True)),
+        tracked_files_only=bool(document.get("tracked_files_only", True)),
     )
 
 

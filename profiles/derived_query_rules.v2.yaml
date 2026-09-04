@@ -1,11 +1,11 @@
-id: derived_query_rules.v1
-version: 1
+id: derived_query_rules.v2
+version: 2
 limits:
   max_arrival_nodes: 50
   min_term_length: 3
   max_file_bytes: 1048576
 include_agent_docs: true
-respect_gitignore: true
+tracked_files_only: true
 transforms:
   - id: split-case
   - id: token-adjacent-pairs
