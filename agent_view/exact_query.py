@@ -27,6 +27,20 @@ def query_node_id(kind: str, term: str, version: int) -> str:
     return hashlib.sha256(f"{kind}|{term}|{version}".encode("utf-8")).hexdigest()[:16]
 
 
+def render_occurrences(occurrences: Sequence[Occurrence]) -> str:
+    return "\n".join(f"{item.file_path}:{item.line}:{item.matched_text}" for item in occurrences)
+
+
+def occurrence_digest(occurrences: Sequence[Occurrence]) -> str:
+    # output_tokens는 파일·줄·매치 문자열만 반영하므로 context나 enclosing node가 바뀌어도 값이 같다.
+    # 근거 변화를 diff가 관측하려면 occurrence의 모든 필드를 포함한 별도 지문이 필요하다.
+    payload = "\n".join(
+        f"{item.file_path}|{item.line}|{item.col}|{item.matched_text}|{item.context}|{item.enclosing_node_id}"
+        for item in occurrences
+    )
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
 def _add(clues: Dict[str, Clue], term: str, kind: str, origin: str, profile: Profile) -> None:
     term = term.strip()
     if not term or "\n" in term or "\r" in term or len(term) < profile.min_term_length:
@@ -105,9 +119,7 @@ def make_query_node(
 ) -> QueryNode:
     arrivals = sorted({occurrence.enclosing_node_id for occurrence in occurrences})
     excluded = len(arrivals) > profile.max_arrival_nodes
-    output_tokens = estimate_tokens(
-        "\n".join(f"{item.file_path}:{item.line}:{item.matched_text}" for item in occurrences)
-    )
+    output_tokens = estimate_tokens(render_occurrences(occurrences))
     return QueryNode(
         id=query_node_id(kind, term, profile.ref.version),
         term=term,
@@ -117,6 +129,7 @@ def make_query_node(
         rule_id=rule_id,
         source_terms=sorted(source_terms),
         occurrences=occurrences,
+        occurrence_digest=occurrence_digest(occurrences),
         arrival_node_ids=arrivals,
         output_tokens=output_tokens,
         excluded=excluded,

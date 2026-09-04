@@ -3,7 +3,7 @@ from typing import List, Optional
 
 from language_analyzers.core.graph_models import NodeCost
 
-SCHEMA_VERSION = "1"
+SCHEMA_VERSION = "2"
 
 
 @dataclass(frozen=True)
@@ -46,6 +46,7 @@ class QueryNode:
     rule_id: Optional[str]
     source_terms: List[str]
     occurrences: List[Occurrence]
+    occurrence_digest: str
     arrival_node_ids: List[str]
     output_tokens: int
     excluded: bool

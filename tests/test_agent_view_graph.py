@@ -1009,7 +1009,7 @@ class DiffTests(TempDirFixture):
         )
         self.assertEqual(result["query_nodes"]["added"], [])
         changed = {before_terms[entry["id"]]: entry["fields"] for entry in result["query_nodes"]["changed"]}
-        self.assertEqual(sorted(changed["alpha"]), ["output_tokens"])
+        self.assertEqual(sorted(changed["alpha"]), ["occurrence_digest", "output_tokens"])
         self.assertLess(
             changed["alpha"]["output_tokens"]["before"],
             changed["alpha"]["output_tokens"]["after"],
@@ -1113,6 +1113,40 @@ class DiffTests(TempDirFixture):
             changed["alpha|demo.rule"]["to_node_ids"],
             {"before": ["beta"], "after": ["alpha", "beta"]},
         )
+
+    def test_evidence_path_change_alone_is_reported(self):
+        contents = {"a.py": "alpha = 1\n", "b.py": "beta = 2\n"}
+        nodes = [symbol("alpha", "a.py", 1, 1, label="alpha"), symbol("beta", "b.py", 1, 1, label="beta")]
+
+        def edge(evidence_path):
+            return GraphEdge(
+                from_id="alpha", to_id="beta", relation=RelationKind.IMPLEMENTED_BY,
+                confidence=Confidence.FRAMEWORK_INFERRED,
+                evidence=SourceSpan(evidence_path, 1, 1),
+                metadata={"framework_rule": {"id": "demo.rule", "specificity": "unique"}},
+            )
+
+        before = self.build(contents, nodes, [edge("/abs/checkout/a.py")])
+        after = self.build(contents, nodes, [edge("a.py")])
+
+        result = diff_agent_view(before, after)
+        changed = {entry["id"]: entry["fields"] for entry in result["framework_links"]["changed"]}
+
+        self.assertEqual(
+            changed["alpha|demo.rule|beta"]["evidence_file"],
+            {"before": "/abs/checkout/a.py", "after": "a.py"},
+        )
+
+    def test_occurrence_move_without_cost_change_is_reported(self):
+        nodes = [symbol("alpha", "a.py", 1, 3, label="alpha")]
+        before = self.build({"a.py": "alpha\nxx\nyy\n"}, nodes)
+        after = self.build({"a.py": "xx\nyy\nalpha\n"}, nodes)
+
+        result = diff_agent_view(before, after)
+        terms = {node["id"]: node["term"] for node in before["query_nodes"]}
+        changed = {terms[entry["id"]]: entry["fields"] for entry in result["query_nodes"]["changed"]}
+
+        self.assertEqual(sorted(changed["alpha"]), ["occurrence_digest"])
 
 
 if __name__ == "__main__":

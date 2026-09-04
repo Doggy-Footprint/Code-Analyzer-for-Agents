@@ -52,8 +52,14 @@ __all__ = [
 ]
 
 _READABLE_DIFF_FIELDS = ("read_cost.token_estimate", "flags", "start_line", "end_line")
-_QUERY_DIFF_FIELDS = ("arrival_node_ids", "output_tokens", "excluded", "origin_node_ids")
-_LINK_DIFF_FIELDS = ("to_node_ids", "specificity", "query_id")
+_QUERY_DIFF_FIELDS = (
+    "arrival_node_ids", "output_tokens", "excluded", "origin_node_ids",
+    "occurrence_digest", "clue_kinds", "rule_id", "source_terms",
+)
+_LINK_DIFF_FIELDS = (
+    "to_node_ids", "specificity", "query_id",
+    "evidence_file", "evidence_line", "resolution", "candidate_node_ids",
+)
 
 
 def build_agent_view(

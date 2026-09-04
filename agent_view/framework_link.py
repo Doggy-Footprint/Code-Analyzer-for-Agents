@@ -4,6 +4,7 @@ from typing import Any, Dict, List, Mapping, Sequence, Tuple
 from language_analyzers.core.cost import estimate_tokens
 from language_analyzers.core.graph_models import Confidence
 
+from .exact_query import occurrence_digest, render_occurrences
 from .models import FrameworkLink, Occurrence, QueryNode, ReadableNode
 from .occurrence import OccurrenceIndex
 from .profile import Profile
@@ -112,10 +113,9 @@ def build_framework_links(
                 rule_id=group["rule_id"],
                 source_terms=[],
                 occurrences=occurrences,
+                occurrence_digest=occurrence_digest(occurrences),
                 arrival_node_ids=targets,
-                output_tokens=estimate_tokens(
-                    "\n".join(f"{item.file_path}:{item.line}:{item.matched_text}" for item in occurrences)
-                ),
+                output_tokens=estimate_tokens(render_occurrences(occurrences)),
                 excluded=excluded,
                 exclusion_reason="too_many_arrival_nodes" if excluded else None,
             ))
